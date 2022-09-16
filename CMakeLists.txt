@@ -13,6 +13,7 @@ FetchContent_Declare(
 FetchContent_Declare(
 	SDL2
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+	GIT_TAG main
 )
 
 find_package(glad QUIET)
