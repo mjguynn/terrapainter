@@ -35,4 +35,4 @@ target_compile_features(cs4621 PUBLIC cxx_std_20)
 set_target_properties(cs4621 PROPERTIES CXX_EXTENSIONS OFF)
 
 target_include_directories(cs4621 PUBLIC include)
-target_link_libraries(cs4621 PUBLIC sdl2)
+target_link_libraries(cs4621 PUBLIC glad SDL2::SDL2 SDL2::SDL2main)
