@@ -3,6 +3,26 @@
 #include "SDL_opengl.h"
 #include <iostream>
 
+// create vertices for triangle
+float vertices[] = {
+    -0.5f, -0.5f, 0.0f,
+    0.5f, -0.5f, 0.0f,
+    0.0f, 0.5f, 0.0f};
+
+const char *vertexShaderSource = "#version 330 core\n"
+                                 "layout (location = 0) in vec3 aPos;\n"
+                                 "void main()\n"
+                                 "{\n"
+                                 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+                                 "}\0";
+
+const char *fragmentShaderSource = "#version 330 core\n"
+                                   "out vec4 FragColor;\n"
+                                   "void main()\n"
+                                   "{\n"
+                                   " FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                   "}\0";
+
 int main(int argc, char *argv[])
 {
   // Initialize SDL
@@ -23,6 +43,7 @@ int main(int argc, char *argv[])
   // Create OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
 
+  // Initialize GLAD
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
   {
     std::cout << "Failed to initialize GLAD" << std::endl;
@@ -31,6 +52,44 @@ int main(int argc, char *argv[])
 
   // Set viewport
   glViewport(0, 0, 800, 600);
+
+  // generate and bind VAO
+  unsigned int VAO;
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
+
+  // create VBO
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // vertex shader
+  unsigned int vertexShader;
+  vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+  glCompileShader(vertexShader);
+
+  // fragment shader
+  unsigned int fragmentShader;
+  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+  glCompileShader(fragmentShader);
+
+  // shader program
+  unsigned int shaderProgram;
+  shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glLinkProgram(shaderProgram);
+
+  // dealloc memory
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+  // set vertex attribute pointers
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
 
   // Run the event loop
   SDL_Event windowEvent;
@@ -41,6 +100,9 @@ int main(int argc, char *argv[])
     // rendering commands
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // check and call events and swap the buffers
     if (SDL_PollEvent(&windowEvent))
