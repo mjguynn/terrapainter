@@ -30,7 +30,7 @@ if (NOT SDL2_FOUND)
 endif()
 
 # ================== CS4621 SETUP ======================
-add_executable(cs4621 create_context.cpp)
+add_executable(cs4621 WIN32 create_context.cpp)
 
 # Set C++ version to C++20 (the new way, for CMake 3.8+)
 target_compile_features(cs4621 PUBLIC cxx_std_20)
