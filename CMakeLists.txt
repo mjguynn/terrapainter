@@ -29,8 +29,13 @@ FetchContent_MakeAvailable(SDL2)
 set(terrapainter_SOURCES
 	"src/create_context.cpp"
 )
+set(terrapainter_HEADERS
+	"include/terrapainter/linalg.h"
+	"include/terrapainter/util.h"
+)
+source_group("Headers" FILES ${terrapainter_HEADERS})
 
-add_executable(terrapainter WIN32 ${terrapainter_SOURCES})
+add_executable(terrapainter WIN32 ${terrapainter_SOURCES} ${terrapainter_HEADERS})
 
 # Set C++ version to C++20 (the new way, for CMake 3.8+)
 target_compile_features(terrapainter PUBLIC cxx_std_20)
