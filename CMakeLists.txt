@@ -89,7 +89,7 @@ if (NOT SDL2_FOUND)
 	# system then its dylibs will be in PATH
 	add_custom_command(
 		TARGET terrapainter POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:terrapainter> $<TARGET_FILE_DIR:terrapainter>
+		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:SDL2::SDL2> $<TARGET_FILE_DIR:terrapainter>
 		COMMAND_EXPAND_LISTS
 	)
 endif()
