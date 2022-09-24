@@ -53,20 +53,20 @@ endif()
 # Terrapainter lib contains everything that should be easily testable
 # so no OpenGL or SDL2 in there
 set(terrapainter_lib_SOURCES 
-	"src/util.cpp"
+	"${CMAKE_SOURCE_DIR}/src/util.cpp"
 )
 set(terrapainter_lib_HEADERS
-	"include/terrapainter/linalg.h"
-	"include/terrapainter/util.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/math.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/util.h"
 )
 
 add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_lib_HEADERS})
-target_include_directories(terrapainter_lib PUBLIC "include")
+target_include_directories(terrapainter_lib PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(terrapainter_lib PRIVATE terrapainter_shared)
 
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
-	"src/create_context.cpp"
+	"${CMAKE_SOURCE_DIR}/src/create_context.cpp"
 )
 set(terrapainter_HEADERS
 )
@@ -102,8 +102,7 @@ endif()
 include(Catch)
 
 set(terrapainter_tests_SOURCES
-	"tests/testlib.cpp"
-	"tests/linalg.cpp"
+	"${CMAKE_SOURCE_DIR}/tests/math.cpp"
 )
 
 add_executable(terrapainter_tests ${terrapainter_tests_SOURCES})

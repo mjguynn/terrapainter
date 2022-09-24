@@ -48,3 +48,11 @@ TEST_CASE("Vec4 comparisons", "[linalg]") {
 		REQUIRE(target != too_much_offset);
 	}
 }
+TEST_CASE("Vec4 elementwise ops") {
+	SECTION("Addition/subtraction") {
+	
+	}
+	SECTION("Multiplication/division") {
+	
+	}
+}
