@@ -79,7 +79,7 @@ if(TARGET SDL2::SDL2main)
 	target_link_libraries(terrapainter PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2 terrapainter_lib terrapainter_shared)
+target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2 terrapainter_lib terrapainter_shared ${CMAKE_DL_LIBS})
 
 if (NOT SDL2_FOUND)
 	# Ensure the SDL2 dylib is in the same directory as the binary so the binary
