@@ -63,14 +63,14 @@ namespace linalg {
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
 		explicit constexpr MVector(S splat) {
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] = splat;
 			}
 		}
 
 		template<std::convertible_to<F> S>
 		constexpr static MVector splat(S splat) {
-			return static_cast<MVector>(S);
+			return static_cast<MVector>(splat);
 		}
 
 		/// Per-element bracket initialization syntax.
@@ -80,13 +80,13 @@ namespace linalg {
 		constexpr MVector(const Args&... args) : f(args...) {}
 
 		constexpr MVector& operator+=(const MVector& other) {
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] += other->elems[i];
 			}
 			return *this;
 		}
 		constexpr MVector& operator-=(const MVector& other) {
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] -= other->elems[i];
 			}
 			return *this;
@@ -95,14 +95,14 @@ namespace linalg {
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
 			F scalar_cvt = static_cast<F>(scalar);
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] *= scalar_cvt;
 			}
 			return *this;
 		}
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] *= other->elems[i];
 			}
 			return *this;
@@ -117,7 +117,7 @@ namespace linalg {
 		}
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
-			for (size_t i; i < C; i++) {
+			for (size_t i = 0; i < C; i++) {
 				this->elems[i] /= other->elems[i];
 			}
 			return *this;
@@ -133,9 +133,10 @@ namespace linalg {
 	template<std::floating_point F, size_t C>
 	F dot(const MVector<F, C>& left, const MVector<F, C>& right) {
 		F sum = static_cast<F>(0);
-		for (size_t i; i < C; i++) {
-			sum += this->elems[i] * other->elems[i];
+		for (size_t i = 0; i < C; i++) {
+			sum += left.elems[i] * right.elems[i];
 		}
+		return sum;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
@@ -156,5 +157,4 @@ using vec2 = linalg::MVector<float, 2>;
 using vec3 = linalg::MVector<float, 3>;
 using vec4 = linalg::MVector<float, 4>;
 
-template<std::floating_point F, size_t C>
-using dot = linalg::dot;
+using linalg::dot;

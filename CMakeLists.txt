@@ -7,8 +7,10 @@ project(
 	LANGUAGES CXX
 )
 
-# ================== DEPENDENCIES ======================
+include(CTest)
 include(FetchContent)
+
+# ================== DEPENDENCIES ======================
 FetchContent_Declare(
 	glad
 	GIT_REPOSITORY https://github.com/Dav1dde/glad.git
@@ -25,38 +27,59 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL2)
 
+FetchContent_Declare(
+	Catch2
+	GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+	GIT_TAG        v3.0.1 # or a later release
+	GIT_SHALLOW true
+	GIT_PROGRESS true
+)
+FetchContent_MakeAvailable(Catch2)
+
 # ================== TERRAPAINTER SETUP ======================
+# Dummy library which exists to "bundle up" all the shared compile options
+add_library(terrapainter_shared INTERFACE)
+target_compile_features(terrapainter_shared INTERFACE cxx_std_20)
+set_target_properties(terrapainter_shared PROPERTIES CXX_EXTENSIONS OFF)
+if(MSVC)
+	# Parallel compilation
+	target_compile_options(terrapainter_shared INTERFACE "/MP")
+	# Enable experimental C++ features so I can get Intellisense with concepts
+	target_compile_options(terrapainter_shared INTERFACE "/std:c++latest")
+	# Nicely group header files for Visual Studio
+	source_group("Headers" REGULAR_EXPRESSION "^.+\.h$")
+endif()
+
+# Terrapainter lib contains everything that should be easily testable
+# so no OpenGL or SDL2 in there
+set(terrapainter_lib_SOURCES 
+	"src/util.cpp"
+)
+set(terrapainter_lib_HEADERS
+	"include/terrapainter/linalg.h"
+	"include/terrapainter/util.h"
+)
+
+add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_lib_HEADERS})
+target_include_directories(terrapainter_lib PUBLIC "include")
+target_link_libraries(terrapainter_lib PRIVATE terrapainter_shared)
+
+# Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
 	"src/create_context.cpp"
 )
 set(terrapainter_HEADERS
-	"include/terrapainter/linalg.h"
-	"include/terrapainter/util.h"
 )
-source_group("Headers" FILES ${terrapainter_HEADERS})
 
 add_executable(terrapainter WIN32 ${terrapainter_SOURCES} ${terrapainter_HEADERS})
-
-# Set C++ version to C++20 (the new way, for CMake 3.8+)
-target_compile_features(terrapainter PUBLIC cxx_std_20)
-set_target_properties(terrapainter PROPERTIES CXX_EXTENSIONS OFF)
-
-target_include_directories(terrapainter PUBLIC include)
-
-# MSVC-specific options
-if(MSVC)
-	# Parallel compilation
-	target_compile_options(terrapainter PRIVATE "/MP")
-	# Don't reset the active project
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT terrapainter)
-endif()
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT terrapainter)
 
 # From SDL2 docs, this target is only available on certain platforms
 if(TARGET SDL2::SDL2main)
 	target_link_libraries(terrapainter PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2)
+target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2 terrapainter_lib terrapainter_shared)
 
 if (NOT SDL2_FOUND)
 	# Ensure the SDL2 dylib is in the same directory as the binary so the binary
@@ -70,3 +93,19 @@ if (NOT SDL2_FOUND)
 		COMMAND_EXPAND_LISTS
 	)
 endif()
+
+# ================== TERRAPAINTER TESTS =======================
+if(NOT Catch2_FOUND)
+	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+endif()
+
+include(Catch)
+
+set(terrapainter_tests_SOURCES
+	"tests/testlib.cpp"
+	"tests/linalg.cpp"
+)
+
+add_executable(terrapainter_tests ${terrapainter_tests_SOURCES})
+target_link_libraries(terrapainter_tests PRIVATE Catch2::Catch2WithMain terrapainter_lib terrapainter_shared)
+catch_discover_tests(terrapainter_tests)
