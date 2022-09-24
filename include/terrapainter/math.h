@@ -2,12 +2,13 @@
 #include <algorithm>
 #include <cstdlib>
 #include <concepts>
+#include <limits>
 #include "util.h"
 
 //! \file linalg.h
 //! Graphics-oriented linear algebra.
 
-namespace linalg {
+namespace math {
 	// For the sake of programmer sanity and debug-mode performance,
 	// we use union type punning,  which is technically illegal C++
 	// but is accepted by the Big Three compilers since literally
@@ -63,9 +64,7 @@ namespace linalg {
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
 		explicit constexpr MVector(S splat) {
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] = splat;
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] = splat;
 		}
 
 		template<std::convertible_to<F> S>
@@ -79,32 +78,31 @@ namespace linalg {
 		template<typename ...Args>
 		constexpr MVector(const Args&... args) : f(args...) {}
 
+		constexpr bool operator==(const MVector& other) const {
+			return aeq(*this, other);
+		}
+		constexpr bool operator!=(const MVector& other) const {
+			return !this->operator==(other);
+		}
+
 		constexpr MVector& operator+=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] += other->elems[i];
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] += other->elems[i];
 			return *this;
 		}
 		constexpr MVector& operator-=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] -= other->elems[i];
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] -= other->elems[i];
 			return *this;
 		}
 		/// Scalar multiplication.
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
 			F scalar_cvt = static_cast<F>(scalar);
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] *= scalar_cvt;
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] *= scalar_cvt;
 			return *this;
 		}
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] *= other->elems[i];
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] *= other->elems[i];
 			return *this;
 		}
 		/// Scalar division.
@@ -117,9 +115,7 @@ namespace linalg {
 		}
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) {
-				this->elems[i] /= other->elems[i];
-			}
+			for (size_t i = 0; i < C; i++) this->elems[i] /= other->elems[i];
 			return *this;
 		}
 		constexpr const F& operator[](size_t index) const {
@@ -133,9 +129,7 @@ namespace linalg {
 	template<std::floating_point F, size_t C>
 	F dot(const MVector<F, C>& left, const MVector<F, C>& right) {
 		F sum = static_cast<F>(0);
-		for (size_t i = 0; i < C; i++) {
-			sum += left.elems[i] * right.elems[i];
-		}
+		for (size_t i = 0; i < C; i++) sum += left.elems[i] * right.elems[i];
 		return sum;
 	}
 
@@ -152,9 +146,31 @@ namespace linalg {
 		return util::todo();
 	}
 
-}
-using vec2 = linalg::MVector<float, 2>;
-using vec3 = linalg::MVector<float, 3>;
-using vec4 = linalg::MVector<float, 4>;
+	template<std::floating_point F>
+	bool aeq(F left, F right, F tolerance = std::numeric_limits<F>::epsilon()) {
+		if (!std::isfinite(left)) {
+			return !std::isfinite(right) && left == right;
+		}
+		else if (!std::isfinite(right)) {
+			return false;
+		}
+		F lowmag = std::min(std::abs(left), std::abs(right));
+		F scale = std::max(lowmag, static_cast<F>(1));
+		return std::abs(left - right) <= (tolerance * scale);
+	}
 
-using linalg::dot;
+	template<std::floating_point F, size_t C>
+	bool aeq(const MVector<F, C>& left, const MVector<F, C>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
+		for (size_t i = 0; i < C; i++) {
+			if (!aeq(left.elems[i], right.elems[i], tolerance)) return false;
+		}
+		return true;
+	}
+
+}
+using vec2 = math::MVector<float, 2>;
+using vec3 = math::MVector<float, 3>;
+using vec4 = math::MVector<float, 4>;
+
+using math::dot;
+using math::aeq;
