@@ -19,6 +19,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: Update packages
+      # We need to do this, otherwise the next step fails.
+      run: sudo apt-get update
+      
     - name: Ensure SDL2
       # Download and install SDL2 and development headers
       run: sudo apt-get install libsdl2-2.0-0 libsdl2-dev
