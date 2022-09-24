@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <concepts>
+#include <cmath>
 #include <limits>
 #include "util.h"
 
