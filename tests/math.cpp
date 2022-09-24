@@ -1,3 +1,4 @@
+#include <cfloat>
 #include <catch2/catch_test_macros.hpp>
 #include "terrapainter/math.h"
 TEST_CASE("Vec4 constructors/splats", "[linalg]") {
