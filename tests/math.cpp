@@ -172,5 +172,41 @@ TEST_CASE("Normalize") {
 		vec4 bn = vec4{ 0.7841948905, -0.6163015989, -0.0004724066, 0.0721837224 };
 		REQUIRE(b.normalize() == bn);
 	}
+}
+TEST_CASE("Cross product") {
+	SECTION("Orthonormal") {
+		vec3 i = { 1.0, 0.0, 0.0 };
+		vec3 j = { 0.0, 1.0, 0.0 };
+		vec3 ixj = { 0.0, 0.0, 1.0 };
+		REQUIRE(aeq(cross(i, j), ixj));
+		REQUIRE(aeq(cross(j, i), -ixj));
 
+		vec3 a = { 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2)};
+		vec3 b = { 0.f, -1.f / sqrtf(2), 1.f / sqrtf(2)};
+		vec3 axb = { 1.0, 0.0, 0.0 };
+		REQUIRE(aeq(cross(a, b), axb));
+		REQUIRE(aeq(cross(b, a), -axb));
+
+		vec3 c = { -0.23939017, 0.58743526, -0.77305379 };
+		vec3 d = { 0.81921268, -0.30515101, -0.48556508 };
+		vec3 cxd = { -0.52113619, -0.74953498, -0.40818426 };
+		REQUIRE(aeq(cross(c, d), cxd));
+		REQUIRE(aeq(cross(d, c), -cxd));
+	}
+	SECTION("Random") {
+		vec3 a = { 7.43, 9.8, -5.0 };
+		vec3 b = { -6.0, -3.2, 0.0 };
+		vec3 axb = { -16.0, 30.0, 35.024 };
+		REQUIRE(aeq(cross(a, b), axb));
+		REQUIRE(aeq(cross(b, a), -axb));
+	}
+	SECTION("Parallel / Zero") {
+		vec3 zxz = cross(vec3::zero(), vec3::zero());
+		REQUIRE(zxz == vec3::zero());
+
+		vec3 a = { 12.0, 22.0, 0.5 };
+		vec3 b = { 6.0, 11.0 , 0.25 };
+		REQUIRE(aeq(cross(a, b), vec3::zero()));
+		REQUIRE(aeq(cross(b, a), vec3::zero()));
+	}
 }

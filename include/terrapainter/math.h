@@ -112,6 +112,11 @@ namespace math {
 			return copy;
 		}
 
+		/// Unary negation.
+		constexpr MVector operator-() const {
+			return *this * static_cast<F>(-1);
+		}
+
 		/// Scalar multiplication.
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
@@ -217,6 +222,15 @@ namespace math {
 	}
 
 	template<std::floating_point F>
+	constexpr MVector<F, 3> cross(const MVector<F, 3>& a, const MVector<F, 3>& b) {
+		return MVector<F, 3> {
+			a.f.y* b.f.z - a.f.z * b.f.y,
+			a.f.z* b.f.x - a.f.x * b.f.z,
+			a.f.x* b.f.y - a.f.y * b.f.x
+		};
+	}
+
+	template<std::floating_point F>
 	bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
 		if (!std::isfinite(l)) {
 			return !std::isfinite(r) && l == r;
@@ -244,4 +258,5 @@ using vec3 = math::MVector<float, 3>;
 using vec4 = math::MVector<float, 4>;
 
 using math::dot;
+using math::cross;
 using math::aeq;
