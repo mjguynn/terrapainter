@@ -189,9 +189,9 @@ namespace math {
 
 
 	template<std::floating_point F, size_t C>
-	F dot(const MVector<F, C>& left, const MVector<F, C>& right) {
+	F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
 		F sum = static_cast<F>(0);
-		for (size_t i = 0; i < C; i++) sum += left.elems[i] * right.elems[i];
+		for (size_t i = 0; i < C; i++) sum += l.elems[i] * r.elems[i];
 		return sum;
 	}
 
@@ -209,16 +209,16 @@ namespace math {
 	}
 
 	template<std::floating_point F>
-	bool aeq(F left, F right, F tolerance = std::numeric_limits<F>::epsilon()) {
-		if (!std::isfinite(left)) {
-			return !std::isfinite(right) && left == right;
+	bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
+		if (!std::isfinite(l)) {
+			return !std::isfinite(r) && l == r;
 		}
-		else if (!std::isfinite(right)) {
+		else if (!std::isfinite(r)) {
 			return false;
 		}
-		F lowmag = std::min(std::abs(left), std::abs(right));
+		F lowmag = std::min(std::abs(l), std::abs(r));
 		F scale = std::max(lowmag, static_cast<F>(1));
-		return std::abs(left - right) <= (tolerance * scale);
+		return std::abs(l - r) <= (tolerance * scale);
 	}
 
 	template<std::floating_point F, size_t C>

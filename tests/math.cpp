@@ -119,3 +119,41 @@ TEST_CASE("Vec4 division") {
 		REQUIRE(b / c == vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 });
 	}
 }
+TEST_CASE("Dot product, vector length") {
+	SECTION("Dot Product") {
+		SECTION("Perpendicular") {
+			vec4 i = { 1.0, 0.0, 0.0, 0.0 };
+			vec4 j = { 0.0, 1.0, 0.0, 0.0 };
+			REQUIRE(aeq(dot(i, j),0.f));
+
+			vec4 a = { 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
+			vec4 b = { 0.f, -1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
+			REQUIRE(aeq(dot(a, b), 0.f));
+		}
+		SECTION("Parallel") {
+			vec4 a = { 1.0, 6.0, 0.0, -1.0 };
+			vec4 b = { 5.0, 30.0, 0.0, -5.0 };
+			vec4 c = { -5.0, -30.0, 0.0, 5.0 };
+			REQUIRE(aeq(dot(a, b), 190.f));
+			REQUIRE(aeq(dot(a, c), -190.f));
+		}
+		SECTION("Random") {
+			vec4 a = { 1.0, 6.0, 0.0, -1.0 };
+			vec4 b = { 76.0, 0.0, -32.0, 18.0 };
+			vec4 c = { 99.2, 43.7, -0.5, -0.333 };
+			REQUIRE(aeq(dot(a, b), 58.f));
+			REQUIRE(aeq(dot(a, c), 361.733f));
+			REQUIRE(aeq(dot(b, c), 7549.206f));
+		}
+	}
+	SECTION("Length") {
+		vec4 zero = vec4::splat(0.f);
+		REQUIRE(zero.mag() == 0.f);
+		vec4 basis = { 1.0, 0.0, 0.0, 0.0 };
+		REQUIRE(basis.mag() == 1.f);
+		vec4 unit = { 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
+		REQUIRE(aeq(unit.mag(), 1.f));
+		vec4 random = { 6.0, -7.0, 0.0, 0.32 };
+		REQUIRE(aeq(random.mag(), 9.2250962055f));
+	}
+}
