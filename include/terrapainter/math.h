@@ -115,12 +115,24 @@ namespace math {
 			for (size_t i = 0; i < C; i++) this->elems[i] *= scalar_cvt;
 			return *this;
 		}
+		template<std::convertible_to<F> S>
+		constexpr MVector operator*(S scalar) {
+			auto copy = *this;
+			copy *= scalar;
+			return copy;
+		}
 
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] *= other->elems[i];
+			for (size_t i = 0; i < C; i++) this->elems[i] *= other.elems[i];
 			return *this;
 		}
+		constexpr MVector operator*(const MVector& other) {
+			auto copy = *this;
+			copy *= other;
+			return copy;
+		}
+
 		/// Scalar division.
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator/=(S scalar) {
@@ -129,6 +141,7 @@ namespace math {
 			F reciprocal = static_cast<F>(1.0) / static_cast<F>(scalar);
 			return this->operator*=(reciprocal);
 		}
+
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] /= other->elems[i];
@@ -154,6 +167,10 @@ namespace math {
 		for (size_t i = 1; i < C; i++) os << ", " << vec[i];
 		os << ")";
 		return os;
+	}
+	template<std::floating_point F, size_t C, std::convertible_to<F> S>
+	MVector<F,C> operator*(S scalar, MVector<F, C> vec) {
+		return vec * scalar;
 	}
 
 	template<std::floating_point F, size_t C>

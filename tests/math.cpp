@@ -75,7 +75,22 @@ TEST_CASE("Vec4 elementwise ops") {
 			REQUIRE(a + b == vec4::splat(0.f));
 		}
 	}
-	SECTION("Multiplication/division") {
-	
+	SECTION("Multiplication") {
+		SECTION("Random Vectors * Scalars") {
+			vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
+			REQUIRE(v * 2 == vec4{ 1.2, -46.4, 19998.0, 0.0 });
+			REQUIRE(-6 * v == vec4{ -3.6, 139.2, -59994.0, 0.0 });
+			v *= 0.5;
+			REQUIRE(v == vec4{ 0.3, -11.6, 4999.5, 0.0 });
+		}
+		SECTION("Random Vectors * Vectors") {
+			vec4 a = { 0.5, 16.2, 30.7, 29.99 };
+			vec4 b = { -12, -36, 0, -65 };
+			vec4 c = { -18, 3, -1, 1 };
+
+			REQUIRE(a * b == vec4{ -6.f, -583.2f, 0.f, -1949.35f });
+			REQUIRE(a * c == vec4{ -9.f, 48.6f, -30.7f, 29.99f });
+			REQUIRE(b * c == vec4{ 216.f, -108.f, 0.f, -65.f });
+		}
 	}
 }
