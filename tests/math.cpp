@@ -210,3 +210,13 @@ TEST_CASE("Cross product") {
 		REQUIRE(aeq(cross(b, a), vec3::zero()));
 	}
 }
+TEST_CASE("Linear interpolation") {
+	vec3 x = { 12, -43, 86 };
+	vec3 y = { 0.0, -5.0, -2.75 };
+	REQUIRE(aeq(lerp(x, y, 0.f), x));
+	REQUIRE(aeq(lerp(x, y, 1.f), y));
+	REQUIRE(aeq(lerp(x, y, 0.5f), vec3{6.f, -24.f, 41.625f}));
+	// ugh.. we do actually get the correct result here, but there's a bit too much precision loss at play.
+	REQUIRE(aeq(lerp(x, y, 0.33f), vec3{ 8.04f, -30.46f, 56.7125f }, 1e-5f));
+	REQUIRE(aeq(lerp(x, y, -1.f), vec3{ 24.f, -81.f, 174.75f }));
+}

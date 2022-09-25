@@ -209,13 +209,13 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	F lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
+	MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		return (static_cast<F>(1) - factor_cvt) * p0 + (factor_cvt) * p1;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	F cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+	MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		// Waiting to implement cubic interpolation until I've done matrices
 		TODO();
@@ -250,7 +250,6 @@ namespace math {
 		}
 		return true;
 	}
-
 }
 
 using vec2 = math::MVector<float, 2>;
