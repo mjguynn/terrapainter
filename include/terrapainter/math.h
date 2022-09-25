@@ -75,7 +75,7 @@ namespace math {
 			return static_cast<MVector>(splat);
 		}
 
-		constexpr static MVector zero() {
+		consteval static MVector zero() {
 			return MVector::splat(0);
 		}
 
@@ -229,6 +229,48 @@ namespace math {
 			a.f.x* b.f.y - a.f.y * b.f.x
 		};
 	}
+
+	template<std::floating_point F, size_t M, size_t N>
+		requires (1 <= M <= 4 && 1 <= N <= 4)
+	class MMatrix {
+		// *currently* we store column vectors instead of row vectors
+		// My microoptimization focused reasoning is that matrix*matrix
+		// multiplication is left-associative in C++ and we'll do a lot
+		// more of that than matrix * vector multiplication, and there's
+		// slightly less weird swizzling if you use column vectors
+		// ... this could change at any time though
+		MVector<F, M> cols[N];
+		
+	public:
+		constexpr MVector<F, M> col(size_t i) const {
+			return cols[i];
+		}
+		constexpr MVector<F, N> row(size_t j) const {
+			auto rv = MVector<F, N>::zero();
+			for (size_t i = 0; i < N; i++) rv[i] = cols[i][j];
+			return rv;
+		}
+
+		// Just hammering out the API
+
+		consteval static MMatrix identity() {
+			TODO();
+		}
+
+		consteval static MMatrix from_rows() {
+			TODO();
+		}
+
+		consteval static MMatrix from_cols() {
+			TODO();
+		}
+
+		// We DON'T do rotate, scale, transform matrices here
+		// rotate: only makes sense for square & different in each dim
+		// scale: only makes sense for square matrices
+		// transform: should be in MMatrixH subclass
+	};
+
 
 	template<std::floating_point F>
 	bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
