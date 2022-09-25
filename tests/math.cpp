@@ -147,8 +147,7 @@ TEST_CASE("Dot product, vector length") {
 		}
 	}
 	SECTION("Length") {
-		vec4 zero = vec4::splat(0.f);
-		REQUIRE(zero.mag() == 0.f);
+		REQUIRE(vec4::zero().mag() == 0.f);
 		vec4 basis = { 1.0, 0.0, 0.0, 0.0 };
 		REQUIRE(basis.mag() == 1.f);
 		vec4 unit = { 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
@@ -156,4 +155,22 @@ TEST_CASE("Dot product, vector length") {
 		vec4 random = { 6.0, -7.0, 0.0, 0.32 };
 		REQUIRE(aeq(random.mag(), 9.2250962055f));
 	}
+}
+TEST_CASE("Normalize") {
+	SECTION("Zero vector") {
+		vec4 nmz = vec4::zero().normalize();
+		for (size_t i = 0; i < 4; i++) {
+			REQUIRE(!std::isfinite(nmz[i]));
+		}
+	}
+	SECTION("Random vectors") {
+		vec4 a = { 0, 17, 17, 0 };
+		vec4 an = vec4{ 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
+		REQUIRE(a.normalize() == an);
+
+		vec4 b = { 83.0, -65.23, -0.05, 7.64 };
+		vec4 bn = vec4{ 0.7841948905, -0.6163015989, -0.0004724066, 0.0721837224 };
+		REQUIRE(b.normalize() == bn);
+	}
+
 }

@@ -75,6 +75,10 @@ namespace math {
 			return static_cast<MVector>(splat);
 		}
 
+		constexpr static MVector zero() {
+			return MVector::splat(0);
+		}
+
 		/// Per-element bracket initialization syntax.
 		/// You have to specify the same number of elements as
 		/// the vector requires.
@@ -170,6 +174,10 @@ namespace math {
 		// Returns the magnitude of this vector.
 		constexpr F mag() const {
 			return std::sqrt(dot(*this, *this));
+		}
+
+		constexpr MVector normalize() const {
+			return *this / this->mag();
 		}
 	};
 
