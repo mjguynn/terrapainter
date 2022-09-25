@@ -5,7 +5,6 @@
 #include <cmath>
 #include <limits>
 #include <iostream>
-#include <format>
 
 #include "util.h"
 
@@ -141,12 +140,19 @@ namespace math {
 		constexpr F& operator[](size_t index) {
 			return this->elems[index];
 		}
+
+		// Returns the magnitude of this vector.
+		constexpr F mag() const {
+			return std::sqrt(dot(*this, *this));
+		}
 	};
 
 	template<std::floating_point F, size_t C>
 	std::ostream& operator<<(std::ostream& os, const MVector<F,C>& vec)
 	{
-		os << std::format("{}", vec);
+		os << "(" << vec[0]; 
+		for (size_t i = 1; i < C; i++) os << ", " << vec[i];
+		os << ")";
 		return os;
 	}
 
@@ -192,22 +198,6 @@ namespace math {
 	}
 
 }
-
-// Allows use of vectors with std::format
-template<std::floating_point F, size_t C, class CharT>
-struct std::formatter<math::MVector<F,C>, CharT> : std::formatter<F, CharT> {
-	// inherit parse
-	template<class Out>
-	auto format(const math::MVector<F,C>& data, std::basic_format_context<Out, CharT>& ctx) {
-		std::format_to(ctx.out(), "(");
-		for (size_t i = 0; i < C-1; i++) {
-			std::formatter<F, CharT>().format(data.elems[i], ctx);
-			std::format_to(ctx.out(), ", ");
-		}
-		std::formatter<F, CharT>().format(data.elems[C - 1], ctx);
-		return std::format_to(ctx.out(), ")");
-	}
-};
 
 using vec2 = math::MVector<float, 2>;
 using vec3 = math::MVector<float, 3>;
