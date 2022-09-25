@@ -49,48 +49,73 @@ TEST_CASE("Vec4 comparisons", "[linalg]") {
 		REQUIRE(target != too_much_offset);
 	}
 }
-TEST_CASE("Vec4 elementwise ops") {
-	SECTION("Addition/Subtraction") {
-		SECTION("Random Vectors") {
-			vec4 a = { 5, -7, 6, 2 };
-			vec4 b = { 12.f, 16.f, -69.f, -13.f };
-			vec4 apb = vec4{ 17.f, 9.f, -63.f, -11.f };
-			vec4 amb = vec4{ -7.f, -23.f, 75.f, 15.f };
-			vec4 bma = vec4{ 7.f, 23.f, -75.f, -15.f };
-			REQUIRE(a + b == apb);
-			REQUIRE(a - b == amb);
-			REQUIRE(b - a == bma);
+TEST_CASE("Vec4 addition/subtraction") {
+	SECTION("Random Vectors") {
+		vec4 a = { 5, -7, 6, 2 };
+		vec4 b = { 12.f, 16.f, -69.f, -13.f };
+		vec4 apb = vec4{ 17.f, 9.f, -63.f, -11.f };
+		vec4 amb = vec4{ -7.f, -23.f, 75.f, 15.f };
+		vec4 bma = vec4{ 7.f, 23.f, -75.f, -15.f };
+		REQUIRE(a + b == apb);
+		REQUIRE(a - b == amb);
+		REQUIRE(b - a == bma);
 			
-			vec4 ac = a;
-			ac += b;
-			REQUIRE(ac == apb);
+		vec4 ac = a;
+		ac += b;
+		REQUIRE(ac == apb);
 
-			vec4 bc = b;
-			bc -= a;
-			REQUIRE(bc == bma);
-		}
-		SECTION("Additive Inverses") {
-			vec4 a = { -5.f, 0.f, -67.f, 425.f / 3.f };
-			vec4 b = { 5.f, -0.f, 67.f, -425.f / 3.f };
-			REQUIRE(a + b == vec4::splat(0.f));
-		}
+		vec4 bc = b;
+		bc -= a;
+		REQUIRE(bc == bma);
 	}
-	SECTION("Multiplication") {
-		SECTION("Random Vectors * Scalars") {
-			vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
-			REQUIRE(v * 2 == vec4{ 1.2, -46.4, 19998.0, 0.0 });
-			REQUIRE(-6 * v == vec4{ -3.6, 139.2, -59994.0, 0.0 });
-			v *= 0.5;
-			REQUIRE(v == vec4{ 0.3, -11.6, 4999.5, 0.0 });
-		}
-		SECTION("Random Vectors * Vectors") {
-			vec4 a = { 0.5, 16.2, 30.7, 29.99 };
-			vec4 b = { -12, -36, 0, -65 };
-			vec4 c = { -18, 3, -1, 1 };
+	SECTION("Additive Inverses") {
+		vec4 a = { -5.f, 0.f, -67.f, 425.f / 3.f };
+		vec4 b = { 5.f, -0.f, 67.f, -425.f / 3.f };
+		REQUIRE(a + b == vec4::splat(0.f));
+	}
+}
+TEST_CASE("Vec4 multiplication") {
+	SECTION("Random Vectors * Scalars") {
+		vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
+		REQUIRE(v * 2 == vec4{ 1.2, -46.4, 19998.0, 0.0 });
+		REQUIRE(-6 * v == vec4{ -3.6, 139.2, -59994.0, 0.0 });
+		v *= 0.5;
+		REQUIRE(v == vec4{ 0.3, -11.6, 4999.5, 0.0 });
+	}
+	SECTION("Random Vectors * Vectors") {
+		vec4 a = { 0.5, 16.2, 30.7, 29.99 };
+		vec4 b = { -12, -36, 0, -65 };
+		vec4 c = { -18, 3, -1, 1 };
 
-			REQUIRE(a * b == vec4{ -6.f, -583.2f, 0.f, -1949.35f });
-			REQUIRE(a * c == vec4{ -9.f, 48.6f, -30.7f, 29.99f });
-			REQUIRE(b * c == vec4{ 216.f, -108.f, 0.f, -65.f });
-		}
+		REQUIRE(a * b == vec4{ -6.f, -583.2f, 0.f, -1949.35f });
+		REQUIRE(a * c == vec4{ -9.f, 48.6f, -30.7f, 29.99f });
+		REQUIRE(b * c == vec4{ 216.f, -108.f, 0.f, -65.f });
+	}
+}
+TEST_CASE("Vec4 division") {
+	SECTION("Division by zero") {
+		vec4 v = { 1.f, 0.f, -3.f, NAN };
+		v /= 0;
+		// NaN == NaN will always be false,
+		// so we've gotta be explicit here
+		REQUIRE(v.f.x == INFINITY);
+		REQUIRE(std::isnan(v.f.y));
+		REQUIRE(v.f.z == -INFINITY);
+		REQUIRE(std::isnan(v.f.w));
+	}
+	SECTION("Random Vectors / Scalars") {
+		vec4 v = { 0.5, 16.2, -30.7, 29.99 };
+		REQUIRE(v / 0.5 == vec4{ 1.0, 32.4, -61.4, 59.98 });
+		REQUIRE(v / 4 == vec4{ 0.125, 4.05, -7.675, 7.4975 });
+		REQUIRE(v / -3 == vec4{ -0.1666666667, -5.4, 10.2333333333, -9.9966666667 });
+	}
+	SECTION("Random Vectors / Vectors") {
+		vec4 a = { 0.5, 16.2, 30.7, 29.99 };
+		vec4 b = { 4, 4, 4, 5 };
+		vec4 c = { -18.0, 3.0, -1.0, -0.1 };
+
+		REQUIRE(a / b == vec4{ 0.125, 4.05, 7.675, 5.998 });
+		REQUIRE(a / c == vec4{ -0.0277777778, 5.4, -30.7, -299.9 });
+		REQUIRE(b / c == vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 });
 	}
 }

@@ -116,7 +116,7 @@ namespace math {
 			return *this;
 		}
 		template<std::convertible_to<F> S>
-		constexpr MVector operator*(S scalar) {
+		constexpr MVector operator*(S scalar) const {
 			auto copy = *this;
 			copy *= scalar;
 			return copy;
@@ -127,7 +127,7 @@ namespace math {
 			for (size_t i = 0; i < C; i++) this->elems[i] *= other.elems[i];
 			return *this;
 		}
-		constexpr MVector operator*(const MVector& other) {
+		constexpr MVector operator*(const MVector& other) const {
 			auto copy = *this;
 			copy *= other;
 			return copy;
@@ -141,12 +141,25 @@ namespace math {
 			F reciprocal = static_cast<F>(1.0) / static_cast<F>(scalar);
 			return this->operator*=(reciprocal);
 		}
+		template<std::convertible_to<F> S>
+		constexpr MVector operator/(S scalar) const {
+			auto copy = *this;
+			copy /= scalar;
+			return copy;
+		}
 
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] /= other->elems[i];
+			for (size_t i = 0; i < C; i++) this->elems[i] /= other.elems[i];
 			return *this;
 		}
+		constexpr MVector operator/(const MVector& other) const {
+			auto copy = *this;
+			copy /= other;
+			return copy;
+		}
+
+		/// Indexed element access.
 		constexpr const F& operator[](size_t index) const {
 			return this->elems[index];
 		}
@@ -168,10 +181,12 @@ namespace math {
 		os << ")";
 		return os;
 	}
+
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	MVector<F,C> operator*(S scalar, MVector<F, C> vec) {
+	MVector<F,C> operator*(S scalar, const MVector<F, C>& vec) {
 		return vec * scalar;
 	}
+
 
 	template<std::floating_point F, size_t C>
 	F dot(const MVector<F, C>& left, const MVector<F, C>& right) {
