@@ -4,6 +4,9 @@
 #include <concepts>
 #include <cmath>
 #include <limits>
+#include <iostream>
+#include <format>
+
 #include "util.h"
 
 //! \file linalg.h
@@ -87,13 +90,25 @@ namespace math {
 		}
 
 		constexpr MVector& operator+=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] += other->elems[i];
+			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
 			return *this;
 		}
+		constexpr MVector operator+(const MVector& other) const {
+			auto copy = *this;
+			copy += other;
+			return copy;
+		}
+
 		constexpr MVector& operator-=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] -= other->elems[i];
+			for (size_t i = 0; i < C; i++) this->elems[i] -= other.elems[i];
 			return *this;
 		}
+		constexpr MVector operator-(const MVector& other) const {
+			auto copy = *this;
+			copy -= other;
+			return copy;
+		}
+
 		/// Scalar multiplication.
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
@@ -101,6 +116,7 @@ namespace math {
 			for (size_t i = 0; i < C; i++) this->elems[i] *= scalar_cvt;
 			return *this;
 		}
+
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] *= other->elems[i];
@@ -128,6 +144,13 @@ namespace math {
 	};
 
 	template<std::floating_point F, size_t C>
+	std::ostream& operator<<(std::ostream& os, const MVector<F,C>& vec)
+	{
+		os << std::format("{}", vec);
+		return os;
+	}
+
+	template<std::floating_point F, size_t C>
 	F dot(const MVector<F, C>& left, const MVector<F, C>& right) {
 		F sum = static_cast<F>(0);
 		for (size_t i = 0; i < C; i++) sum += left.elems[i] * right.elems[i];
@@ -144,7 +167,7 @@ namespace math {
 	F cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		// Waiting to implement cubic interpolation until I've done matrices
-		return util::todo();
+		TODO();
 	}
 
 	template<std::floating_point F>
@@ -169,6 +192,23 @@ namespace math {
 	}
 
 }
+
+// Allows use of vectors with std::format
+template<std::floating_point F, size_t C, class CharT>
+struct std::formatter<math::MVector<F,C>, CharT> : std::formatter<F, CharT> {
+	// inherit parse
+	template<class Out>
+	auto format(const math::MVector<F,C>& data, std::basic_format_context<Out, CharT>& ctx) {
+		std::format_to(ctx.out(), "(");
+		for (size_t i = 0; i < C-1; i++) {
+			std::formatter<F, CharT>().format(data.elems[i], ctx);
+			std::format_to(ctx.out(), ", ");
+		}
+		std::formatter<F, CharT>().format(data.elems[C - 1], ctx);
+		return std::format_to(ctx.out(), ")");
+	}
+};
+
 using vec2 = math::MVector<float, 2>;
 using vec3 = math::MVector<float, 3>;
 using vec4 = math::MVector<float, 4>;

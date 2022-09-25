@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cstdlib>
+#include <cstdio>
 #include <cassert>
 
-namespace util {
+#define _MACRO_TO_STRING(x) #x
+#define MACRO_TO_STRING(x) _MACRO_TO_STRING(x)
 
+namespace util {
     /// Declares that a code fragment is unreachable.
     /// Adapted from https://en.cppreference.com/w/cpp/utility/unreachable
     template<typename T = void>
@@ -23,11 +26,10 @@ namespace util {
         abort();
     #endif
     }
-
-    template<typename T = void>
-    [[noreturn]]
-    inline T todo() {
-        assert(!"TODO");
-        abort();
-    }
 }
+
+#define TODO() do { \
+    fputs(__FILE__ "(" MACRO_TO_STRING(__LINE__) "): TODO\n", stderr); \
+    assert(!"TODO"); \
+    abort(); \
+} while(0)

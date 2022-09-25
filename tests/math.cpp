@@ -50,8 +50,30 @@ TEST_CASE("Vec4 comparisons", "[linalg]") {
 	}
 }
 TEST_CASE("Vec4 elementwise ops") {
-	SECTION("Addition/subtraction") {
-	
+	SECTION("Addition/Subtraction") {
+		SECTION("Random Vectors") {
+			vec4 a = { 5, -7, 6, 2 };
+			vec4 b = { 12.f, 16.f, -69.f, -13.f };
+			vec4 apb = vec4{ 17.f, 9.f, -63.f, -11.f };
+			vec4 amb = vec4{ -7.f, -23.f, 75.f, 15.f };
+			vec4 bma = vec4{ 7.f, 23.f, -75.f, -15.f };
+			REQUIRE(a + b == apb);
+			REQUIRE(a - b == amb);
+			REQUIRE(b - a == bma);
+			
+			vec4 ac = a;
+			ac += b;
+			REQUIRE(ac == apb);
+
+			vec4 bc = b;
+			bc -= a;
+			REQUIRE(bc == bma);
+		}
+		SECTION("Additive Inverses") {
+			vec4 a = { -5.f, 0.f, -67.f, 425.f / 3.f };
+			vec4 b = { 5.f, -0.f, 67.f, -425.f / 3.f };
+			REQUIRE(a + b == vec4::splat(0.f));
+		}
 	}
 	SECTION("Multiplication/division") {
 	
