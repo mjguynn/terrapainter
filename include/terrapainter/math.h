@@ -194,7 +194,7 @@ namespace math {
 	};
 
 	template<std::floating_point F, size_t C>
-	std::ostream& operator<<(std::ostream& os, const MVector<F,C>& vec)
+	inline std::ostream& operator<<(std::ostream& os, const MVector<F,C>& vec)
 	{
 		os << "(" << vec[0]; 
 		for (size_t i = 1; i < C; i++) os << ", " << vec[i];
@@ -203,39 +203,41 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	constexpr MVector<F,C> operator*(S scalar, const MVector<F, C>& vec) {
+	inline constexpr MVector<F,C> operator*(S scalar, const MVector<F, C>& vec) {
 		return vec * scalar;
 	}
 
 
 	template<std::floating_point F, size_t C>
-	constexpr F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
+	inline constexpr F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
 		F sum = static_cast<F>(0);
 		for (size_t i = 0; i < C; i++) sum += l.elems[i] * r.elems[i];
 		return sum;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	constexpr MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
+	inline constexpr MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		return (static_cast<F>(1) - factor_cvt) * p0 + (factor_cvt) * p1;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	constexpr MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+	inline constexpr MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		// Waiting to implement cubic interpolation until I've done matrices
 		TODO();
 	}
 
 	template<std::floating_point F>
-	constexpr MVector<F, 3> cross(const MVector<F, 3>& a, const MVector<F, 3>& b) {
+	inline constexpr MVector<F, 3> cross(const MVector<F, 3>& a, const MVector<F, 3>& b) {
 		return MVector<F, 3> {
 			a.f.y* b.f.z - a.f.z * b.f.y,
 			a.f.z* b.f.x - a.f.x * b.f.z,
 			a.f.x* b.f.y - a.f.y * b.f.x
 		};
 	}
+
+	// TODO: vector max/min (elementwise)
 
 	template<std::floating_point F, size_t M, size_t N>
 		requires (1 <= M <= 4 && 1 <= N <= 4)
@@ -248,7 +250,16 @@ namespace math {
 		// ... this could change at any time though
 		MVector<F, M> cols[N];
 		
+		
+		template<typename... Args>
+		constexpr MMatrix(const Args&... cols) : cols{ cols... } {}
+
 	public:
+		template<typename... Args>
+			requires(sizeof...(Args) == N * M)
+		constexpr MMatrix(const Args&... args) {
+			TODO();
+		}
 		constexpr MVector<F, M> col(size_t i) const {
 			return cols[i];
 		}
@@ -259,17 +270,38 @@ namespace math {
 		}
 
 		// Just hammering out the API
+		template<std::convertible_to<F> S>
+		consteval static MMatrix splat(S splat) {
+			MMatrix z;
+			for (size_t i = 0; i < M; i++) {
+				z.cols[i] = MVector::splat(splat);
+			}
+			return z;
+		}
 
-		consteval static MMatrix identity() {
+		consteval static MMatrix zero() {
+			return MMatrix::splat(static_cast<F>(0));
+		}
+
+		consteval static MMatrix identity() requires (N==M) {
+			auto mat = MMatrix::zero();
+			for (size_t i = 0; i < N; i++) {
+				mat[i][i] = static_cast<F>(1);
+			}
+			return mat;
+		}
+
+		template<typename... Args>
+			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,M>, Args>...>)
+		constexpr static MMatrix from_rows(const Args&... rows) {
+			auto mat = MMatrix::zero();
 			TODO();
 		}
 
-		consteval static MMatrix from_rows() {
-			TODO();
-		}
-
-		consteval static MMatrix from_cols() {
-			TODO();
+		template<typename... Args>
+			requires(sizeof...(Args) == N && std::conjunction_v<std::is_same<MVector<F, N>, Args>...>)
+		constexpr static MMatrix from_cols(const Args&... cols) {
+			return MMatrix(cols...);
 		}
 
 		// We DON'T do rotate, scale, transform matrices here
@@ -280,7 +312,7 @@ namespace math {
 
 
 	template<std::floating_point F>
-	bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
+	inline bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
 		if (!std::isfinite(l)) {
 			return !std::isfinite(r) && l == r;
 		}
@@ -293,7 +325,7 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t C>
-	bool aeq(const MVector<F, C>& left, const MVector<F, C>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
+	inline bool aeq(const MVector<F, C>& left, const MVector<F, C>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
 		for (size_t i = 0; i < C; i++) {
 			if (!aeq(left.elems[i], right.elems[i], tolerance)) return false;
 		}
@@ -304,6 +336,10 @@ namespace math {
 using vec2 = math::MVector<float, 2>;
 using vec3 = math::MVector<float, 3>;
 using vec4 = math::MVector<float, 4>;
+
+using mat2 = math::MMatrix<float, 2, 2>;
+using mat3 = math::MMatrix<float, 3, 3>;
+using mat4 = math::MMatrix<float, 4, 4>;
 
 using math::dot;
 using math::cross;

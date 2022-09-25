@@ -245,3 +245,50 @@ TEST_CASE("Vector reflection") {
 		REQUIRE(aeq(incoming.reflect_off(n), vec3{ -3.6, -1.52, 5.36 }, 1e6f));
 	}
 }
+TEST_CASE("Matrix constructors, row/column accessors") {
+	auto validate = [](const mat4& m) {
+		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
+		REQUIRE(m.row(1) == vec4{ -0.5, -0.5, 7.0, -7.0 });
+		REQUIRE(m.row(2) == vec4{ 0.0, 6.2, -6.2, -0.0 });
+		REQUIRE(m.row(3) == vec4{ -4.0, 2.0, -8.0, 1.0 });
+
+		REQUIRE(m.col(0) == vec4{ 1.0, -0.5, 0.0, -4.0 });
+		REQUIRE(m.col(1) == vec4{ 0.0, -0.5, 6.2, 2.0 });
+		REQUIRE(m.col(2) == vec4{ 0.0, 7.0, -6.2, -8.0 });
+		REQUIRE(m.col(3) == vec4{ 0.0, -7.0, 0.0, 1.0 });
+	};
+
+	/*SECTION("Identity") {
+		mat4 i = {
+		}
+	}*/
+	SECTION("Raw specification") {
+		/*mat4 m = {
+			+1.0, +0.0, +0.0, +0.0,
+			-0.5, -0.5, +7.0, -7.0,
+			+0.0, +6.2, -6.2, -0.0,
+			-4.0, +2.0, -8.0, +1.0
+		};
+		validate(m);
+		*/
+	}
+	/*SECTION("From rows") {
+		mat4 m = mat4::from_rows(
+			vec4{ +1.0, +0.0, +0.0, +0.0 },
+			vec4{ -0.5, -0.5, +7.0, -7.0 },
+			vec4{ +0.0, +6.2, -6.2, -0.0 },
+			vec4{ -4.0, +2.0, -8.0, +1.0 }
+		);
+		validate(m);
+	}*/
+	SECTION("From cols") {
+		mat4 m = mat4::from_cols(
+			vec4{ +1.0, -0.5, +0.0, -4.0 },
+			vec4{ +0.0, -0.5, +6.2, +2.0 },
+			vec4{ +0.0, +7.0, -6.2, -8.0 },
+			vec4{ +0.0, -7.0, -0.0, +1.0 }
+		);
+		validate(m);
+	}
+
+}
