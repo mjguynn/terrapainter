@@ -1,7 +1,7 @@
 #include <cfloat>
 #include <catch2/catch_test_macros.hpp>
 #include "terrapainter/math.h"
-TEST_CASE("Vec4 constructors/splats", "[linalg]") {
+TEST_CASE("Vector constructors/splats", "[linalg]") {
 	vec4 splat = vec4::splat(7.0);
 	REQUIRE( (splat.f.x == 7.0 && splat[0] == 7.0) );
 	REQUIRE( (splat.f.y == 7.0 && splat[1] == 7.0) );
@@ -20,7 +20,7 @@ TEST_CASE("Vec4 constructors/splats", "[linalg]") {
 	REQUIRE( (custom2.f.z == 3.0 && custom2[2] == 3.0) );
 	REQUIRE( (custom2.f.w == 2.0 && custom2[3] == 2.0) );
 }
-TEST_CASE("Vec4 comparisons", "[linalg]") {
+TEST_CASE("Vector comparisons", "[linalg]") {
 	SECTION("Zero Vector") {
 		REQUIRE(vec4::splat(0.0) == vec4{ 0, 0, 0, 0 });
 	}
@@ -49,7 +49,7 @@ TEST_CASE("Vec4 comparisons", "[linalg]") {
 		REQUIRE(target != too_much_offset);
 	}
 }
-TEST_CASE("Vec4 addition/subtraction") {
+TEST_CASE("Vector addition/subtraction") {
 	SECTION("Random Vectors") {
 		vec4 a = { 5, -7, 6, 2 };
 		vec4 b = { 12.f, 16.f, -69.f, -13.f };
@@ -74,7 +74,7 @@ TEST_CASE("Vec4 addition/subtraction") {
 		REQUIRE(a + b == vec4::splat(0.f));
 	}
 }
-TEST_CASE("Vec4 multiplication") {
+TEST_CASE("Vector multiplication") {
 	SECTION("Random Vectors * Scalars") {
 		vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
 		REQUIRE(v * 2 == vec4{ 1.2, -46.4, 19998.0, 0.0 });
@@ -92,7 +92,7 @@ TEST_CASE("Vec4 multiplication") {
 		REQUIRE(b * c == vec4{ 216.f, -108.f, 0.f, -65.f });
 	}
 }
-TEST_CASE("Vec4 division") {
+TEST_CASE("Vector division") {
 	SECTION("Division by zero") {
 		vec4 v = { 1.f, 0.f, -3.f, NAN };
 		v /= 0;
@@ -119,7 +119,7 @@ TEST_CASE("Vec4 division") {
 		REQUIRE(b / c == vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 });
 	}
 }
-TEST_CASE("Dot product, vector length") {
+TEST_CASE("Vector dot product, length") {
 	SECTION("Dot Product") {
 		SECTION("Perpendicular") {
 			vec4 i = { 1.0, 0.0, 0.0, 0.0 };
@@ -156,7 +156,7 @@ TEST_CASE("Dot product, vector length") {
 		REQUIRE(aeq(random.mag(), 9.2250962055f));
 	}
 }
-TEST_CASE("Normalize") {
+TEST_CASE("Vector normalize") {
 	SECTION("Zero vector") {
 		vec4 nmz = vec4::zero().normalize();
 		for (size_t i = 0; i < 4; i++) {
@@ -173,7 +173,7 @@ TEST_CASE("Normalize") {
 		REQUIRE(b.normalize() == bn);
 	}
 }
-TEST_CASE("Cross product") {
+TEST_CASE("Vector cross product") {
 	SECTION("Orthonormal") {
 		vec3 i = { 1.0, 0.0, 0.0 };
 		vec3 j = { 0.0, 1.0, 0.0 };
@@ -210,7 +210,7 @@ TEST_CASE("Cross product") {
 		REQUIRE(aeq(cross(b, a), vec3::zero()));
 	}
 }
-TEST_CASE("Linear interpolation") {
+TEST_CASE("Vector linear interpolation") {
 	vec3 x = { 12, -43, 86 };
 	vec3 y = { 0.0, -5.0, -2.75 };
 	REQUIRE(aeq(lerp(x, y, 0.f), x));
@@ -219,4 +219,29 @@ TEST_CASE("Linear interpolation") {
 	// ugh.. we do actually get the correct result here, but there's a bit too much precision loss at play.
 	REQUIRE(aeq(lerp(x, y, 0.33f), vec3{ 8.04f, -30.46f, 56.7125f }, 1e-5f));
 	REQUIRE(aeq(lerp(x, y, -1.f), vec3{ 24.f, -81.f, 174.75f }));
+}
+TEST_CASE("Vector reflection") {
+	SECTION("Basic") {
+		vec3 n = { 0.0, 0.0, 1.0 };
+
+		vec3 incoming_tx = { 1.0, 0.0, 0.0 };
+		vec3 incoming_ty = { 0.0, 1.0, 0.0 };
+		vec3 incoming_n = { 0.0, 0.0, -1.0 };
+		vec3 incoming_custom = { 5.0, -2.0, -4.0 };
+
+		REQUIRE(incoming_tx.reflect_off(n) == incoming_tx);
+		REQUIRE(incoming_ty.reflect_off(n) == incoming_ty);
+		REQUIRE(incoming_n.reflect_off(n) == -incoming_n);
+		REQUIRE(incoming_custom.reflect_off(n) == vec3{ 5.0, -2.0, 4.0 });
+	}
+	SECTION("Complicated") {
+		vec3 n = {
+			-sqrtf(2.f) / 2.f,
+			2.f * sqrtf(2.f) / 5.f,
+			3.f * sqrtf(2.f) / 10.f
+		};
+		vec3 incoming = { 2, -6, 2 };
+		// again, correct output, just unfortunate precision loss.
+		REQUIRE(aeq(incoming.reflect_off(n), vec3{ -3.6, -1.52, 5.36 }, 1e6f));
+	}
 }

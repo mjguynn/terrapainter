@@ -184,6 +184,13 @@ namespace math {
 		constexpr MVector normalize() const {
 			return *this / this->mag();
 		}
+
+		// Assumes that n is normalized.
+		constexpr MVector reflect_off(const MVector& normal) const {
+			// Intellisense syntax highlighting *HATES* this line for some reason
+			MVector normal_component = dot(*this, normal) * normal;
+			return *this - (2 * normal_component);
+		}
 	};
 
 	template<std::floating_point F, size_t C>
@@ -196,26 +203,26 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	MVector<F,C> operator*(S scalar, const MVector<F, C>& vec) {
+	constexpr MVector<F,C> operator*(S scalar, const MVector<F, C>& vec) {
 		return vec * scalar;
 	}
 
 
 	template<std::floating_point F, size_t C>
-	F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
+	constexpr F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
 		F sum = static_cast<F>(0);
 		for (size_t i = 0; i < C; i++) sum += l.elems[i] * r.elems[i];
 		return sum;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
+	constexpr MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		return (static_cast<F>(1) - factor_cvt) * p0 + (factor_cvt) * p1;
 	}
 
 	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+	constexpr MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		// Waiting to implement cubic interpolation until I've done matrices
 		TODO();
