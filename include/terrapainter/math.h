@@ -88,9 +88,7 @@ namespace math {
 		constexpr bool operator==(const MVector& other) const {
 			return aeq(*this, other);
 		}
-		constexpr bool operator!=(const MVector& other) const {
-			return !this->operator==(other);
-		}
+		constexpr bool operator!=(const MVector& other) const = default;
 
 		constexpr MVector& operator+=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
@@ -147,6 +145,7 @@ namespace math {
 		constexpr MVector& operator/=(S scalar) {
 			// Find reciprocal and multiply by that,
 			// since float division is super slow.
+			// If we ever extend this class to int vecs, this needs to change
 			F reciprocal = static_cast<F>(1.0) / static_cast<F>(scalar);
 			return this->operator*=(reciprocal);
 		}
