@@ -219,7 +219,19 @@ namespace math {
 		};
 	}
 
-	// TODO: vector max/min (elementwise)
+	template<std::floating_point F, size_t C>
+	inline MVector<F, C> vmax(const MVector<F, C>& left, const MVector<F, C>& right) {
+		auto out = MVector<F, C>::zero();
+		for (size_t i = 0; i < C; i++) out[i] = std::fmax(left[i], right[i]);
+		return out;
+	}
+
+	template<std::floating_point F, size_t C>
+	inline MVector<F, C> vmin(const MVector<F, C>& left, const MVector<F, C>& right) {
+		auto out = MVector<F, C>::zero();
+		for (size_t i = 0; i < C; i++) out[i] = std::fmin(left[i], right[i]);
+		return out;
+	}
 
 	template<std::floating_point F, size_t M, size_t N>
 		requires (2 <= M <= 4 && 2 <= N <= 4)
@@ -301,9 +313,9 @@ namespace math {
 		else if (!std::isfinite(r)) {
 			return false;
 		}
-		F lowmag = std::min(std::abs(l), std::abs(r));
-		F scale = std::max(lowmag, static_cast<F>(1));
-		return std::abs(l - r) <= (tolerance * scale);
+		F lowmag = std::fmin(std::fabs(l), std::fabs(r));
+		F scale = std::fmax(lowmag, static_cast<F>(1));
+		return std::fabs(l - r) <= (tolerance * scale);
 	}
 
 	template<std::floating_point F, size_t C>

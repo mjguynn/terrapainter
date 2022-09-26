@@ -245,6 +245,43 @@ TEST_CASE("Vector reflection") {
 		REQUIRE(aeq(incoming.reflect_off(n), vec3{ -3.6, -1.52, 5.36 }, 1e6f));
 	}
 }
+TEST_CASE("Vector min/max") {
+	vec4 crazy_a = { INFINITY, -INFINITY, NAN, 0 };
+	vec4 crazy_b = { -INFINITY, INFINITY, INFINITY, NAN };
+	vec4 crazy_c = { NAN, NAN, NAN, NAN };
+	vec4 normal_a = { 42, -23, 65, 0 };
+	vec4 normal_b = { 41.5, 12, -65, 1 };
+	SECTION("Vector Min") {
+		REQUIRE(vmin(crazy_a, crazy_b) == vec4{ -INFINITY, -INFINITY, INFINITY, 0 });
+		REQUIRE(vmin(crazy_b, crazy_a) == vec4{ -INFINITY, -INFINITY, INFINITY, 0 });
+
+		vec4 tmp = vmin(crazy_a, crazy_c);
+		REQUIRE(tmp.x == INFINITY);
+		REQUIRE(tmp.y == -INFINITY);
+		REQUIRE(std::isnan(tmp.z));
+		REQUIRE(tmp.w == 0);
+
+		REQUIRE(vmin(normal_a, normal_b) == vec4{ 41.5, -23, -65, 0 });
+		REQUIRE(vmin(normal_b, normal_a) == vec4{ 41.5, -23, -65, 0 });
+		REQUIRE(vmin(crazy_a, normal_b) == vec4{ 41.5, -INFINITY, -65, 0 });
+		REQUIRE(vmin(normal_b, crazy_a) == vec4{ 41.5, -INFINITY, -65, 0 });
+	}
+	SECTION("Vector Max") {
+		REQUIRE(vmax(crazy_a, crazy_b) == vec4 {INFINITY, INFINITY, INFINITY, 0});
+		REQUIRE(vmax(crazy_b, crazy_a) == vec4{ INFINITY, INFINITY, INFINITY, 0 });
+
+		vec4 tmp = vmax(crazy_a, crazy_c);
+		REQUIRE(tmp.x == INFINITY);
+		REQUIRE(tmp.y == -INFINITY);
+		REQUIRE(std::isnan(tmp.z));
+		REQUIRE(tmp.w == 0);
+
+		REQUIRE(vmax(normal_a, normal_b) == vec4{ 42, 12, 65, 1 });
+		REQUIRE(vmax(normal_b, normal_a) == vec4{ 42, 12, 65, 1 });
+		REQUIRE(vmax(crazy_a, normal_b) == vec4{ INFINITY, 12, -65, 1 });
+		REQUIRE(vmax(normal_b, crazy_a) == vec4{ INFINITY, 12, -65, 1 });
+	}
+}
 TEST_CASE("Matrix constructors, row/column accessors") {
 	auto validate = [](const mat4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
