@@ -48,7 +48,7 @@ namespace math {
 	};
 
 	template<std::floating_point F, size_t C>
-		requires(1 <= C && C <= 4)
+		requires(2 <= C && C <= 4)
 	union MVector {
 		/// The elements of the vector exposed as a simple array.
 		/// This allows operations like looping over the components
@@ -240,7 +240,7 @@ namespace math {
 	// TODO: vector max/min (elementwise)
 
 	template<std::floating_point F, size_t M, size_t N>
-		requires (1 <= M <= 4 && 1 <= N <= 4)
+		requires (2 <= M <= 4 && 2 <= N <= 4)
 	class MMatrix {
 		// *currently* we store column vectors instead of row vectors
 		// My microoptimization focused reasoning is that matrix*matrix
