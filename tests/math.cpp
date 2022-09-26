@@ -3,22 +3,22 @@
 #include "terrapainter/math.h"
 TEST_CASE("Vector constructors/splats", "[linalg]") {
 	vec4 splat = vec4::splat(7.0);
-	REQUIRE( (splat.f.x == 7.0 && splat[0] == 7.0) );
-	REQUIRE( (splat.f.y == 7.0 && splat[1] == 7.0) );
-	REQUIRE( (splat.f.z == 7.0 && splat[2] == 7.0) );
-	REQUIRE( (splat.f.w == 7.0 && splat[3] == 7.0) );
+	REQUIRE( (splat.x == 7.0 && splat[0] == 7.0) );
+	REQUIRE( (splat.y == 7.0 && splat[1] == 7.0) );
+	REQUIRE( (splat.z == 7.0 && splat[2] == 7.0) );
+	REQUIRE( (splat.w == 7.0 && splat[3] == 7.0) );
 
-	vec4 custom{ 1.0, 5.0, 0.5, 25.0 };
-	REQUIRE( (custom.f.x == 1.0 && custom[0] == 1.0) );
-	REQUIRE( (custom.f.y == 5.0 && custom[1] == 5.0) );
-	REQUIRE( (custom.f.z == 0.5 && custom[2] == 0.5) );
-	REQUIRE( (custom.f.w == 25.0 && custom[3] == 25.0) );
+	vec4 custom = {1.0, 5.0, 0.5, 25.0};
+	REQUIRE( (custom.x == 1.0 && custom[0] == 1.0) );
+	REQUIRE( (custom.y == 5.0 && custom[1] == 5.0) );
+	REQUIRE( (custom.z == 0.5 && custom[2] == 0.5) );
+	REQUIRE( (custom.w == 25.0 && custom[3] == 25.0) );
 
 	vec4 custom2 = { 1, 4, 3, 2 };
-	REQUIRE( (custom2.f.x == 1.0 && custom2[0] == 1.0) );
-	REQUIRE( (custom2.f.y == 4.0 && custom2[1] == 4.0) );
-	REQUIRE( (custom2.f.z == 3.0 && custom2[2] == 3.0) );
-	REQUIRE( (custom2.f.w == 2.0 && custom2[3] == 2.0) );
+	REQUIRE( (custom2.x == 1.0 && custom2[0] == 1.0) );
+	REQUIRE( (custom2.y == 4.0 && custom2[1] == 4.0) );
+	REQUIRE( (custom2.z == 3.0 && custom2[2] == 3.0) );
+	REQUIRE( (custom2.w == 2.0 && custom2[3] == 2.0) );
 }
 TEST_CASE("Vector comparisons", "[linalg]") {
 	SECTION("Zero Vector") {
@@ -98,10 +98,10 @@ TEST_CASE("Vector division") {
 		v /= 0;
 		// NaN == NaN will always be false,
 		// so we've gotta be explicit here
-		REQUIRE(v.f.x == INFINITY);
-		REQUIRE(std::isnan(v.f.y));
-		REQUIRE(v.f.z == -INFINITY);
-		REQUIRE(std::isnan(v.f.w));
+		REQUIRE(v.x == INFINITY);
+		REQUIRE(std::isnan(v.y));
+		REQUIRE(v.z == -INFINITY);
+		REQUIRE(std::isnan(v.w));
 	}
 	SECTION("Random Vectors / Scalars") {
 		vec4 v = { 0.5, 16.2, -30.7, 29.99 };

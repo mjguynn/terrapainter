@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <concepts>
 #include <cmath>
@@ -15,59 +16,40 @@ namespace math {
 	// For the sake of programmer sanity and debug-mode performance,
 	// we use union type punning,  which is technically illegal C++
 	// but is accepted by the Big Three compilers since literally
-	// everyone uses it.
+	// everyone uses it. Same deal with anonymous structs/unions.
 
 	template<std::floating_point F, size_t C>
-	struct alignas(sizeof(F) * 4) MVectorMembers {
-		F x;
-		F y;
-		F z;
-		F w;
-
-		template<std::convertible_to<F> S>
-		MVectorMembers(S x, S y, S z, S w) : x(x), y(y), z(z), w(w) {}
+	struct alignas(sizeof(F) * 4) MVectorStorage {
+		union {
+			std::array<F, C> elems;
+			struct { F x, y, z, w; };
+		};
 	};
-
 	template<std::floating_point F>
-	struct MVectorMembers<F, 2> {
-		F x;
-		F y;
-
-		template<std::convertible_to<F> S>
-		MVectorMembers(S x, S y) : x(x), y(y) {}
+	struct alignas(sizeof(F) * 4) MVectorStorage<F, 3> {
+		union {
+			std::array<F, 3> elems;
+			struct { F x, y, z; };
+		};
 	};
-
 	template<std::floating_point F>
-	struct alignas(sizeof(F) * 4) MVectorMembers<F, 3> {
-		F x;
-		F y;
-		F z;
-
-		template<std::convertible_to<F> S>
-		MVectorMembers(S x, S y, S z) : x(x), y(y), z(z) {}
+	struct MVectorStorage<F, 2> {
+		union {
+			std::array<F, 2> elems;
+			struct { F x, y; };
+		};
 	};
 
 	template<std::floating_point F, size_t C>
 		requires(2 <= C && C <= 4)
-	union MVector {
-		/// The elements of the vector exposed as a simple array.
-		/// This allows operations like looping over the components
-		/// in a for-loop.
-		F elems[C];
-
-		/// The elements of the vector exposed as named fields.
-		/// To get the Y fields, you'd do `v.f.x`.
-		/// This is named `f` for no particular reason other than
-		/// being super short and easy to type.
-		MVectorMembers<F, C> f;
-
+	struct MVector : public MVectorStorage<F, C> {
 		/// The number of elements in vectors of this type.
 		constexpr static size_t SIZE = C;
 
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
-		explicit constexpr MVector(S splat) {
-			for (size_t i = 0; i < C; i++) this->elems[i] = splat;
+		explicit constexpr MVector(S splat) : MVectorStorage<F, C> {} {
+			this->elems.fill(static_cast<F>(splat));
 		}
 
 		template<std::convertible_to<F> S>
@@ -80,10 +62,9 @@ namespace math {
 		}
 
 		/// Per-element bracket initialization syntax.
-		/// You have to specify the same number of elements as
-		/// the vector requires.
 		template<typename ...Args>
-		constexpr MVector(const Args&... args) : f(args...) {}
+			requires(sizeof...(Args) == C && std::conjunction_v<std::is_convertible<F, Args>...>)
+		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
 
 		constexpr bool operator==(const MVector& other) const {
 			return aeq(*this, other);
@@ -230,9 +211,9 @@ namespace math {
 	template<std::floating_point F>
 	inline constexpr MVector<F, 3> cross(const MVector<F, 3>& a, const MVector<F, 3>& b) {
 		return MVector<F, 3> {
-			a.f.y* b.f.z - a.f.z * b.f.y,
-			a.f.z* b.f.x - a.f.x * b.f.z,
-			a.f.x* b.f.y - a.f.y * b.f.x
+			a.y* b.z - a.z * b.y,
+			a.z* b.x - a.x * b.z,
+			a.x* b.y - a.y * b.x
 		};
 	}
 
@@ -273,7 +254,7 @@ namespace math {
 		consteval static MMatrix splat(S splat) {
 			MMatrix z;
 			for (size_t i = 0; i < M; i++) {
-				z.cols[i] = MVector::splat(splat);
+				z.cols[i] = MVector<F,M>::splat(splat);
 			}
 			return z;
 		}
