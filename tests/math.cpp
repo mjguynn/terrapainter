@@ -8,7 +8,7 @@ TEST_CASE("Vector constructors/splats", "[linalg]") {
 	REQUIRE( (splat.z == 7.0 && splat[2] == 7.0) );
 	REQUIRE( (splat.w == 7.0 && splat[3] == 7.0) );
 
-	vec4 custom = {1.0, 5.0, 0.5, 25.0};
+	vec4 custom = {1.0, 5, 0.5, 25.f};
 	REQUIRE( (custom.x == 1.0 && custom[0] == 1.0) );
 	REQUIRE( (custom.y == 5.0 && custom[1] == 5.0) );
 	REQUIRE( (custom.z == 0.5 && custom[2] == 0.5) );
@@ -56,17 +56,17 @@ TEST_CASE("Vector addition/subtraction") {
 		vec4 apb = vec4{ 17.f, 9.f, -63.f, -11.f };
 		vec4 amb = vec4{ -7.f, -23.f, 75.f, 15.f };
 		vec4 bma = vec4{ 7.f, 23.f, -75.f, -15.f };
-		REQUIRE(a + b == apb);
-		REQUIRE(a - b == amb);
-		REQUIRE(b - a == bma);
+		REQUIRE(aeq(a + b, apb));
+		REQUIRE(aeq(a - b, amb));
+		REQUIRE(aeq(b - a, bma));
 			
 		vec4 ac = a;
 		ac += b;
-		REQUIRE(ac == apb);
+		REQUIRE(aeq(ac, apb));
 
 		vec4 bc = b;
 		bc -= a;
-		REQUIRE(bc == bma);
+		REQUIRE(aeq(bc, bma));
 	}
 	SECTION("Additive Inverses") {
 		vec4 a = { -5.f, 0.f, -67.f, 425.f / 3.f };
@@ -77,19 +77,19 @@ TEST_CASE("Vector addition/subtraction") {
 TEST_CASE("Vector multiplication") {
 	SECTION("Random Vectors * Scalars") {
 		vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
-		REQUIRE(v * 2 == vec4{ 1.2, -46.4, 19998.0, 0.0 });
-		REQUIRE(-6 * v == vec4{ -3.6, 139.2, -59994.0, 0.0 });
+		REQUIRE(aeq(v * 2, vec4{ 1.2, -46.4, 19998.0, 0.0 }));
+		REQUIRE(aeq(- 6 * v, vec4{-3.6, 139.2, -59994.0, 0.0}));
 		v *= 0.5;
-		REQUIRE(v == vec4{ 0.3, -11.6, 4999.5, 0.0 });
+		REQUIRE(aeq(v, vec4{ 0.3, -11.6, 4999.5, 0.0 }));
 	}
 	SECTION("Random Vectors * Vectors") {
 		vec4 a = { 0.5, 16.2, 30.7, 29.99 };
 		vec4 b = { -12, -36, 0, -65 };
 		vec4 c = { -18, 3, -1, 1 };
 
-		REQUIRE(a * b == vec4{ -6.f, -583.2f, 0.f, -1949.35f });
-		REQUIRE(a * c == vec4{ -9.f, 48.6f, -30.7f, 29.99f });
-		REQUIRE(b * c == vec4{ 216.f, -108.f, 0.f, -65.f });
+		REQUIRE(aeq(a * b, vec4{ -6.f, -583.2f, 0.f, -1949.35f }));
+		REQUIRE(aeq(a * c, vec4{ -9.f, 48.6f, -30.7f, 29.99f }));
+		REQUIRE(aeq(b * c, vec4{ 216.f, -108.f, 0.f, -65.f }));
 	}
 }
 TEST_CASE("Vector division") {
@@ -105,18 +105,18 @@ TEST_CASE("Vector division") {
 	}
 	SECTION("Random Vectors / Scalars") {
 		vec4 v = { 0.5, 16.2, -30.7, 29.99 };
-		REQUIRE(v / 0.5 == vec4{ 1.0, 32.4, -61.4, 59.98 });
-		REQUIRE(v / 4 == vec4{ 0.125, 4.05, -7.675, 7.4975 });
-		REQUIRE(v / -3 == vec4{ -0.1666666667, -5.4, 10.2333333333, -9.9966666667 });
+		REQUIRE(aeq(v / 0.5, vec4{ 1.0, 32.4, -61.4, 59.98 }));
+		REQUIRE(aeq(v / 4, vec4{ 0.125, 4.05, -7.675, 7.4975 }));
+		REQUIRE(aeq(v / -3, vec4{ -0.1666666667, -5.4, 10.2333333333, -9.9966666667 }));
 	}
 	SECTION("Random Vectors / Vectors") {
 		vec4 a = { 0.5, 16.2, 30.7, 29.99 };
 		vec4 b = { 4, 4, 4, 5 };
 		vec4 c = { -18.0, 3.0, -1.0, -0.1 };
 
-		REQUIRE(a / b == vec4{ 0.125, 4.05, 7.675, 5.998 });
-		REQUIRE(a / c == vec4{ -0.0277777778, 5.4, -30.7, -299.9 });
-		REQUIRE(b / c == vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 });
+		REQUIRE(aeq(a / b, vec4{ 0.125, 4.05, 7.675, 5.998 }));
+		REQUIRE(aeq(a / c, vec4{ -0.0277777778, 5.4, -30.7, -299.9 }));
+		REQUIRE(aeq(b / c, vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 }));
 	}
 }
 TEST_CASE("Vector dot product, length") {
@@ -166,11 +166,11 @@ TEST_CASE("Vector normalize") {
 	SECTION("Random vectors") {
 		vec4 a = { 0, 17, 17, 0 };
 		vec4 an = vec4{ 0.f, 1.f / sqrtf(2), 1.f / sqrtf(2), 0.f };
-		REQUIRE(a.normalize() == an);
+		REQUIRE(aeq(a.normalize(),an));
 
 		vec4 b = { 83.0, -65.23, -0.05, 7.64 };
 		vec4 bn = vec4{ 0.7841948905, -0.6163015989, -0.0004724066, 0.0721837224 };
-		REQUIRE(b.normalize() == bn);
+		REQUIRE(aeq(b.normalize(), bn));
 	}
 }
 TEST_CASE("Vector cross product") {
@@ -232,7 +232,7 @@ TEST_CASE("Vector reflection") {
 		REQUIRE(incoming_tx.reflect_off(n) == incoming_tx);
 		REQUIRE(incoming_ty.reflect_off(n) == incoming_ty);
 		REQUIRE(incoming_n.reflect_off(n) == -incoming_n);
-		REQUIRE(incoming_custom.reflect_off(n) == vec3{ 5.0, -2.0, 4.0 });
+		REQUIRE(aeq(incoming_custom.reflect_off(n), vec3{ 5.0, -2.0, 4.0 }));
 	}
 	SECTION("Complicated") {
 		vec3 n = {

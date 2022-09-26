@@ -67,8 +67,10 @@ namespace math {
 		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
 
 		constexpr bool operator==(const MVector& other) const {
-			return aeq(*this, other);
+			for (size_t i = 0; i < C; i++) if (this->elems[i] != other.elems[i]) return false;
+			return true;
 		}
+
 		constexpr bool operator!=(const MVector& other) const = default;
 
 		constexpr MVector& operator+=(const MVector& other) {
@@ -228,7 +230,7 @@ namespace math {
 		// more of that than matrix * vector multiplication, and there's
 		// slightly less weird swizzling if you use column vectors
 		// ... this could change at any time though
-		MVector<F, M> cols[N];
+		std::array<MVector<F, M>, N> cols;
 		
 		
 		template<typename... Args>
