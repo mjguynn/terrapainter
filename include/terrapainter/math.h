@@ -13,10 +13,23 @@
 //! Graphics-oriented linear algebra.
 
 namespace math {
-	// For the sake of programmer sanity and debug-mode performance,
-	// we use union type punning,  which is technically illegal C++
-	// but is accepted by the Big Three compilers since literally
-	// everyone uses it. Same deal with anonymous structs/unions.
+	// There are three pieces of illegal C++ at play here:
+	// 	1. Anonymous unions. I'm only using these since I want MVector to
+	//	   inherit the public fields from MVectorStorage, but you can't
+	//	   inherit from a union. Although it's technically illegal, it's
+	// 	   supported as an extension by every C++ compiler out there.
+	//  2. Anonymous structs. I'm using these to get convenient x/y/z/w
+	//     member access. Once again: technically illegal, supported as an
+	//     extension by every C++ compiler out there.
+	//  3. Union type punning. This is the only "dangerous" one. If the
+	//     compiler doesn't support anonymous unions and structs, there will
+	//     be a syntax error at compile time; if it doesn't support union type
+	//     punning, there *might* be a bug at *runtime*. According to the 
+	//     C++ standard, union type punning is illegal. However:
+	//		- GCC explicitly supports it: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#Type-punning
+	//		- MSVC's own STL headers rely on it: https://github.com/microsoft/STL/blob/020aad2e088a21bbcad60f66d8419963219c1106/stl/src/xmath.hpp#L60
+	//		- LLVM seems to depend upon it: https://github.com/llvm/llvm-project/blob/542977d43841820614a32823c33415042430e230/compiler-rt/lib/builtins/int_types.h
+	//	   These are really the only three compilers I care about.
 
 	template<std::floating_point F, size_t C>
 	struct alignas(sizeof(F) * 4) MVectorStorage {
