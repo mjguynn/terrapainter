@@ -236,12 +236,9 @@ namespace math {
 	template<std::floating_point F, size_t M, size_t N>
 		requires (2 <= M <= 4 && 2 <= N <= 4)
 	class MMatrix {
-		// *currently* we store column vectors instead of row vectors
-		// My microoptimization focused reasoning is that matrix*matrix
-		// multiplication is left-associative in C++ and we'll do a lot
-		// more of that than matrix * vector multiplication, and there's
-		// slightly less weird swizzling if you use column vectors
-		// ... this could change at any time though
+		// We use column-major matrices instead of row-major matrices
+		// because that's what OpenGL actually requires. It would be
+		// a pain to transpose every matrix we use...
 		std::array<MVector<F, M>, N> cols;
 		
 		
