@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -262,6 +262,7 @@ namespace math {
 		/// Default constructor (all zeroes).
 		constexpr MMatrix() : cols() {}
 
+		/// Entry-by-entry initialization.
 		template<typename... Args>
 			requires(sizeof...(Args) == N * M && std::conjunction_v<std::is_convertible<F, Args>...>)
 		constexpr MMatrix(const Args&... args) : MMatrix() {
@@ -273,6 +274,7 @@ namespace math {
 			size_t i = 0;
 			(..., write_entry(this, i, static_cast<F>(args)));
 		}
+
 		constexpr MVector<F, M> col(size_t i) const {
 			return this->cols[i];
 		}
@@ -295,22 +297,22 @@ namespace math {
 
 		// Just hammering out the API
 		template<std::convertible_to<F> S>
-		consteval static MMatrix splat(S splat) {
+		constexpr static MMatrix splat(S splat) {
 			MMatrix<F, M, N> z;
-			for (size_t i = 0; i < M; i++) {
+			for (size_t i = 0; i < N; i++) {
 				z.cols[i] = MVector<F,M>::splat(splat);
 			}
 			return z;
 		}
 
 		consteval static MMatrix zero() {
-			return MMatrix::splat(static_cast<F>(0));
+			return MMatrix();
 		}
 
 		consteval static MMatrix identity() requires (N==M) {
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
-				mat[i][i] = static_cast<F>(1);
+				mat.cols[i][i] = static_cast<F>(1);
 			}
 			return mat;
 		}
@@ -333,12 +335,37 @@ namespace math {
 			return mat;
 		}
 
+		constexpr bool operator==(const MMatrix&) const = default;
+		constexpr bool operator!=(const MMatrix&) const = default;
+
+		constexpr MMatrix<F, N, M> transpose() const {
+			auto transposed = MMatrix<F,N,M>::zero();
+			for (size_t i = 0; i < N; i++) {
+				transposed.set_row(i, this->col(i));
+			}
+			return transposed;
+		}
 		// We DON'T do rotate, scale, transform matrices here
 		// rotate: only makes sense for square & different in each dim
 		// scale: only makes sense for square matrices
 		// transform: should be in MMatrixH subclass
 	};
 
+	template<std::floating_point F, size_t M, size_t N>
+	inline std::ostream& operator<<(std::ostream& os, const MMatrix<F, M, N>& mat)
+	{
+		auto print_row = [&](const char* start, size_t j, const char* end) mutable {
+			os << start;
+			for (size_t i = 0; i < N; i++) os << " " << mat.col(i)[j];
+			os << " " << end;
+		};
+		// I was using fancy Unicode box art here, but MSVC complains because 
+		// Windows has terrible support for Unicode
+		print_row("/", 0, "\\\n");
+		for (size_t j = 1; j < M - 1; j++) print_row("|", j, "|\n");
+		print_row("\\", M - 1, "/");
+		return os;
+	}
 
 	template<std::floating_point F>
 	inline bool aeq(F l, F r, F tolerance = std::numeric_limits<F>::epsilon()) {
@@ -360,6 +387,15 @@ namespace math {
 		}
 		return true;
 	}
+
+	template<std::floating_point F, size_t M, size_t N>
+	inline bool aeq(const MMatrix<F, M, N>& left, const MMatrix<F, M, N>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
+		// TODO: if the matrix changes to row-major, rewrite this using row() instead of col()
+		for (size_t i = 0; i < N; i++) {
+			if (!aeq(left.col(i), right.col(i), tolerance)) return false;
+		}
+		return true;
+	}
 }
 
 using vec2 = math::MVector<float, 2>;
@@ -369,6 +405,9 @@ using vec4 = math::MVector<float, 4>;
 using mat2 = math::MMatrix<float, 2, 2>;
 using mat3 = math::MMatrix<float, 3, 3>;
 using mat4 = math::MMatrix<float, 4, 4>;
+
+using mat2x3 = math::MMatrix<float, 2, 3>;
+using mat3x4 = math::MMatrix<float, 3, 4>;
 
 using math::dot;
 using math::cross;

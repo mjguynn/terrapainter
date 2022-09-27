@@ -283,7 +283,6 @@ TEST_CASE("Vector min/max") {
 	}
 }
 TEST_CASE("Matrix constructors, row/column accessors") {
-	using mat3x4 = math::MMatrix<float, 3, 4>;
 	auto validate = [](const mat3x4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
 		REQUIRE(m.row(1) == vec4{ -0.5, -0.5, 7.0, -7.0 });
@@ -295,10 +294,15 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		REQUIRE(m.col(3) == vec3{ 0.0, -7.0, 0.0 });
 	};
 
-	/*SECTION("Identity") {
+	SECTION("Identity") {
 		mat4 i = {
-		}
-	}*/
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		};
+		REQUIRE(i == mat4::identity());
+	}
 	SECTION("Raw specification") {
 		mat3x4 m = {
 			+1.0, +0.0, +0.0, +0.0,
@@ -324,4 +328,18 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		);
 		validate(m);
 	}
+}
+TEST_CASE("Matrix transpose") {
+	mat3x4 m = {
+		1, 2, 3, 4,
+		5, 6, 7, 8,
+		9, 0, 1, 2
+	};
+	math::MMatrix<float, 4, 3> mt = {
+		1, 5, 9,
+		2, 6, 0,
+		3, 7, 1,
+		4, 8, 2
+	};
+	REQUIRE(m.transpose() == mt);
 }
