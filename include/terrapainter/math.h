@@ -338,6 +338,50 @@ namespace math {
 		constexpr bool operator==(const MMatrix&) const = default;
 		constexpr bool operator!=(const MMatrix&) const = default;
 
+		constexpr MMatrix& operator+=(const MMatrix& other) {
+			for (size_t i = 0; i < N; i++) this->cols[i] += other.cols[i];
+			return *this;
+		}
+		constexpr MMatrix operator+(const MMatrix& other) const {
+			auto copy = *this;
+			copy += other;
+			return copy;
+		}
+		constexpr MMatrix& operator-=(const MMatrix& other) {
+			for (size_t i = 0; i < N; i++) this->cols[i] -= other.cols[i];
+			return *this;
+		}
+		constexpr MMatrix operator-(const MMatrix& other) const {
+			auto copy = *this;
+			copy -= other;
+			return copy;
+		}
+
+		template<std::convertible_to<F> S>
+		constexpr MMatrix& operator*=(S scalar) {
+			for (size_t i = 0; i < N; i++) this->cols[i] *= scalar;
+			return *this;
+		}
+		template<std::convertible_to<F> S>
+		constexpr MMatrix operator*(S scalar) const {
+			auto copy = *this;
+			copy *= scalar;
+			return copy;
+		}
+
+		template<std::convertible_to<F> S>
+		constexpr MMatrix& operator/=(S scalar) {
+			F inv = static_cast<F>(1) / static_cast<F>(scalar);
+			for (size_t i = 0; i < N; i++) this->cols[i] *= inv;
+			return *this;
+		}
+		template<std::convertible_to<F> S>
+		constexpr MMatrix operator/(S scalar) const {
+			auto copy = *this;
+			copy /= scalar;
+			return copy;
+		}
+
 		constexpr MMatrix<F, N, M> transpose() const {
 			auto transposed = MMatrix<F,N,M>::zero();
 			for (size_t i = 0; i < N; i++) {
@@ -350,6 +394,11 @@ namespace math {
 		// scale: only makes sense for square matrices
 		// transform: should be in MMatrixH subclass
 	};
+
+	template<std::floating_point F, size_t M, size_t N, std::convertible_to<F> S>
+	inline constexpr MMatrix<F, M, N> operator*(S scalar, const MMatrix<F, M, N>& mat) {
+		return mat * scalar;
+	}
 
 	template<std::floating_point F, size_t M, size_t N>
 	inline std::ostream& operator<<(std::ostream& os, const MMatrix<F, M, N>& mat)
