@@ -258,6 +258,11 @@ namespace math {
 		// a pain to transpose every matrix we use...
 		std::array<MVector<F, M>, N> cols;
 		
+		/// Column constructor
+		template<typename... Args>
+			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,M>, Args>...>)
+		constexpr MMatrix(const Args&... args) : cols{ args... } {}
+
 	public:
 		/// Default constructor (all zeroes).
 		constexpr MMatrix() : cols() {}
@@ -285,7 +290,7 @@ namespace math {
 		// Just hammering out the API
 		template<std::convertible_to<F> S>
 		consteval static MMatrix splat(S splat) {
-			MMatrix z;
+			MMatrix<F, M, N> z;
 			for (size_t i = 0; i < M; i++) {
 				z.cols[i] = MVector<F,M>::splat(splat);
 			}
