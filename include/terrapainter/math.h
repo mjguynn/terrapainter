@@ -389,6 +389,7 @@ namespace math {
 			}
 			return transposed;
 		}
+
 		// We DON'T do rotate, scale, transform matrices here
 		// rotate: only makes sense for square & different in each dim
 		// scale: only makes sense for square matrices
@@ -411,7 +412,11 @@ namespace math {
 		// I was using fancy Unicode box art here, but MSVC complains because 
 		// Windows has terrible support for Unicode
 		print_row("/", 0, "\\\n");
+
+		DIAG_PUSHIGNORE_MSVC(6294); // ill-defined for loop is intentional when M=2!
 		for (size_t j = 1; j < M - 1; j++) print_row("|", j, "|\n");
+		DIAG_POP_MSVC();
+
 		print_row("\\", M - 1, "/");
 		return os;
 	}
@@ -424,8 +429,8 @@ namespace math {
 		else if (!std::isfinite(r)) {
 			return false;
 		}
-		F lowmag = std::fmin(std::fabs(l), std::fabs(r));
-		F scale = std::fmax(lowmag, static_cast<F>(1));
+		F mag = std::fmax(std::fabs(l), std::fabs(r));
+		F scale = std::fmax(mag, static_cast<F>(1));
 		return std::fabs(l - r) <= (tolerance * scale);
 	}
 

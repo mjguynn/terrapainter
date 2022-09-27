@@ -31,25 +31,27 @@ TEST_CASE("Vector comparisons", "[linalg]") {
 		REQUIRE(vec4{ 143.6, -127.0, 23.0, -54.0 } == vec4{ 143.6, -127.0, 23.0, -54.0 });
 	}
 	SECTION("NaN") {
-		REQUIRE(vec4{ 7.f, 7.f, 7.f, 12.f } != vec4{ 7.f, 7.f, 7.f, NAN });
-		REQUIRE(vec4{ 9.f, 9.f, 9.f, 9.f } != vec4{ NAN, NAN, NAN, NAN });
+		REQUIRE(!aeq(vec4{ 7.f, 7.f, 7.f, 12.f }, vec4{ 7.f, 7.f, 7.f, NAN }));
+		REQUIRE(!aeq(vec4{ 9.f, 9.f, 9.f, 9.f }, vec4{ NAN, NAN, NAN, NAN }));
 		// yes -- NaN compares false with EVERY float, including itself!
-		REQUIRE(vec4{ NAN, NAN, NAN, NAN } != vec4{ NAN, NAN, NAN, NAN });
+		REQUIRE(!aeq(vec4{ NAN, NAN, NAN, NAN }, vec4{ NAN, NAN, NAN, NAN }));
 	}
 	SECTION("Infinity") {
-		REQUIRE(vec4{ 7.f, 7.f, 7.f, 12.f } != vec4{ 7.f, 7.f, 7.f, INFINITY });
-		REQUIRE(vec4{ 7.f, 7.f, 7.f, INFINITY } != vec4{ 7.f, 7.f, 7.f, -INFINITY });
-		REQUIRE(vec4{ 7.f, 7.f, 7.f, INFINITY } == vec4{ 7.f, 7.f, 7.f, INFINITY });
+		REQUIRE(!aeq(vec4{ 7.f, 7.f, 7.f, 12.f }, vec4{ 7.f, 7.f, 7.f, INFINITY }));
+		REQUIRE(!aeq(vec4{ 7.f, 7.f, 7.f, INFINITY }, vec4{ 7.f, 7.f, 7.f, -INFINITY }));
+		REQUIRE(aeq(vec4{ 7.f, 7.f, 7.f, INFINITY }, vec4{ 7.f, 7.f, 7.f, INFINITY }));
 	}
 	SECTION("Precision") {
 		vec4 target = { 27, 30, 92, -83 };
-		vec4 offset = { 27 + FLT_EPSILON, 30 - FLT_EPSILON, 92 - FLT_EPSILON, -83 + 2 * FLT_EPSILON };
-		REQUIRE(target == offset);
-		vec4 too_much_offset = { 27 + FLT_EPSILON, 29.99f, 92.0f, -83.0f };
+		vec4 offset = { 27 + 20 * FLT_EPSILON, 30 - 15 * FLT_EPSILON, 92, -83 + 40 * FLT_EPSILON };
+		REQUIRE(target != offset); // sanity check
+		REQUIRE(aeq(target, offset));
+		vec4 too_much_offset = { 27 + 20 * FLT_EPSILON, 29.99f, 92.0f, -83.0f };
 		REQUIRE(target != too_much_offset);
+		REQUIRE(!aeq(target, too_much_offset));
 	}
 }
-TEST_CASE("Vector addition/subtraction") {
+TEST_CASE("Vector addition/subtraction", "[linalg]") {
 	SECTION("Random Vectors") {
 		vec4 a = { 5, -7, 6, 2 };
 		vec4 b = { 12.f, 16.f, -69.f, -13.f };
@@ -74,7 +76,7 @@ TEST_CASE("Vector addition/subtraction") {
 		REQUIRE(a + b == vec4::splat(0.f));
 	}
 }
-TEST_CASE("Vector multiplication") {
+TEST_CASE("Vector multiplication", "[linalg]") {
 	SECTION("Random Vectors * Scalars") {
 		vec4 v = { 0.6, -23.2, 9999.0, 0.0 };
 		REQUIRE(aeq(v * 2, vec4{ 1.2, -46.4, 19998.0, 0.0 }));
@@ -92,7 +94,7 @@ TEST_CASE("Vector multiplication") {
 		REQUIRE(aeq(b * c, vec4{ 216.f, -108.f, 0.f, -65.f }));
 	}
 }
-TEST_CASE("Vector division") {
+TEST_CASE("Vector division", "[linalg]") {
 	SECTION("Division by zero") {
 		vec4 v = { 1.f, 0.f, -3.f, NAN };
 		v /= 0;
@@ -119,7 +121,7 @@ TEST_CASE("Vector division") {
 		REQUIRE(aeq(b / c, vec4{ -0.2222222222, 1.3333333333, -4.0, -50.0 }));
 	}
 }
-TEST_CASE("Vector dot product, length") {
+TEST_CASE("Vector dot product, length", "[linalg]") {
 	SECTION("Dot Product") {
 		SECTION("Perpendicular") {
 			vec4 i = { 1.0, 0.0, 0.0, 0.0 };
@@ -156,7 +158,7 @@ TEST_CASE("Vector dot product, length") {
 		REQUIRE(aeq(random.mag(), 9.2250962055f));
 	}
 }
-TEST_CASE("Vector normalize") {
+TEST_CASE("Vector normalize", "[linalg]") {
 	SECTION("Zero vector") {
 		vec4 nmz = vec4::zero().normalize();
 		for (size_t i = 0; i < 4; i++) {
@@ -173,7 +175,7 @@ TEST_CASE("Vector normalize") {
 		REQUIRE(aeq(b.normalize(), bn));
 	}
 }
-TEST_CASE("Vector cross product") {
+TEST_CASE("Vector cross product", "[linalg]") {
 	SECTION("Orthonormal") {
 		vec3 i = { 1.0, 0.0, 0.0 };
 		vec3 j = { 0.0, 1.0, 0.0 };
@@ -210,7 +212,7 @@ TEST_CASE("Vector cross product") {
 		REQUIRE(aeq(cross(b, a), vec3::zero()));
 	}
 }
-TEST_CASE("Vector linear interpolation") {
+TEST_CASE("Vector linear interpolation", "[linalg]") {
 	vec3 x = { 12, -43, 86 };
 	vec3 y = { 0.0, -5.0, -2.75 };
 	REQUIRE(aeq(lerp(x, y, 0.f), x));
@@ -220,7 +222,7 @@ TEST_CASE("Vector linear interpolation") {
 	REQUIRE(aeq(lerp(x, y, 0.33f), vec3{ 8.04f, -30.46f, 56.7125f }, 1e-5f));
 	REQUIRE(aeq(lerp(x, y, -1.f), vec3{ 24.f, -81.f, 174.75f }));
 }
-TEST_CASE("Vector reflection") {
+TEST_CASE("Vector reflection", "[linalg]") {
 	SECTION("Basic") {
 		vec3 n = { 0.0, 0.0, 1.0 };
 
@@ -245,7 +247,7 @@ TEST_CASE("Vector reflection") {
 		REQUIRE(aeq(incoming.reflect_off(n), vec3{ -3.6, -1.52, 5.36 }, 1e6f));
 	}
 }
-TEST_CASE("Vector min/max") {
+TEST_CASE("Vector min/max", "[linalg]") {
 	vec4 crazy_a = { INFINITY, -INFINITY, NAN, 0 };
 	vec4 crazy_b = { -INFINITY, INFINITY, INFINITY, NAN };
 	vec4 crazy_c = { NAN, NAN, NAN, NAN };
@@ -282,7 +284,7 @@ TEST_CASE("Vector min/max") {
 		REQUIRE(vmax(normal_b, crazy_a) == vec4{ INFINITY, 12, -65, 1 });
 	}
 }
-TEST_CASE("Matrix constructors, row/column accessors") {
+TEST_CASE("Matrix constructors, row/column accessors", "[linalg]") {
 	auto validate = [](const mat3x4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
 		REQUIRE(m.row(1) == vec4{ -0.5, -0.5, 7.0, -7.0 });
@@ -329,7 +331,7 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		validate(m);
 	}
 }
-TEST_CASE("Matrix transpose") {
+TEST_CASE("Matrix transpose", "[linalg]") {
 	mat3x4 m = {
 		1, 2, 3, 4,
 		5, 6, 7, 8,
@@ -342,4 +344,72 @@ TEST_CASE("Matrix transpose") {
 		4, 8, 2
 	};
 	REQUIRE(m.transpose() == mt);
+}
+TEST_CASE("Matrix comparisons", "[linalg]") {
+	SECTION("Random Matrices") {
+		mat2x3 a1 = {
+			5.0, 0.0, 0.0,
+			1.0, 2.0, 3.0
+		};
+		mat2x3 a2 = {
+			5.0, 0.0, 0.0,
+			1.0, 2.0, 3.0
+		};
+		REQUIRE(a1 == a2);
+		REQUIRE(aeq(a1, a2));
+		
+		mat2x3 b = {
+			5.0, 0.0, 1.0,
+			1.0, 2.0, -3.0
+		};
+		REQUIRE(a1 != b);
+		REQUIRE(!aeq(a1, b));
+	}
+	SECTION("Precision") {
+		mat2 target = { 27, 30, 92, -83 };
+		mat2 offset = { 27 + 20 * FLT_EPSILON, 30 - 15 * FLT_EPSILON, 92, -83 + 40 * FLT_EPSILON };
+		REQUIRE(target != offset);
+		REQUIRE(aeq(target, offset));
+		mat2 too_much_offset = { 27 + 20 * FLT_EPSILON, 29.99f, 92.0f, -83.0f };
+		REQUIRE(target != too_much_offset);
+		REQUIRE(!aeq(target, too_much_offset));
+	}
+}
+TEST_CASE("Matrix addition/subtraction", "[linalg]") {
+	SECTION("Random matrices") {
+		mat2x3 a = {
+			2.3, 4.4, -7.5,
+			0.0, INFINITY, -INFINITY
+		};
+		mat2x3 b = {
+			-12, -6.4, -2.2,
+			0.01, 6.4, -1
+		};
+		mat2x3 apb = {
+			-9.7, -2, -9.7,
+			0.01, INFINITY, -INFINITY
+		};
+		REQUIRE(aeq(a + b, apb));
+		mat2x3 amb = {
+			14.3, 10.8, -5.3,
+			-0.01, INFINITY, -INFINITY
+		};
+		REQUIRE(aeq(a - b, amb));
+		mat2x3 bma = {
+			-14.3, -10.8, 5.3,
+			0.01, -INFINITY, INFINITY
+		};
+		REQUIRE(aeq(b-a, bma));
+	}
+	SECTION("Additive inverses") {
+		mat2x3 pos = {
+			5.0, 0.0, -3.4,
+			-0.0, 6.7, 12.0
+		};
+		mat2x3 neg = {
+			-5.0, -0.0, 3.4,
+			0.0, -6.7, -12.0
+		};
+		REQUIRE(pos + neg == mat2x3::zero());
+	}
 }
