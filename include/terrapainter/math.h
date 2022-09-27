@@ -257,11 +257,6 @@ namespace math {
 		// because that's what OpenGL actually requires. It would be
 		// a pain to transpose every matrix we use...
 		std::array<MVector<F, M>, N> cols;
-		
-		/// Column constructor
-		template<typename... Args>
-			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,M>, Args>...>)
-		constexpr MMatrix(const Args&... args) : cols{ args... } {}
 
 	public:
 		/// Default constructor (all zeroes).
@@ -321,7 +316,7 @@ namespace math {
 		}
 
 		template<typename... Args>
-			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,M>, Args>...>)
+			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,N>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
 			auto mat = MMatrix::zero();
 			size_t j = 0;
@@ -330,9 +325,12 @@ namespace math {
 		}
 
 		template<typename... Args>
-			requires(sizeof...(Args) == N && std::conjunction_v<std::is_same<MVector<F, N>, Args>...>)
+			requires(sizeof...(Args) == N && std::conjunction_v<std::is_same<MVector<F, M>, Args>...>)
 		constexpr static MMatrix from_cols(const Args&... cols) {
-			return MMatrix(cols...);
+			auto mat = MMatrix::zero();
+			size_t i = 0;
+			(..., mat.set_col(i++, cols));
+			return mat;
 		}
 
 		// We DON'T do rotate, scale, transform matrices here

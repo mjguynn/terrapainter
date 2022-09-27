@@ -283,16 +283,16 @@ TEST_CASE("Vector min/max") {
 	}
 }
 TEST_CASE("Matrix constructors, row/column accessors") {
-	auto validate = [](const mat4& m) {
+	using mat3x4 = math::MMatrix<float, 3, 4>;
+	auto validate = [](const mat3x4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
 		REQUIRE(m.row(1) == vec4{ -0.5, -0.5, 7.0, -7.0 });
 		REQUIRE(m.row(2) == vec4{ 0.0, 6.2, -6.2, -0.0 });
-		REQUIRE(m.row(3) == vec4{ -4.0, 2.0, -8.0, 1.0 });
 
-		REQUIRE(m.col(0) == vec4{ 1.0, -0.5, 0.0, -4.0 });
-		REQUIRE(m.col(1) == vec4{ 0.0, -0.5, 6.2, 2.0 });
-		REQUIRE(m.col(2) == vec4{ 0.0, 7.0, -6.2, -8.0 });
-		REQUIRE(m.col(3) == vec4{ 0.0, -7.0, 0.0, 1.0 });
+		REQUIRE(m.col(0) == vec3{ 1.0, -0.5, 0.0 });
+		REQUIRE(m.col(1) == vec3{ 0.0, -0.5, 6.2 });
+		REQUIRE(m.col(2) == vec3{ 0.0, 7.0, -6.2 });
+		REQUIRE(m.col(3) == vec3{ 0.0, -7.0, 0.0 });
 	};
 
 	/*SECTION("Identity") {
@@ -300,29 +300,27 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		}
 	}*/
 	SECTION("Raw specification") {
-		mat4 m = {
+		mat3x4 m = {
 			+1.0, +0.0, +0.0, +0.0,
 			-0.5, -0.5, +7.0, -7.0,
 			+0.0, +6.2, -6.2, -0.0,
-			-4.0, +2.0, -8.0, +1.0
 		};
 		validate(m);
 	}
 	SECTION("From rows") {
-		mat4 m = mat4::from_rows(
+		mat3x4 m = mat3x4::from_rows(
 			vec4{ +1.0, +0.0, +0.0, +0.0 },
 			vec4{ -0.5, -0.5, +7.0, -7.0 },
-			vec4{ +0.0, +6.2, -6.2, -0.0 },
-			vec4{ -4.0, +2.0, -8.0, +1.0 }
+			vec4{ +0.0, +6.2, -6.2, -0.0 }
 		);
 		validate(m);
 	}
 	SECTION("From cols") {
-		mat4 m = mat4::from_cols(
-			vec4{ +1.0, -0.5, +0.0, -4.0 },
-			vec4{ +0.0, -0.5, +6.2, +2.0 },
-			vec4{ +0.0, +7.0, -6.2, -8.0 },
-			vec4{ +0.0, -7.0, -0.0, +1.0 }
+		mat3x4 m = mat3x4::from_cols(
+			vec3{ +1.0, -0.5, +0.0 },
+			vec3{ +0.0, -0.5, +6.2 },
+			vec3{ +0.0, +7.0, -6.2 },
+			vec3{ +0.0, -7.0, -0.0 }
 		);
 		validate(m);
 	}
