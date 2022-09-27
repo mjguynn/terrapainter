@@ -413,3 +413,56 @@ TEST_CASE("Matrix addition/subtraction", "[linalg]") {
 		REQUIRE(pos + neg == mat2x3::zero());
 	}
 }
+TEST_CASE("Matrix multiply", "[linalg]") {
+	SECTION("Identity & dimensions") {
+		REQUIRE(mat2::identity() * mat2::identity() == mat2::identity());
+		REQUIRE(mat2x3::zero() * (mat2x3::zero().transpose()) == mat2::zero());
+	}
+	SECTION("Random square matrices") {
+		mat3 a = {
+			7.0,	16.5,	32.25,
+			-22.5,	-23,	-6,
+			-100,	1,		2
+		};
+		REQUIRE(a * mat3::identity() == a);
+		REQUIRE(mat3::identity() * a == a);
+
+		mat3 b = {
+			-32, 64, 8,
+			24, 12, -6,
+			0.5, -0.25, 0.125
+		};
+
+		mat3 axb = {
+			188.125, 637.9375, -38.96875,
+			165, -1714.5, -42.75,
+			3225, -6388.5, -805.75
+		};
+
+		mat3 bxa = {
+			-2464, -1992, -1400,
+			498, 114, 690,
+			-3.375, 14.125, 17.875
+		};
+
+		REQUIRE(aeq(b * a, bxa));
+		REQUIRE(b * mat3::zero() == mat3::zero());
+		REQUIRE(mat3::zero() * b == mat3::zero());
+	}
+	SECTION("Random nonsquare matrices") {
+		mat2x3 a = {
+			16, 8, -4,
+			0.5, 2.5, 32
+		};
+		math::MMatrix<float, 3, 2> b = {
+			100, 10,
+			1, -1,
+			-10, -100
+		};
+		mat2 axb = {
+			1648, 552,
+			-267.5, -3197.5
+		};
+		REQUIRE(aeq(a * b, axb));
+	}
+}

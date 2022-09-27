@@ -364,6 +364,20 @@ namespace math {
 			return transposed;
 		}
 
+		template<size_t O>
+		constexpr MMatrix<F, M, O> operator*(const MMatrix<F, N, O>& other) const {
+			auto mul = MMatrix<F, M, O>::zero();
+			for (size_t r = 0; r < M; r++) {
+				auto in_row = this->row(r);
+				auto out_row = MVector<F, O>::zero();
+				for (size_t c = 0; c < O; c++) {
+					out_row[c] = dot(in_row, other.col(c));
+				}
+				mul.set_row(r, out_row);
+			}
+			return mul;
+		}
+
 		// We DON'T do rotate, scale, transform matrices here
 		// rotate: only makes sense for square & different in each dim
 		// scale: only makes sense for square matrices
