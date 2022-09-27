@@ -86,29 +86,25 @@ namespace math {
 			return this->elems == other.elems;
 		}
 
-		constexpr bool operator!=(const MVector& other) const {
-			return this->elems != other.elems;
+		constexpr bool operator!=(const MVector& other) const { return !(*this == other); }
+
+		#define VEC_DERIVE_BINOP(sym, in) \
+		constexpr MVector operator sym(in other) const { \
+			 auto copy = *this; copy sym##= other; return copy; \
 		}
 
 		constexpr MVector& operator+=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
 			return *this;
 		}
-		constexpr MVector operator+(const MVector& other) const {
-			auto copy = *this;
-			copy += other;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(+, const MVector&);
+		
 
 		constexpr MVector& operator-=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] -= other.elems[i];
 			return *this;
 		}
-		constexpr MVector operator-(const MVector& other) const {
-			auto copy = *this;
-			copy -= other;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(-, const MVector&);
 
 		/// Unary negation.
 		constexpr MVector operator-() const {
@@ -123,22 +119,14 @@ namespace math {
 			return *this;
 		}
 		template<std::convertible_to<F> S>
-		constexpr MVector operator*(S scalar) const {
-			auto copy = *this;
-			copy *= scalar;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(*, S);
 
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] *= other.elems[i];
 			return *this;
 		}
-		constexpr MVector operator*(const MVector& other) const {
-			auto copy = *this;
-			copy *= other;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(*, const MVector&);
 
 		/// Scalar division.
 		template<std::convertible_to<F> S>
@@ -150,22 +138,16 @@ namespace math {
 			return this->operator*=(reciprocal);
 		}
 		template<std::convertible_to<F> S>
-		constexpr MVector operator/(S scalar) const {
-			auto copy = *this;
-			copy /= scalar;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(/, S)
 
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] /= other.elems[i];
 			return *this;
 		}
-		constexpr MVector operator/(const MVector& other) const {
-			auto copy = *this;
-			copy /= other;
-			return copy;
-		}
+		VEC_DERIVE_BINOP(/, const MVector&)
+
+		#undef VEC_DERIVE_BINOP
 
 		/// Indexed element access.
 		constexpr const F& operator[](size_t index) const {
@@ -338,24 +320,22 @@ namespace math {
 		constexpr bool operator==(const MMatrix&) const = default;
 		constexpr bool operator!=(const MMatrix&) const = default;
 
+		#define MAT_DERIVE_BINOP(sym, in) \
+		constexpr MMatrix operator sym (in other) const { \
+			 auto copy = *this; copy sym##= other; return copy; \
+		}
+
 		constexpr MMatrix& operator+=(const MMatrix& other) {
 			for (size_t i = 0; i < N; i++) this->cols[i] += other.cols[i];
 			return *this;
 		}
-		constexpr MMatrix operator+(const MMatrix& other) const {
-			auto copy = *this;
-			copy += other;
-			return copy;
-		}
+		MAT_DERIVE_BINOP(+, const MMatrix&);
+
 		constexpr MMatrix& operator-=(const MMatrix& other) {
 			for (size_t i = 0; i < N; i++) this->cols[i] -= other.cols[i];
 			return *this;
 		}
-		constexpr MMatrix operator-(const MMatrix& other) const {
-			auto copy = *this;
-			copy -= other;
-			return copy;
-		}
+		MAT_DERIVE_BINOP(-, const MMatrix&);
 
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator*=(S scalar) {
@@ -363,11 +343,7 @@ namespace math {
 			return *this;
 		}
 		template<std::convertible_to<F> S>
-		constexpr MMatrix operator*(S scalar) const {
-			auto copy = *this;
-			copy *= scalar;
-			return copy;
-		}
+		MAT_DERIVE_BINOP(*, S);
 
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator/=(S scalar) {
@@ -376,11 +352,9 @@ namespace math {
 			return *this;
 		}
 		template<std::convertible_to<F> S>
-		constexpr MMatrix operator/(S scalar) const {
-			auto copy = *this;
-			copy /= scalar;
-			return copy;
-		}
+		MAT_DERIVE_BINOP(/, S);
+
+		#undef MAT_DERIVE_BINOP
 
 		constexpr MMatrix<F, N, M> transpose() const {
 			auto transposed = MMatrix<F,N,M>::zero();
@@ -413,7 +387,7 @@ namespace math {
 		// Windows has terrible support for Unicode
 		print_row("/", 0, "\\\n");
 
-		DIAG_PUSHIGNORE_MSVC(6294); // ill-defined for loop is intentional when M=2!
+		DIAG_PUSHIGNORE_MSVC(6294); // This is *intentionally* never executed when M=2
 		for (size_t j = 1; j < M - 1; j++) print_row("|", j, "|\n");
 		DIAG_POP_MSVC();
 
