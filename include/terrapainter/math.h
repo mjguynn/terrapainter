@@ -281,10 +281,21 @@ namespace math {
 		constexpr MVector<F, M> col(size_t i) const {
 			return this->cols[i];
 		}
+
+		constexpr MMatrix& set_col(size_t i, const MVector<F, M>& c) {
+			this->cols[i] = c;
+			return *this;
+		}
+
 		constexpr MVector<F, N> row(size_t j) const {
 			auto rv = MVector<F, N>::zero();
 			for (size_t i = 0; i < N; i++) rv[i] = this->cols[i][j];
 			return rv;
+		}
+
+		constexpr MMatrix& set_row(size_t j, const MVector<F, N>& r) {
+			for (size_t i = 0; i < N; i++) this->cols[i][j] = r[i];
+			return *this;
 		}
 
 		// Just hammering out the API
@@ -313,7 +324,9 @@ namespace math {
 			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,M>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
 			auto mat = MMatrix::zero();
-			TODO();
+			size_t j = 0;
+			(..., mat.set_row(j++, rows));
+			return mat;
 		}
 
 		template<typename... Args>

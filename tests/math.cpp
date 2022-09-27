@@ -308,7 +308,7 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		};
 		validate(m);
 	}
-	/*SECTION("From rows") {
+	SECTION("From rows") {
 		mat4 m = mat4::from_rows(
 			vec4{ +1.0, +0.0, +0.0, +0.0 },
 			vec4{ -0.5, -0.5, +7.0, -7.0 },
@@ -316,7 +316,7 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 			vec4{ -4.0, +2.0, -8.0, +1.0 }
 		);
 		validate(m);
-	}*/
+	}
 	SECTION("From cols") {
 		mat4 m = mat4::from_cols(
 			vec4{ +1.0, -0.5, +0.0, -4.0 },
