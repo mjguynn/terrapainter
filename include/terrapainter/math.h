@@ -27,8 +27,8 @@ namespace math {
 	//     punning, there *might* be a bug at *runtime*. According to the 
 	//     C++ standard, union type punning is illegal. However:
 	//		- GCC explicitly supports it: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#Type-punning
-	//		- MSVC's own STL headers rely on it: https://github.com/microsoft/STL/blob/020aad2e088a21bbcad60f66d8419963219c1106/stl/src/xmath.hpp#L60
-	//		- LLVM seems to depend upon it: https://github.com/llvm/llvm-project/blob/542977d43841820614a32823c33415042430e230/compiler-rt/lib/builtins/int_types.h
+	//		- MSVC's own STL relies on it: https://github.com/microsoft/STL/blob/020aad2e088a21bbcad60f66d8419963219c1106/stl/src/xmath.hpp#L60
+	//		- Clang's own libc++ relies on it: https://github.com/llvm/llvm-project/blob/2d52c6bfae801b016dd3627b8c0e7c4a99405549/libcxx/include/__functional/hash.h#L283
 	//	   These are really the only three compilers I care about.
 
 	template<std::floating_point F, size_t C>
@@ -80,11 +80,12 @@ namespace math {
 		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
 
 		constexpr bool operator==(const MVector& other) const {
-			for (size_t i = 0; i < C; i++) if (this->elems[i] != other.elems[i]) return false;
-			return true;
+			return this->elems == other.elems;
 		}
 
-		constexpr bool operator!=(const MVector& other) const = default;
+		constexpr bool operator!=(const MVector& other) const {
+			return this->elems != other.elems;
+		}
 
 		constexpr MVector& operator+=(const MVector& other) {
 			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
