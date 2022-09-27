@@ -59,9 +59,12 @@ namespace math {
 		/// The number of elements in vectors of this type.
 		constexpr static size_t SIZE = C;
 
+		/// Default constructor
+		constexpr MVector() : MVectorStorage<F, C>{} {}
+
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
-		explicit constexpr MVector(S splat) : MVectorStorage<F, C> {} {
+		explicit constexpr MVector(S splat) : MVector() {
 			this->elems.fill(static_cast<F>(splat));
 		}
 
@@ -255,22 +258,27 @@ namespace math {
 		// a pain to transpose every matrix we use...
 		std::array<MVector<F, M>, N> cols;
 		
-		
-		template<typename... Args>
-		constexpr MMatrix(const Args&... cols) : cols{ cols... } {}
-
 	public:
+		/// Default constructor (all zeroes).
+		constexpr MMatrix() : cols() {}
+
 		template<typename... Args>
-			requires(sizeof...(Args) == N * M)
-		constexpr MMatrix(const Args&... args) {
-			TODO();
+			requires(sizeof...(Args) == N * M && std::conjunction_v<std::is_convertible<F, Args>...>)
+		constexpr MMatrix(const Args&... args) : MMatrix() {
+			// This initialization code is absolutely batshit insane
+			auto write_entry = [](MMatrix* mat, size_t& i, F val) {
+				mat->cols[i % N][i / N] = val;
+				++i;
+			};
+			size_t i = 0;
+			(..., write_entry(this, i, static_cast<F>(args)));
 		}
 		constexpr MVector<F, M> col(size_t i) const {
-			return cols[i];
+			return this->cols[i];
 		}
 		constexpr MVector<F, N> row(size_t j) const {
 			auto rv = MVector<F, N>::zero();
-			for (size_t i = 0; i < N; i++) rv[i] = cols[i][j];
+			for (size_t i = 0; i < N; i++) rv[i] = this->cols[i][j];
 			return rv;
 		}
 

@@ -300,14 +300,13 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		}
 	}*/
 	SECTION("Raw specification") {
-		/*mat4 m = {
+		mat4 m = {
 			+1.0, +0.0, +0.0, +0.0,
 			-0.5, -0.5, +7.0, -7.0,
 			+0.0, +6.2, -6.2, -0.0,
 			-4.0, +2.0, -8.0, +1.0
 		};
 		validate(m);
-		*/
 	}
 	/*SECTION("From rows") {
 		mat4 m = mat4::from_rows(
@@ -318,7 +317,7 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 		);
 		validate(m);
 	}*/
-	SECTION("From cols") {
+	/*SECTION("From cols") {
 		mat4 m = mat4::from_cols(
 			vec4{ +1.0, -0.5, +0.0, -4.0 },
 			vec4{ +0.0, -0.5, +6.2, +2.0 },
@@ -326,6 +325,6 @@ TEST_CASE("Matrix constructors, row/column accessors") {
 			vec4{ +0.0, -7.0, -0.0, +1.0 }
 		);
 		validate(m);
-	}
+	}*/
 
 }
