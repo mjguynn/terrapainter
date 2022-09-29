@@ -23,6 +23,30 @@ const char *fragmentShaderSource = "#version 330 core\n"
                                    " FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
                                    "}\0";
 
+// -----------------Functions created for SDL ONLY SECTION (BEGIN)-------------
+void set_pixel(
+    SDL_Surface *const surface,
+    const int x,
+    const int y,
+    const Uint8 r,
+    const Uint8 g,
+    const Uint8 b)
+{
+  Uint32 *const pixels = (Uint32 *)surface->pixels;
+  const Uint32 color = SDL_MapRGB(surface->format, r, g, b);
+  pixels[x + (y * surface->w)] = color;
+}
+
+int clamp(const int val, const int min, const int max)
+{
+  if (val < min)
+    return min;
+  if (val > max)
+    return max;
+  return val;
+}
+// -----------------Functions created for SDL ONLY SECTION (END)-------------
+
 int main(int argc, char *argv[])
 {
   // Initialize SDL
@@ -40,6 +64,67 @@ int main(int argc, char *argv[])
   // Create window
   SDL_Window *window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600, SDL_WINDOW_OPENGL);
 
+  // -------------SDL ONLY SECTION (BEGIN)---------------
+  SDL_Surface *surface = SDL_GetWindowSurface(window);
+
+  if (surface == NULL)
+  {
+    printf("surface is null");
+    exit(1);
+  }
+
+  SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
+  SDL_UpdateWindowSurface(window);
+
+  srand(time(NULL));
+
+  int mouseX = 0;
+  int mouseY = 0;
+
+  int x = 0;
+  int y = 0;
+
+  Uint8 r = 255;
+  Uint8 g = 255;
+  Uint8 b = 255;
+
+  bool drawing = false;
+
+  SDL_Event windowEvent;
+  while (true)
+  {
+    if (SDL_PollEvent(&windowEvent))
+    {
+      if (windowEvent.type == SDL_QUIT)
+        break;
+      else if (windowEvent.type == SDL_MOUSEBUTTONDOWN)
+      {
+        drawing = true;
+      }
+      else if (windowEvent.type == SDL_MOUSEBUTTONUP)
+      {
+        drawing = false;
+      }
+      else if (windowEvent.type == SDL_MOUSEMOTION)
+      {
+        mouseX = windowEvent.motion.x;
+        mouseY = windowEvent.motion.y;
+      }
+    }
+    if (drawing)
+    {
+      x = clamp(mouseX, 0, 800);
+      y = clamp(mouseY, 0, 600);
+      set_pixel(surface, x, y, r, g, b);
+      SDL_UpdateWindowSurface(window);
+    }
+  }
+
+  SDL_DestroyWindow(window);
+
+  // -------------SDL ONLY SECTION (END)---------------
+
+  /*
   // Create OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
 
@@ -117,6 +202,8 @@ int main(int argc, char *argv[])
 
   // Destroy context
   SDL_GL_DeleteContext(context);
+  */
+
   // Quit SDL
   SDL_Quit();
   return 0;
