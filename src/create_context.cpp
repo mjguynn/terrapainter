@@ -2,6 +2,7 @@
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include <iostream>
+using namespace std;
 
 // create vertices for triangle
 float vertices[] = {
@@ -90,6 +91,8 @@ int main(int argc, char *argv[])
 
   bool drawing = false;
 
+  int strokeSize = 1;
+
   SDL_Event windowEvent;
   while (true)
   {
@@ -110,12 +113,41 @@ int main(int argc, char *argv[])
         mouseX = windowEvent.motion.x;
         mouseY = windowEvent.motion.y;
       }
+      else if (windowEvent.type == SDL_MOUSEWHEEL)
+      {
+        if (windowEvent.wheel.y > 0)
+        {
+          strokeSize = clamp((strokeSize + 1), 1, 50);
+        }
+        else if (windowEvent.wheel.y < 0)
+        {
+          strokeSize = clamp((strokeSize - 1), 1, 50);
+        }
+      }
+      else if (windowEvent.type == SDL_KEYDOWN)
+      {
+        if (windowEvent.key.keysym.sym = SDLK_SPACE)
+        {
+          r = rand() % 255;
+          g = rand() % 255;
+          b = rand() % 255;
+        }
+      }
     }
     if (drawing)
     {
-      x = clamp(mouseX, 0, 800);
-      y = clamp(mouseY, 0, 600);
-      set_pixel(surface, x, y, r, g, b);
+      // x = clamp(mouseX, 0, 800);
+      // y = clamp(mouseY, 0, 600);
+      for (int i = -strokeSize; i <= strokeSize; i++)
+      {
+        for (int j = -strokeSize; j <= strokeSize; j++)
+        {
+          if (sqrt(pow(i, 2) + pow(j, 2)) < strokeSize)
+          {
+            set_pixel(surface, clamp((mouseX + i), 0, 800), clamp((mouseY + j), 0, 800), r, g, b);
+          }
+        }
+      }
       SDL_UpdateWindowSurface(window);
     }
   }
