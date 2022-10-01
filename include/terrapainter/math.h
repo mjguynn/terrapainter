@@ -15,7 +15,8 @@
 namespace math {
 	template<std::floating_point F, size_t C>
 	struct MVectorStorage {
-		F elems = std::array<F, C>;
+		std::array<F, C> elems;
+
 		constexpr F& operator[](size_t idx) {
 			assert(idx < C);
 			return elems[idx];
