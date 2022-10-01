@@ -13,44 +13,137 @@
 //! Graphics-oriented linear algebra.
 
 namespace math {
-	// There are three pieces of illegal C++ at play here:
-	// 	1. Anonymous unions. I'm only using these since I want MVector to
-	//	   inherit the public fields from MVectorStorage, but you can't
-	//	   inherit from a union. Although it's technically illegal, it's
-	// 	   supported as an extension by every C++ compiler out there.
-	//  2. Anonymous structs. I'm using these to get convenient x/y/z/w
-	//     member access. Once again: technically illegal, supported as an
-	//     extension by every C++ compiler out there.
-	//  3. Union type punning. This is the only "dangerous" one. If the
-	//     compiler doesn't support anonymous unions and structs, there will
-	//     be a syntax error at compile time; if it doesn't support union type
-	//     punning, there *might* be a bug at *runtime*. According to the 
-	//     C++ standard, union type punning is illegal. However:
-	//		- GCC explicitly supports it: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#Type-punning
-	//		- MSVC's own STL relies on it: https://github.com/microsoft/STL/blob/020aad2e088a21bbcad60f66d8419963219c1106/stl/src/xmath.hpp#L60
-	//		- Clang's own libc++ relies on it: https://github.com/llvm/llvm-project/blob/2d52c6bfae801b016dd3627b8c0e7c4a99405549/libcxx/include/__functional/hash.h#L283
-	//	   These are really the only three compilers I care about.
-
 	template<std::floating_point F, size_t C>
-	struct alignas(sizeof(F) * 4) MVectorStorage {
-		union {
-			std::array<F, C> elems;
-			struct { F x, y, z, w; };
-		};
+	struct MVectorStorage {
+		F elems = std::array<F, C>;
+		constexpr F& operator[](size_t idx) {
+			assert(idx < C);
+			return elems[idx];
+		}
+		constexpr const F& operator[](size_t idx) const {
+			assert(idx < C);
+			return elems[idx];
+		}
 	};
+
+	template<std::floating_point F>
+	struct alignas(sizeof(F) * 4) MVectorStorage<F, 4> {
+		F x, y, z, w;
+
+		constexpr F& operator[](size_t idx) {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				case 3: return w;
+				default: std::abort();
+				}
+			}
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
+
+			assert(idx < 4);
+			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<F*>(member);
+		}
+		constexpr const F& operator[](size_t idx) const {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				case 3: return w;
+				default: std::abort();
+				}
+			}
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+
+			assert(idx < 4);
+			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<const F*>(member);
+		}
+	};
+
 	template<std::floating_point F>
 	struct alignas(sizeof(F) * 4) MVectorStorage<F, 3> {
-		union {
-			std::array<F, 3> elems;
-			struct { F x, y, z; };
-		};
+		F x, y, z;
+
+		constexpr F& operator[](size_t idx) {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				default: std::abort();
+				}
+			}
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+
+			assert(idx < 3);
+			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<F*>(member);
+		}
+		constexpr const F& operator[](size_t idx) const {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				case 2: return z;
+				default: std::abort();
+				}
+			}
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+
+			assert(idx < 3);
+			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<const F*>(member);
+		}
 	};
 	template<std::floating_point F>
 	struct MVectorStorage<F, 2> {
-		union {
-			std::array<F, 2> elems;
-			struct { F x, y; };
-		};
+		F x, y;
+
+		constexpr F& operator[](size_t idx) {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				default: std::abort();
+				}
+			}
+
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+
+			assert(idx < 2);
+			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<F*>(member);
+		}
+		constexpr const F& operator[](size_t idx) const {
+			if (std::is_constant_evaluated()) {
+				switch (idx) {
+				case 0: return x;
+				case 1: return y;
+				default: std::abort();
+				}
+			}
+
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+
+			assert(idx < 2);
+			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
+			return *reinterpret_cast<const F*>(member);
+		}
 	};
 
 	template<std::floating_point F, size_t C>
@@ -65,7 +158,10 @@ namespace math {
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
 		explicit constexpr MVector(S splat) : MVector() {
-			this->elems.fill(static_cast<F>(splat));
+			F converted = static_cast<F>(splat);
+			for (size_t i = 0; i < C; i++) {
+				(*this)[i] = converted;
+			}
 		}
 
 		template<std::convertible_to<F> S>
@@ -83,7 +179,10 @@ namespace math {
 		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
 
 		constexpr bool operator==(const MVector& other) const {
-			return this->elems == other.elems;
+			for(size_t i = 0; i < C; i++){
+				if ((*this)[i] != other[i]) return false;
+			}
+			return true;
 		}
 
 		constexpr bool operator!=(const MVector& other) const { return !(*this == other); }
@@ -94,14 +193,14 @@ namespace math {
 		}
 
 		constexpr MVector& operator+=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] += other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(+, const MVector&);
 		
 
 		constexpr MVector& operator-=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] -= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] -= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(-, const MVector&);
@@ -115,7 +214,7 @@ namespace math {
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
 			F scalar_cvt = static_cast<F>(scalar);
-			for (size_t i = 0; i < C; i++) this->elems[i] *= scalar_cvt;
+			for (size_t i = 0; i < C; i++) (*this)[i] *= scalar_cvt;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -123,7 +222,7 @@ namespace math {
 
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] *= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] *= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(*, const MVector&);
@@ -142,20 +241,12 @@ namespace math {
 
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] /= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] /= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(/, const MVector&)
 
 		#undef VEC_DERIVE_BINOP
-
-		/// Indexed element access.
-		constexpr const F& operator[](size_t index) const {
-			return this->elems[index];
-		}
-		constexpr F& operator[](size_t index) {
-			return this->elems[index];
-		}
 
 		// Returns the magnitude of this vector.
 		constexpr F mag() const {
@@ -192,7 +283,7 @@ namespace math {
 	template<std::floating_point F, size_t C>
 	inline constexpr F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
 		F sum = static_cast<F>(0);
-		for (size_t i = 0; i < C; i++) sum += l.elems[i] * r.elems[i];
+		for (size_t i = 0; i < C; i++) sum += l[i] * r[i];
 		return sum;
 	}
 
@@ -235,45 +326,43 @@ namespace math {
 	template<std::floating_point F, size_t M, size_t N>
 		requires (2 <= M <= 4 && 2 <= N <= 4)
 	class MMatrix {
-		// We use column-major matrices instead of row-major matrices
-		// because that's what OpenGL actually requires. It would be
-		// a pain to transpose every matrix we use...
-		std::array<MVector<F, M>, N> cols;
+		// Row-major storage.
+		std::array<MVector<F, N>, M> mStorage;
 
 	public:
 		/// Default constructor (all zeroes).
-		constexpr MMatrix() : cols() {}
+		constexpr MMatrix() : mStorage() {}
 
 		/// Entry-by-entry initialization.
 		template<typename... Args>
 			requires(sizeof...(Args) == N * M && std::conjunction_v<std::is_convertible<F, Args>...>)
 		constexpr MMatrix(const Args&... args) : MMatrix() {
 			// This initialization code is absolutely batshit insane
-			auto write_entry = [](MMatrix* mat, size_t& i, F val) {
-				mat->cols[i % N][i / N] = val;
-				++i;
+			auto write_entry = [](MMatrix* mat, size_t& k, F val) {
+				mat->mStorage[k / N][k % N] = val;
+				++k;
 			};
 			size_t i = 0;
 			(..., write_entry(this, i, static_cast<F>(args)));
 		}
 
-		constexpr MVector<F, M> col(size_t i) const {
-			return this->cols[i];
-		}
-
-		constexpr MMatrix& set_col(size_t i, const MVector<F, M>& c) {
-			this->cols[i] = c;
-			return *this;
-		}
-
-		constexpr MVector<F, N> row(size_t j) const {
-			auto rv = MVector<F, N>::zero();
-			for (size_t i = 0; i < N; i++) rv[i] = this->cols[i][j];
+		constexpr MVector<F, M> col(size_t j) const {
+			auto rv = MVector<F, M>::zero();
+			for (size_t i = 0; i < M; i++) rv[i] = mStorage[i][j];
 			return rv;
 		}
 
-		constexpr MMatrix& set_row(size_t j, const MVector<F, N>& r) {
-			for (size_t i = 0; i < N; i++) this->cols[i][j] = r[i];
+		constexpr MMatrix& set_col(size_t j, const MVector<F, M>& c) {
+			for (size_t i = 0; i < M; i++) mStorage[i][j] = c[i];
+			return *this;
+		}
+
+		constexpr MVector<F, N> row(size_t i) const {
+			return mStorage[i];
+		}
+
+		constexpr MMatrix& set_row(size_t i, const MVector<F, N>& r) {
+			mStorage[i] = r;
 			return *this;
 		}
 
@@ -282,7 +371,7 @@ namespace math {
 		constexpr static MMatrix splat(S splat) {
 			MMatrix<F, M, N> z;
 			for (size_t i = 0; i < N; i++) {
-				z.cols[i] = MVector<F,M>::splat(splat);
+				z.mStorage[i] = MVector<F,N>::splat(splat);
 			}
 			return z;
 		}
@@ -294,7 +383,7 @@ namespace math {
 		consteval static MMatrix identity() requires (N==M) {
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
-				mat.cols[i][i] = static_cast<F>(1);
+				mat.mStorage[i][i] = static_cast<F>(1);
 			}
 			return mat;
 		}
@@ -303,8 +392,8 @@ namespace math {
 			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,N>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
 			auto mat = MMatrix::zero();
-			size_t j = 0;
-			(..., mat.set_row(j++, rows));
+			size_t i = 0;
+			(..., mat.set_row(i++, rows));
 			return mat;
 		}
 
@@ -312,8 +401,8 @@ namespace math {
 			requires(sizeof...(Args) == N && std::conjunction_v<std::is_same<MVector<F, M>, Args>...>)
 		constexpr static MMatrix from_cols(const Args&... cols) {
 			auto mat = MMatrix::zero();
-			size_t i = 0;
-			(..., mat.set_col(i++, cols));
+			size_t j = 0;
+			(..., mat.set_col(j++, cols));
 			return mat;
 		}
 
@@ -326,20 +415,20 @@ namespace math {
 		}
 
 		constexpr MMatrix& operator+=(const MMatrix& other) {
-			for (size_t i = 0; i < N; i++) this->cols[i] += other.cols[i];
+			for (size_t i = 0; i < M; i++) mStorage[i] += other.mStorage[i];
 			return *this;
 		}
 		MAT_DERIVE_BINOP(+, const MMatrix&);
 
 		constexpr MMatrix& operator-=(const MMatrix& other) {
-			for (size_t i = 0; i < N; i++) this->cols[i] -= other.cols[i];
+			for (size_t i = 0; i < M; i++) mStorage[i] -= other.mStorage[i];
 			return *this;
 		}
 		MAT_DERIVE_BINOP(-, const MMatrix&);
 
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator*=(S scalar) {
-			for (size_t i = 0; i < N; i++) this->cols[i] *= scalar;
+			for (size_t i = 0; i < M; i++) mStorage[i] *= scalar;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -348,7 +437,7 @@ namespace math {
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator/=(S scalar) {
 			F inv = static_cast<F>(1) / static_cast<F>(scalar);
-			for (size_t i = 0; i < N; i++) this->cols[i] *= inv;
+			for (size_t i = 0; i < M; i++) mStorage[i] *= inv;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -358,8 +447,8 @@ namespace math {
 
 		constexpr MMatrix<F, N, M> transpose() const {
 			auto transposed = MMatrix<F,N,M>::zero();
-			for (size_t i = 0; i < N; i++) {
-				transposed.set_row(i, this->col(i));
+			for (size_t j = 0; j < N; j++) {
+				transposed.set_col(j, mStorage[j]);
 			}
 			return transposed;
 		}
@@ -377,6 +466,17 @@ namespace math {
 			}
 			return mul;
 		}
+
+		// Mutates the matrix in-place, converting it into row-echelon form.
+		constexpr MMatrix row_echelon() const {
+			TODO();
+		}
+
+		template<class> requires(N == M)
+		constexpr F determinant() const {
+			TODO();
+		}
+		
 
 		// We DON'T do rotate, scale, transform matrices here
 		// rotate: only makes sense for square & different in each dim
@@ -425,7 +525,7 @@ namespace math {
 	template<std::floating_point F, size_t C>
 	inline bool aeq(const MVector<F, C>& left, const MVector<F, C>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
 		for (size_t i = 0; i < C; i++) {
-			if (!aeq(left.elems[i], right.elems[i], tolerance)) return false;
+			if (!aeq(left[i], right[i], tolerance)) return false;
 		}
 		return true;
 	}
