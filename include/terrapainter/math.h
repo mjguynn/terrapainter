@@ -339,12 +339,12 @@ namespace math {
 			requires(sizeof...(Args) == N * M && std::conjunction_v<std::is_convertible<F, Args>...>)
 		constexpr MMatrix(const Args&... args) : MMatrix() {
 			// This initialization code is absolutely batshit insane
-			auto write_entry = [](MMatrix* mat, size_t& k, F val) {
-				mat->mStorage[k / N][k % N] = val;
+			auto write_entry = [](MMatrix& mat, size_t& k, F val) {
+				mat.mStorage[k / N][k % N] = val;
 				++k;
 			};
 			size_t i = 0;
-			(..., write_entry(this, i, static_cast<F>(args)));
+			(..., write_entry(*this, i, static_cast<F>(args)));
 		}
 
 		constexpr MVector<F, M> col(size_t j) const {
@@ -448,7 +448,7 @@ namespace math {
 
 		constexpr MMatrix<F, N, M> transpose() const {
 			auto transposed = MMatrix<F,N,M>::zero();
-			for (size_t j = 0; j < N; j++) {
+			for (size_t j = 0; j < M; j++) {
 				transposed.set_col(j, mStorage[j]);
 			}
 			return transposed;
@@ -469,14 +469,65 @@ namespace math {
 		}
 
 		// Mutates the matrix in-place, converting it into row-echelon form.
+		constexpr MMatrix& make_row_echelon() {
+			for (size_t j = 0; j < M-1; j++) {
+				// Scan through remaining rows, find the one with the max value
+				// in the j-th column.
+				// Technically, we only need to find the first nonzero value...
+				// but this gives better numerical stability
+				F pivot = mStorage[j][j];
+				size_t pivot_row = j;
+
+				for (size_t k = j + 1; k < M; k++) {
+					// Fun trick: fabs is slow because it needs to handle
+					// a bunch of edge cases. But since we're comparing two
+					// magnitudes, we can just compare the squares...
+					F cur = mStorage[k][j];
+					if (cur * cur > pivot * pivot) {
+						pivot = cur;
+						pivot_row = k;
+					}
+				}
+
+				if (pivot == static_cast<F>(0)) {
+					// every row had a zero in this column
+					// TODO: We should check the next row!
+					continue;
+				}
+
+				// Get a version of the pivot row with the pivot
+				// "normalized" so we don't have to divide each iteration
+				MVector<F, N> prediv = mStorage[pivot_row] / pivot;
+
+				// Move the row with the max value into the uppermost
+				// position in row-echelon form...
+				std::swap(mStorage[j], mStorage[pivot_row]);
+
+				// And ensure the column is zero in all the rows
+				// underneath it by subtracting that row.
+				for (size_t k = j + 1; k < M; k++) {
+					mStorage[k] -= mStorage[k][j] * prediv;
+				}
+			}
+			return *this;
+		}
+
 		constexpr MMatrix row_echelon() const {
-			TODO();
+			auto copy = *this;
+			copy.make_row_echelon();
+			return copy;
 		}
 
 		template<class> requires(N == M)
 		constexpr F determinant() const {
-			TODO();
+			auto re = this->row_echelon();
+			F det = static_cast<F>(1);
+			for (size_t i = 0; i < M; i++) {
+				det *= re.mStorage[i][i];
+			}
+			return det;
 		}
+
 		
 
 		// We DON'T do rotate, scale, transform matrices here

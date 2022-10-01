@@ -466,3 +466,125 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 		REQUIRE(aeq(a * b, axb));
 	}
 }
+TEST_CASE("Row-Echelon form") {
+	SECTION("Basic cases") {
+		mat3 ident = mat3::identity();
+		REQUIRE(ident.row_echelon() == ident);
+
+		mat2x3 normal = {
+			1, 0, 0,
+			0, 1, 0,
+		};
+		REQUIRE(normal.row_echelon() == normal);
+
+		mat2x3 shifted = {
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(shifted.row_echelon() == shifted);
+
+		mat2 left_corner = {
+			1, 0,
+			0, 0
+		};
+		REQUIRE(left_corner.row_echelon() == left_corner);
+
+		mat2 right_corner = {
+			0, 1,
+			0, 0
+		};
+		REQUIRE(right_corner.row_echelon() == right_corner);
+	}
+	SECTION("Row swaps, no scaling") {
+		// identity = permute_123
+		mat3 permute_231 = {
+			0, 1, 0,
+			0, 0, 1,
+			1, 0, 0
+		};
+		REQUIRE(permute_231.row_echelon() == mat3::identity());
+
+		mat3 permute_312 = {
+			0, 0, 1,
+			1, 0, 0,
+			0, 1, 0
+		};
+		REQUIRE(permute_312.row_echelon() == mat3::identity());
+
+		mat3 permute_321 = {
+			0, 0, 1,
+			0, 1, 0,
+			1, 0, 0
+		};
+		REQUIRE(permute_321.row_echelon() == mat3::identity());
+
+		mat3 permute_213 = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(permute_213.row_echelon() == mat3::identity());
+
+		mat3 permute_132 = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 1, 0
+		};
+		REQUIRE(permute_213.row_echelon() == mat3::identity());
+
+		mat2x3 shifted_permute = {
+			0, 0, 1,
+			0, 1, 0
+		};
+		mat2x3 shifted_permute_re = {
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(shifted_permute.row_echelon() == shifted_permute_re);
+	}
+	SECTION("Random matrices") {
+		mat3 a = {
+			2.5, 3.6, -7,
+			-12, 0, 0,
+			0, 1, -1
+		};
+		mat3 a_re = {
+			-12, 0, 0,
+			0, 3.6, -7,
+			0, 0, 0.9444444444,
+		};
+		REQUIRE(aeq(a.row_echelon(), a_re));
+
+		mat3 b = {
+			6, 3, 0,
+			-15, -7.5, 0,
+			0, 1, 1
+		};
+		mat3 b_re = {
+			-15, -7.5, 0,
+			0, 1, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(b.row_echelon(), b_re));
+
+		mat2x3 c = {
+			0, -5.7, 6.2,
+			0.1, 0, 1
+		};
+		mat2x3 c_re = {
+			0.1, 0, 1,
+			0, -5.7, 6.2
+		};
+		REQUIRE(c.row_echelon() == c_re);
+
+		mat2x3 d = {
+			0, -5.7, 6.2,
+			0, 0.1, 1
+		};
+		mat2x3 d_re = {
+			0, -5.7, 6.2,
+			0, 0, 0.2087719298
+		};
+		REQUIRE(d.row_echelon() == d_re);
+	}
+}
