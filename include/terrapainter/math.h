@@ -48,6 +48,13 @@ namespace math {
 		F x, y, z, w;
 		F mExtra[C-4];
 		IMPL_MEMBER_ACCESS(5, x, y, z, w, mExtra[idx - 4])
+
+		constexpr MVectorStorage() = default;
+
+		template<typename ...Args>
+			requires(sizeof...(Args) == C-4 && std::conjunction_v<std::is_same<F, Args>...>)
+		constexpr MVectorStorage(F _x, F _y, F _z, F _w, Args... _extra)
+			: x(_x), y(_y), z(_z), w(_w), mExtra{ _extra... } {}
 	private:
 		// These need to be in a function so they can refer to MVectorStorage.
 		consteval static void check_member_layout() {
@@ -134,7 +141,7 @@ namespace math {
 		/// Per-element bracket initialization syntax.
 		template<typename ...Args>
 			requires(sizeof...(Args) == C && std::conjunction_v<std::is_convertible<F, Args>...>)
-		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
+		constexpr MVector(const Args&... args) : MVectorStorage<F,C> ( static_cast<F>(args)... ) {}
 
 		constexpr bool operator==(const MVector& other) const {
 			for(size_t i = 0; i < C; i++){
@@ -493,6 +500,9 @@ namespace math {
 			}
 		}
 
+		constexpr F inverse() const {
+			TODO();
+		}
 		
 
 		// We DON'T do rotate, scale, transform matrices here
