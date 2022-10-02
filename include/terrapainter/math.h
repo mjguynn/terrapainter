@@ -13,6 +13,20 @@
 //! Graphics-oriented linear algebra.
 
 namespace math {
+
+	// Operator access relies on reinterpret_cast, which does not function
+	// in a constant context.
+	#define IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest) \
+		if(std::is_constant_evaluated()) { \
+			switch (idx) { \
+				case 0: return x; \
+				case 1: return y; \
+				case 2: return z; \
+				case 3: return w; \
+				default: return rest; \
+			} \
+		} \
+
 	template<std::floating_point F, size_t C>
 	struct MVectorStorage {
 		std::array<F, C> elems;
@@ -32,41 +46,24 @@ namespace math {
 		F x, y, z, w;
 
 		constexpr F& operator[](size_t idx) {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				case 2: return z;
-				case 3: return w;
-				default: std::abort();
-				}
-			}
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
-
 			assert(idx < 4);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, w);
 			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<F*>(member);
 		}
 		constexpr const F& operator[](size_t idx) const {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				case 2: return z;
-				case 3: return w;
-				default: std::abort();
-				}
-			}
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
-
 			assert(idx < 4);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, w);
 			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<const F*>(member);
+		}
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_safety() {
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 0 * sizeof(F));
 		}
 	};
 
@@ -75,38 +72,24 @@ namespace math {
 		F x, y, z;
 
 		constexpr F& operator[](size_t idx) {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				case 2: return z;
-				default: std::abort();
-				}
-			}
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
-
 			assert(idx < 3);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, z, z);
 			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<F*>(member);
 		}
 		constexpr const F& operator[](size_t idx) const {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				case 2: return z;
-				default: std::abort();
-				}
-			}
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
-
 			assert(idx < 3);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, z, z);
 			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<const F*>(member);
+		}
+
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_safety() {
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 0 * sizeof(F));
 		}
 	};
 	template<std::floating_point F>
@@ -114,36 +97,22 @@ namespace math {
 		F x, y;
 
 		constexpr F& operator[](size_t idx) {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				default: std::abort();
-				}
-			}
-
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-
 			assert(idx < 2);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, y, y, y);
 			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<F*>(member);
 		}
 		constexpr const F& operator[](size_t idx) const {
-			if (std::is_constant_evaluated()) {
-				switch (idx) {
-				case 0: return x;
-				case 1: return y;
-				default: std::abort();
-				}
-			}
-
-			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
-
 			assert(idx < 2);
+			IMPL_CONSTEVAL_ACCESS(idx, x, y, y, y, y);
 			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
 			return *reinterpret_cast<const F*>(member);
+		}
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_safety() {
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
 		}
 	};
 
@@ -520,12 +489,20 @@ namespace math {
 
 		template<class> requires(N == M)
 		constexpr F determinant() const {
-			auto re = this->row_echelon();
-			F det = static_cast<F>(1);
-			for (size_t i = 0; i < M; i++) {
-				det *= re.mStorage[i][i];
+			if constexpr (N == 2) {
+				// (ad - bc), way way wayyyy nicer than the below method
+				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
 			}
-			return det;
+			else {
+				// Find determinant by creating an upper triangular matrix
+				// and taking the "multiplicative trace"
+				auto re = this->row_echelon();
+				F det = static_cast<F>(1);
+				for (size_t i = 0; i < M; i++) {
+					det *= re.mStorage[i][i];
+				}
+				return det;
+			}
 		}
 
 		
@@ -584,9 +561,8 @@ namespace math {
 
 	template<std::floating_point F, size_t M, size_t N>
 	inline bool aeq(const MMatrix<F, M, N>& left, const MMatrix<F, M, N>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
-		// TODO: if the matrix changes to row-major, rewrite this using row() instead of col()
 		for (size_t i = 0; i < N; i++) {
-			if (!aeq(left.col(i), right.col(i), tolerance)) return false;
+			if (!aeq(left.row(i), right.row(i), tolerance)) return false;
 		}
 		return true;
 	}

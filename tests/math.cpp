@@ -587,4 +587,17 @@ TEST_CASE("Row-Echelon form") {
 		};
 		REQUIRE(d.row_echelon() == d_re);
 	}
+	SECTION("Tall Matrices") {
+		math::MMatrix<float, 3, 2> tall = {
+			1, 0,
+			0, 1,
+			0.5, 1
+		};
+		math::MMatrix<float, 3, 2> tall_re = {
+			1, 0,
+			0, 1,
+			0, 0
+		};
+		REQUIRE(aeq(tall.row_echelon(), tall_re));
+	}
 }
