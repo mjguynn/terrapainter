@@ -434,15 +434,15 @@ namespace math {
 
 		// Mutates the matrix in-place, converting it into row-echelon form.
 		constexpr MMatrix& make_row_echelon() {
-			for (size_t j = 0; j < M-1; j++) {
+			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
 				// in the j-th column.
 				// Technically, we only need to find the first nonzero value...
 				// but this gives better numerical stability
-				F pivot = mStorage[j][j];
-				size_t pivot_row = j;
+				F pivot = mStorage[i][j];
+				size_t pivot_row = i;
 
-				for (size_t k = j + 1; k < M; k++) {
+				for (size_t k = i + 1; k < M; k++) {
 					// Fun trick: fabs is slow because it needs to handle
 					// a bunch of edge cases. But since we're comparing two
 					// magnitudes, we can just compare the squares...
@@ -455,7 +455,10 @@ namespace math {
 
 				if (pivot == static_cast<F>(0)) {
 					// every row had a zero in this column
-					// TODO: We should check the next row!
+					// decrementing i and continuing means the
+					// next iteration will use the same i (row)
+					// but the next j (column)
+					--i; 
 					continue;
 				}
 
@@ -465,11 +468,11 @@ namespace math {
 
 				// Move the row with the max value into the uppermost
 				// position in row-echelon form...
-				std::swap(mStorage[j], mStorage[pivot_row]);
+				std::swap(mStorage[i], mStorage[pivot_row]);
 
 				// And ensure the column is zero in all the rows
 				// underneath it by subtracting that row.
-				for (size_t k = j + 1; k < M; k++) {
+				for (size_t k = i + 1; k < M; k++) {
 					mStorage[k] -= mStorage[k][j] * prediv;
 				}
 			}

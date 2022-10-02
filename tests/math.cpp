@@ -583,7 +583,7 @@ TEST_CASE("Row-Echelon form") {
 		};
 		mat2x3 d_re = {
 			0, -5.7, 6.2,
-			0, 0, 0.2087719298
+			0, 0, 1.1087719298
 		};
 		REQUIRE(d.row_echelon() == d_re);
 	}
@@ -598,6 +598,6 @@ TEST_CASE("Row-Echelon form") {
 			0, 1,
 			0, 0
 		};
-		REQUIRE(aeq(tall.row_echelon(), tall_re));
+		REQUIRE(tall.row_echelon() == tall_re);
 	}
 }
