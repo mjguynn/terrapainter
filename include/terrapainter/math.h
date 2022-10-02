@@ -433,9 +433,10 @@ namespace math {
 		}
 
 		// Converts the matrix into row-echelon form. Returns the determinant
-		// of the original matrix.
+		// of the matrix induced by the first M columns. The return value is
+		// meaningless if M > N.
 		constexpr F make_row_echelon() {
-			F scale = static_cast<F>(0);
+			F determinant = static_cast<F>(1);
 			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
 				// in the j-th column.
@@ -458,7 +459,12 @@ namespace math {
 				if (pivot == static_cast<F>(0)) {
 					// every row had a zero in column j
 					// on next iter, use row i, but with column j+1
-					--i; continue;
+					i -= 1;
+					// Also, this means column j is entirely zero,
+					// so the determinant of the MxM induced submatrix
+					// is definitely zero!
+					determinant = 0;
+					continue;
 				}
 
 				// Get a version of the pivot row with the pivot
@@ -472,10 +478,10 @@ namespace math {
 				if (pivot_row != i) {
 					// swap rows, update determinant scale accordingly
 					mStorage[pivot_row] = mStorage[i];
-					scale = -scale;
+					determinant = -determinant;
 				}
 				mStorage[i] = prediv;
-				scale *= pivot;
+				determinant *= pivot;
 
 				// And ensure the column is zero in all the rows
 				// underneath it by subtracting that row.
@@ -483,7 +489,7 @@ namespace math {
 					mStorage[k] -= mStorage[k][j] * prediv;
 				}
 			}
-			return scale;
+			return determinant;
 		}
 		constexpr MMatrix row_echelon() const {
 			auto copy = *this;
@@ -491,7 +497,7 @@ namespace math {
 			return copy;
 		}
 
-		template<class> requires(N == M)
+		template<typename _ = void> requires(N == M)
 		constexpr F determinant() const {
 			if constexpr (N == 2) {
 				// (ad - bc), way way wayyyy nicer than the below method

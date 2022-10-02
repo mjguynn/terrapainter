@@ -466,7 +466,7 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 		REQUIRE(aeq(a * b, axb));
 	}
 }
-TEST_CASE("Row-Echelon form") {
+TEST_CASE("Matrix row-echelon form") {
 	SECTION("Basic cases") {
 		mat3 ident = mat3::identity();
 		REQUIRE(ident.row_echelon() == ident);
@@ -599,5 +599,48 @@ TEST_CASE("Row-Echelon form") {
 			0, 0
 		};
 		REQUIRE(tall.row_echelon() == tall_re);
+	}
+}
+TEST_CASE("Matrix determinant") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().determinant() == 1);
+		REQUIRE(mat3::identity().determinant() == 1);
+		
+		mat3 permuted = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(permuted.determinant() == -1);
+
+		mat3 missing = {
+			1, 0, 0,
+			0, 0, 0,
+			0, 1, 0
+		};
+		REQUIRE(missing.determinant() == 0);
+	}
+	SECTION("Random") {
+		mat3 a = {
+			7.0,	16.5,	32.25,
+			-22.5,	-23,	-6,
+			-100,	1,		2
+		};
+		REQUIRE(aeq(a.determinant(), -64538.125f));
+
+		mat3 b = {
+			6, 3, 0,
+			-15, -7.5, 0,
+			0, 1, 1
+		};
+		REQUIRE(b.determinant() == 0);
+
+		mat4 c = {
+			0.426719, 0.0979894, 0.57436, 0.88369,
+			0.30224, 0.00128982, 0.805764, 0.808081,
+			0.898543, 0.798784, 0.898152, 0.882801,
+			0.343767, 0.622619, 0.583506, 0.264387
+		};
+		REQUIRE(aeq(c.determinant(), -0.034146f));
 	}
 }
