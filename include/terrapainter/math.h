@@ -16,7 +16,7 @@ namespace math {
 
 	// Operator access relies on reinterpret_cast, which does not function
 	// in a constant context.
-	#define IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest) \
+	#define _IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest) \
 		if(std::is_constant_evaluated()) { \
 			switch (idx) { \
 				case 0: return x; \
@@ -26,98 +26,86 @@ namespace math {
 				default: return rest; \
 			} \
 		} \
+	
+	#define IMPL_MEMBER_ACCESS(count, x, y, z, w, rest) \
+		constexpr F& operator[](size_t idx) { \
+			check_member_layout(); \
+			assert(idx < count); \
+			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx; \
+			return *reinterpret_cast<F*>(member); \
+		} \
+		constexpr const F& operator[](size_t idx) const { \
+			check_member_layout(); \
+			assert(idx < count); \
+			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx; \
+			return *reinterpret_cast<const F*>(member); \
+		}
 
 	template<std::floating_point F, size_t C>
 	struct MVectorStorage {
-		std::array<F, C> elems;
-
-		constexpr F& operator[](size_t idx) {
-			assert(idx < C);
-			return elems[idx];
-		}
-		constexpr const F& operator[](size_t idx) const {
-			assert(idx < C);
-			return elems[idx];
+		F x, y, z, w;
+		F mExtra[C-4];
+		IMPL_MEMBER_ACCESS(5, x, y, z, w, mExtra[idx - 4])
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, elems) == 4 * sizeof(F));
 		}
 	};
 
 	template<std::floating_point F>
 	struct alignas(sizeof(F) * 4) MVectorStorage<F, 4> {
 		F x, y, z, w;
-
-		constexpr F& operator[](size_t idx) {
-			assert(idx < 4);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, w);
-			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<F*>(member);
-		}
-		constexpr const F& operator[](size_t idx) const {
-			assert(idx < 4);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, w);
-			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<const F*>(member);
-		}
+		IMPL_MEMBER_ACCESS(4, x, y, z, w, w);
 	private:
 		// These need to be in a function so they can refer to MVectorStorage.
-		consteval static void check_safety() {
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
 			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, w) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
 		}
 	};
 
 	template<std::floating_point F>
 	struct alignas(sizeof(F) * 4) MVectorStorage<F, 3> {
 		F x, y, z;
-
-		constexpr F& operator[](size_t idx) {
-			assert(idx < 3);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, z, z);
-			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<F*>(member);
-		}
-		constexpr const F& operator[](size_t idx) const {
-			assert(idx < 3);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, z, z, z);
-			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<const F*>(member);
-		}
-
+		IMPL_MEMBER_ACCESS(3, x, y, z, z, z);
 	private:
 		// These need to be in a function so they can refer to MVectorStorage.
-		consteval static void check_safety() {
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
 			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, z) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
 		}
 	};
 	template<std::floating_point F>
 	struct MVectorStorage<F, 2> {
 		F x, y;
-
-		constexpr F& operator[](size_t idx) {
-			assert(idx < 2);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, y, y, y);
-			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<F*>(member);
-		}
-		constexpr const F& operator[](size_t idx) const {
-			assert(idx < 2);
-			IMPL_CONSTEVAL_ACCESS(idx, x, y, y, y, y);
-			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx;
-			return *reinterpret_cast<const F*>(member);
-		}
+		IMPL_MEMBER_ACCESS(2, x, y, y, y, y);
 	private:
 		// These need to be in a function so they can refer to MVectorStorage.
-		consteval static void check_safety() {
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
 			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, y) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
 		}
 	};
 
-	template<std::floating_point F, size_t C>
-		requires(2 <= C && C <= 4)
+	#undef IMPL_MEMBER_ACCESS
+	#undef _IMPL_CONSTEVAL_ACCESS
+
+	template<std::floating_point F, size_t C> 
+		requires(2 <= C)
 	struct MVector : public MVectorStorage<F, C> {
 		/// The number of elements in vectors of this type.
 		constexpr static size_t SIZE = C;
@@ -294,7 +282,7 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t M, size_t N>
-		requires (2 <= M <= 4 && 2 <= N <= 4)
+		requires (2 <= M && 2 <= N)
 	class MMatrix {
 		// Row-major storage.
 		std::array<MVector<F, N>, M> mStorage;
@@ -561,7 +549,7 @@ namespace math {
 
 	template<std::floating_point F, size_t M, size_t N>
 	inline bool aeq(const MMatrix<F, M, N>& left, const MMatrix<F, M, N>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
-		for (size_t i = 0; i < N; i++) {
+		for (size_t i = 0; i < M; i++) {
 			if (!aeq(left.row(i), right.row(i), tolerance)) return false;
 		}
 		return true;
