@@ -650,6 +650,10 @@ TEST_CASE("Matrix determinant") {
 		REQUIRE(aeq(d.determinant(), -0.221803f));
 	}
 }
+/*
+TEST_CASE("Reduced row echelon form") {
+
+}
 TEST_CASE("Matrix inverse") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().inverse() == mat2::identity());
@@ -657,3 +661,4 @@ TEST_CASE("Matrix inverse") {
 		REQUIRE(mat4::identity().inverse() == mat4::identity());
 	}
 }
+*/

@@ -518,7 +518,11 @@ namespace math {
 
 		constexpr F make_reduced_row_echelon() {
 			F determinant = this->make_row_echelon();
-			TODO();
+			for (size_t i = 0; i < M; ++i) {
+				for (size_t j = i + 1; j < N; ++j) {
+					TODO();
+				}
+			}
 			return determinant;
 		}
 
