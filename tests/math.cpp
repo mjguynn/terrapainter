@@ -549,9 +549,9 @@ TEST_CASE("Row-Echelon form") {
 			0, 1, -1
 		};
 		mat3 a_re = {
-			-12, 0, 0,
-			0, 3.6, -7,
-			0, 0, 0.9444444444,
+			1, 0, 0,
+			0, 1, -1.9444444444,
+			0, 0, 1,
 		};
 		REQUIRE(aeq(a.row_echelon(), a_re));
 
@@ -561,7 +561,7 @@ TEST_CASE("Row-Echelon form") {
 			0, 1, 1
 		};
 		mat3 b_re = {
-			-15, -7.5, 0,
+			1, 0.5, 0,
 			0, 1, 1,
 			0, 0, 0
 		};
@@ -572,8 +572,8 @@ TEST_CASE("Row-Echelon form") {
 			0.1, 0, 1
 		};
 		mat2x3 c_re = {
-			0.1, 0, 1,
-			0, -5.7, 6.2
+			1, 0, 10,
+			0, 1, -1.0877192982
 		};
 		REQUIRE(c.row_echelon() == c_re);
 
@@ -582,8 +582,8 @@ TEST_CASE("Row-Echelon form") {
 			0, 0.1, 1
 		};
 		mat2x3 d_re = {
-			0, -5.7, 6.2,
-			0, 0, 1.1087719298
+			0, 1, -1.0877192982,
+			0, 0, 1
 		};
 		REQUIRE(d.row_echelon() == d_re);
 	}

@@ -432,8 +432,10 @@ namespace math {
 			return mul;
 		}
 
-		// Mutates the matrix in-place, converting it into row-echelon form.
-		constexpr MMatrix& make_row_echelon() {
+		// Converts the matrix into row-echelon form. Returns the determinant
+		// of the original matrix.
+		constexpr F make_row_echelon() {
+			F scale = static_cast<F>(0);
 			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
 				// in the j-th column.
@@ -454,12 +456,9 @@ namespace math {
 				}
 
 				if (pivot == static_cast<F>(0)) {
-					// every row had a zero in this column
-					// decrementing i and continuing means the
-					// next iteration will use the same i (row)
-					// but the next j (column)
-					--i; 
-					continue;
+					// every row had a zero in column j
+					// on next iter, use row i, but with column j+1
+					--i; continue;
 				}
 
 				// Get a version of the pivot row with the pivot
@@ -467,8 +466,16 @@ namespace math {
 				MVector<F, N> prediv = mStorage[pivot_row] / pivot;
 
 				// Move the row with the max value into the uppermost
-				// position in row-echelon form...
-				std::swap(mStorage[i], mStorage[pivot_row]);
+				// position in row-echelon form, making sure to update
+				// the scale: swapping rows negates det, scaling a row
+				// scales the det by that same amount.
+				if (pivot_row != i) {
+					// swap rows, update determinant scale accordingly
+					mStorage[pivot_row] = mStorage[i];
+					scale = -scale;
+				}
+				mStorage[i] = prediv;
+				scale *= pivot;
 
 				// And ensure the column is zero in all the rows
 				// underneath it by subtracting that row.
@@ -476,9 +483,8 @@ namespace math {
 					mStorage[k] -= mStorage[k][j] * prediv;
 				}
 			}
-			return *this;
+			return scale;
 		}
-
 		constexpr MMatrix row_echelon() const {
 			auto copy = *this;
 			copy.make_row_echelon();
@@ -492,14 +498,8 @@ namespace math {
 				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
 			}
 			else {
-				// Find determinant by creating an upper triangular matrix
-				// and taking the "multiplicative trace"
-				auto re = this->row_echelon();
-				F det = static_cast<F>(1);
-				for (size_t i = 0; i < M; i++) {
-					det *= re.mStorage[i][i];
-				}
-				return det;
+				auto copy = *this;
+				return copy.make_row_echelon();
 			}
 		}
 
