@@ -63,7 +63,7 @@ namespace math {
 			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
 			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
 			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
-			static_assert(offsetof(MVectorStorage, elems) == 4 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, mExtra) == 4 * sizeof(F));
 		}
 	};
 
@@ -227,6 +227,25 @@ namespace math {
 			// Intellisense syntax highlighting *HATES* this line for some reason
 			MVector normal_component = dot(*this, normal) * normal;
 			return *this - (2 * normal_component);
+		}
+
+		template<size_t C2>
+			requires(C2 > C)
+		constexpr MVector<F, C2> extend(F pad) const {
+			auto resized = MVector<F, C2>::splat(pad);
+			for (size_t i = 0; i < C; i++) {
+				resized[i] = (*this)[i];
+			}
+			return resized;
+		}
+		template<size_t Start, size_t End>
+			requires(Start + 1 < End && End <= C)
+		constexpr MVector<F, End - Start> slice() const {
+			auto sliced = MVector<F, End - Start>::zero();
+			for (size_t i = 0; i < End - Start; i++) {
+				sliced[i] = (*this)[i+Start];
+			}
+			return sliced;
 		}
 	};
 
@@ -497,20 +516,46 @@ namespace math {
 			return copy;
 		}
 
-		template<typename _ = void> requires(N == M)
-		constexpr F determinant() const {
-			if constexpr (N == 2) {
-				// (ad - bc), way way wayyyy nicer than the below method
-				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
-			}
-			else {
-				auto copy = *this;
-				return copy.make_row_echelon();
-			}
+		constexpr F make_reduced_row_echelon() {
+			F determinant = this->make_row_echelon();
+			TODO();
+			return determinant;
 		}
 
-		constexpr F inverse() const {
-			TODO();
+		template<typename _ = void> 
+			requires(N == M)
+		constexpr F determinant() const {
+			if constexpr (N == 2) {
+				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
+			}
+
+			auto copy = *this;
+			return copy.make_row_echelon();
+		}
+
+		template<typename _ = void> 
+			requires(N == M)
+		constexpr MMatrix inverse() const {
+			if constexpr (N == 2) {
+				MMatrix<F, 2, 2> unscaled = {
+					mStorage[1][1], -mStorage[0][1],
+					-mStorage[1][0], mStorage[0][0]
+				};
+				return unscaled / this->determinant();
+			}
+
+			auto system = MMatrix<F, M, 2 * N>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				auto sys_row = mStorage[i].extend<2*N>(static_cast<F>(0));
+				sys_row[N + i] = static_cast<F>(1);
+				system.set_row(i, sys_row);
+			}
+			system.make_reduced_row_echelon();
+			auto inv = MMatrix<F, M, N>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				inv.set_row(i, system.row(i).slice<N, 2 * N>());
+			}
+			return inv;
 		}
 		
 

@@ -642,5 +642,18 @@ TEST_CASE("Matrix determinant") {
 			0.343767, 0.622619, 0.583506, 0.264387
 		};
 		REQUIRE(aeq(c.determinant(), -0.034146f));
+
+		mat2 d = {
+			0.580531, 0.84377,
+			0.788602, 0.764121
+		};
+		REQUIRE(aeq(d.determinant(), -0.221803f));
+	}
+}
+TEST_CASE("Matrix inverse") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().inverse() == mat2::identity());
+		REQUIRE(mat3::identity().inverse() == mat3::identity());
+		REQUIRE(mat4::identity().inverse() == mat4::identity());
 	}
 }
