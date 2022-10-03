@@ -1,4 +1,7 @@
 #include "glad/glad.h"
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_sdl.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include <iostream>
@@ -38,10 +41,16 @@ int main(int argc, char *argv[])
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
   // Create window
-  SDL_Window *window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600, SDL_WINDOW_OPENGL);
+  /*/SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);*/
+  SDL_Window *window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
 
   // Create OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
+
+  SDL_GL_MakeCurrent(window, context);
+  SDL_GL_SetSwapInterval(1); // Enable vsync
 
   // Initialize GLAD
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
@@ -49,6 +58,14 @@ int main(int argc, char *argv[])
     std::cout << "Failed to initialize GLAD" << std::endl;
     return -1;
   }
+
+  // Set up IMGUI
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  ImGui::StyleColorsDark();
+  ImGui_ImplSDL2_InitForOpenGL(window, context);
+  ImGui_ImplOpenGL3_Init("#version 330");
 
   // Set viewport
   glViewport(0, 0, 800, 600);
@@ -91,9 +108,12 @@ int main(int argc, char *argv[])
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
+  bool running = true;
+  bool show_demo_window = true;
+
   // Run the event loop
   SDL_Event windowEvent;
-  while (true)
+  while (running)
   {
     // input
 
@@ -104,20 +124,48 @@ int main(int argc, char *argv[])
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    // check and call events and swap the buffers
-    if (SDL_PollEvent(&windowEvent))
+    // handle events
+    while (SDL_PollEvent(&windowEvent))
     {
-      if (windowEvent.type == SDL_QUIT)
-        break;
-      if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-        glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
+      ImGui_ImplSDL2_ProcessEvent(&windowEvent);
+      if (windowEvent.type == SDL_QUIT) {
+          running = false;
+      }
+      // This ridiculous if statement is from https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
+      else if (
+          windowEvent.type == SDL_WINDOWEVENT && 
+          windowEvent.window.event == SDL_WINDOWEVENT_CLOSE && 
+          windowEvent.window.windowID == SDL_GetWindowID(window)
+      ) {
+          running = false;
+      }
+      else if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+          glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
+      }
     }
+
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    if (show_demo_window) {
+        ImGui::ShowDemoWindow(&show_demo_window);
+    }
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // swap buffers
     SDL_GL_SwapWindow(window);
   }
 
-  // Destroy context
+  // Shutdown IMGUI
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplSDL2_Shutdown();
+  ImGui::DestroyContext();
+
+  // Shutdown SDL
   SDL_GL_DeleteContext(context);
-  // Quit SDL
+  SDL_DestroyWindow(window);
   SDL_Quit();
   return 0;
 }
