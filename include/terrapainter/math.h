@@ -268,13 +268,6 @@ namespace math {
 		return (static_cast<F>(1) - factor_cvt) * p0 + (factor_cvt) * p1;
 	}
 
-	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	inline constexpr MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
-		F factor_cvt = static_cast<F>(factor);
-		// Waiting to implement cubic interpolation until I've done matrices
-		TODO();
-	}
-
 	template<std::floating_point F>
 	inline constexpr MVector<F, 3> cross(const MVector<F, 3>& a, const MVector<F, 3>& b) {
 		return MVector<F, 3> {
@@ -642,6 +635,24 @@ namespace math {
 		}
 		return true;
 	}
+
+	template<std::floating_point F, size_t C, std::convertible_to<F> S>
+	inline constexpr MVector<F, C> cubic_bezier(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+		F cvt = static_cast<F>(factor);
+		MVector<F, 4> facs = { 1, cvt, cvt * cvt, cvt * cvt * cvt };
+		constexpr static MMatrix<F, 4, 4> CUBIC_BEZIER_MATRIX = {
+			1, 0, 0, 0,
+			-3, 3, 0, 0,
+			3, -6, 3, 0,
+			-1, 3, -3, 1
+		};
+		auto result = MVector<F, C>::zero();
+		for (size_t i = 0; i < C; ++i) {
+			MVector<F, 4> gathered = { p0[i], cp0[i], cp1[i], p1[i] };
+			result[i] = dot(facs, CUBIC_BEZIER_MATRIX * gathered);
+		}
+		return result;
+	}
 }
 
 using vec2 = math::MVector<float, 2>;
@@ -658,3 +669,4 @@ using mat3x4 = math::MMatrix<float, 3, 4>;
 using math::dot;
 using math::cross;
 using math::aeq;
+using math::lerp;

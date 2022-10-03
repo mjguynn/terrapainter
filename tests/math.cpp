@@ -222,6 +222,20 @@ TEST_CASE("Vector linear interpolation", "[linalg]") {
 	REQUIRE(aeq(lerp(x, y, 0.33f), vec3{ 8.04f, -30.46f, 56.7125f }, 1e-5f));
 	REQUIRE(aeq(lerp(x, y, -1.f), vec3{ 24.f, -81.f, 174.75f }));
 }
+TEST_CASE("Vector cubic bezier interpolation", "[linalg]") {
+	vec3 ps[4] = {
+		{0, 0, 1}, // p0
+		{0, 1, 1}, // cp0
+		{1, 1, 1}, // cp1
+		{1, 0, 1}, // p1
+	};
+	auto interp = [ps](float fac) {
+		return math::cubic_bezier(ps[0], ps[1], ps[2], ps[3], fac);
+	};
+	REQUIRE(aeq(interp(0.f), ps[0]));
+	REQUIRE(aeq(interp(0.2f), vec3{ 0.104, 0.48, 1 }));
+	REQUIRE(aeq(interp(1.f), ps[3]));
+}
 TEST_CASE("Vector reflection", "[linalg]") {
 	SECTION("Basic") {
 		vec3 n = { 0.0, 0.0, 1.0 };
@@ -466,7 +480,7 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 		REQUIRE(aeq(a * b, axb));
 	}
 }
-TEST_CASE("Matrix-vector multiply") {
+TEST_CASE("Matrix-vector multiply", "[linalg]") {
 	mat2x3 mul = {
 		16, -2.4, 0,
 		1, -16, -0.1,
@@ -475,7 +489,7 @@ TEST_CASE("Matrix-vector multiply") {
 	vec2 mulxv = { 11.2, -30.95 };
 	REQUIRE(mul * v == mulxv);
 }
-TEST_CASE("Matrix row-echelon form") {
+TEST_CASE("Matrix row-echelon form", "[linalg]") {
 	SECTION("Basic cases") {
 		mat3 ident = mat3::identity();
 		REQUIRE(ident.row_echelon() == ident);
@@ -610,7 +624,7 @@ TEST_CASE("Matrix row-echelon form") {
 		REQUIRE(tall.row_echelon() == tall_re);
 	}
 }
-TEST_CASE("Matrix determinant") {
+TEST_CASE("Matrix determinant", "[linalg]") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().determinant() == 1);
 		REQUIRE(mat3::identity().determinant() == 1);
@@ -660,7 +674,7 @@ TEST_CASE("Matrix determinant") {
 	}
 }
 
-TEST_CASE("Matrix reduced row echelon form") {
+TEST_CASE("Matrix reduced row echelon form", "[linalg]") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().reduced_row_echelon() == mat2::identity());
 		REQUIRE(mat3::identity().reduced_row_echelon() == mat3::identity());
@@ -828,7 +842,7 @@ TEST_CASE("Matrix reduced row echelon form") {
 	}
 }
 
-TEST_CASE("Matrix inverse") {
+TEST_CASE("Matrix inverse", "[linalg]") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().inverse() == mat2::identity());
 		REQUIRE(mat3::identity().inverse() == mat3::identity());
