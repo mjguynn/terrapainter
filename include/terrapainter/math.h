@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdlib>
 #include <concepts>
 #include <cmath>
@@ -49,7 +50,7 @@ namespace math {
 		F mExtra[C-4];
 		IMPL_MEMBER_ACCESS(C, x, y, z, w, mExtra[idx - 4])
 
-		constexpr MVectorStorage() = default;
+		constexpr MVectorStorage() : x(), y(), z(), w(), mExtra() {};
 
 		template<typename ...Args>
 			requires(sizeof...(Args) == C-4 && std::conjunction_v<std::is_same<F, Args>...>)
@@ -636,20 +637,23 @@ namespace math {
 		return true;
 	}
 
-	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	inline constexpr MVector<F, C> cubic_bezier(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
-		F cvt = static_cast<F>(factor);
-		MVector<F, 4> facs = { 1, cvt, cvt * cvt, cvt * cvt * cvt };
-		constexpr static MMatrix<F, 4, 4> CUBIC_BEZIER_MATRIX = {
+	namespace {
+		template<std::floating_point F>
+		static constexpr MMatrix<F, 4, 4> CUBIC_BEZIER_MATRIX = {
 			1, 0, 0, 0,
 			-3, 3, 0, 0,
 			3, -6, 3, 0,
 			-1, 3, -3, 1
 		};
+	}
+	template<std::floating_point F, size_t C, std::convertible_to<F> S>
+	inline constexpr MVector<F, C> cubic_bezier(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+		F cvt = static_cast<F>(factor);
+		MVector<F, 4> facs = { 1, cvt, cvt * cvt, cvt * cvt * cvt };
 		auto result = MVector<F, C>::zero();
 		for (size_t i = 0; i < C; ++i) {
 			MVector<F, 4> gathered = { p0[i], cp0[i], cp1[i], p1[i] };
-			result[i] = dot(facs, CUBIC_BEZIER_MATRIX * gathered);
+			result[i] = dot(facs, CUBIC_BEZIER_MATRIX<F> * gathered);
 		}
 		return result;
 	}
