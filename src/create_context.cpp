@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
   // Create window
-  /*/SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);*/
-  SDL_Window *window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+  SDL_Window *window = SDL_CreateWindow("Terrapainter", 100, 100, 800, 600, SDL_WINDOW_OPENGL);
 
   // Create OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
@@ -46,10 +46,11 @@ int main(int argc, char *argv[])
   // Set up IMGUI
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  ImGuiIO& io = ImGui::GetIO();
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window, context);
   ImGui_ImplOpenGL3_Init("#version 330");
+  io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", 15);
 
   // Set viewport
   glViewport(0, 0, 800, 600);
