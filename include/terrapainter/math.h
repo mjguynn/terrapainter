@@ -30,15 +30,15 @@ namespace math {
 	#define IMPL_MEMBER_ACCESS(count, x, y, z, w, rest) \
 		constexpr F& operator[](size_t idx) { \
 			check_member_layout(); \
-			assert(idx < count); \
 			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			assert(idx < count); \
 			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx; \
 			return *reinterpret_cast<F*>(member); \
 		} \
 		constexpr const F& operator[](size_t idx) const { \
 			check_member_layout(); \
-			assert(idx < count); \
 			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			assert(idx < count); \
 			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx; \
 			return *reinterpret_cast<const F*>(member); \
 		}
@@ -47,7 +47,7 @@ namespace math {
 	struct MVectorStorage {
 		F x, y, z, w;
 		F mExtra[C-4];
-		IMPL_MEMBER_ACCESS(5, x, y, z, w, mExtra[idx - 4])
+		IMPL_MEMBER_ACCESS(C, x, y, z, w, mExtra[idx - 4])
 
 		constexpr MVectorStorage() = default;
 
@@ -229,15 +229,6 @@ namespace math {
 			return *this - (2 * normal_component);
 		}
 
-		template<size_t C2, std::convertible_to<F> S>
-			requires(C2 > C)
-		constexpr MVector<F, C2> extend(S pad) const {
-			auto resized = MVector<F, C2>::splat(pad);
-			for (size_t i = 0; i < C; i++) {
-				resized[i] = (*this)[i];
-			}
-			return resized;
-		}
 		template<size_t Start, size_t End>
 			requires(Start + 1 < End && End <= C)
 		constexpr MVector<F, End - Start> slice() const {
@@ -567,7 +558,10 @@ namespace math {
 			}
 			auto system = MMatrix<F, M, 2 * N>::zero();
 			for (size_t i = 0; i < M; ++i) {
-				MVector<F, 2*N> sys_row = mStorage[i].extend(static_cast<F>(0));
+				auto sys_row = MVector<F, 2 * N>::zero();
+				for (size_t j = 0; j < N; ++j) {
+					sys_row[j] = mStorage[i][j];
+				}
 				sys_row[N + i] = static_cast<F>(1);
 				system.set_row(i, sys_row);
 			}

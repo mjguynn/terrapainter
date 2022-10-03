@@ -818,12 +818,42 @@ TEST_CASE("Matrix reduced row echelon form") {
 		REQUIRE(aeq(dep_row.reduced_row_echelon(), dep_row_rre));
 	}
 }
-/*
+
 TEST_CASE("Matrix inverse") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().inverse() == mat2::identity());
 		REQUIRE(mat3::identity().inverse() == mat3::identity());
 		REQUIRE(mat4::identity().inverse() == mat4::identity());
+
+		mat3 permute = {
+			0, 1, 0,
+			0, 0, 1,
+			1, 0, 0
+		};
+		// this is not true in general
+		REQUIRE(permute.inverse() == permute.transpose());
+	}
+	SECTION("Random") {
+		mat2 r2 = {
+			0.580531, -0.84377,
+			0.788602, 7.64121
+		};
+		mat2 r2_inv = {
+			1.49788, 0.165401,
+			-0.154587, 0.113799
+		};
+		REQUIRE(aeq(r2.inverse(), r2_inv, 1e6f));
+
+		mat3 r3 = {
+			1.0, 6.7, -2.0,
+			-3.3, 4, 0,
+			1, 0, -1
+		};
+		mat3 r3_inv = {
+			0.220872, -0.369961, -0.441745,
+			0.18222, -0.0552181, -0.36444,
+			0.220872, -0.369961, -1.44174
+		};
+		REQUIRE(aeq(r3.inverse(), r3_inv, 1e6f));
 	}
 }
-*/
