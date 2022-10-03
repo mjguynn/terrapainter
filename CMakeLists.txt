@@ -73,7 +73,6 @@ set(imgui_SOURCES
 	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui_widgets.cpp"
 	"${CMAKE_SOURCE_DIR}/extern/imgui/src/backends/imgui_impl_opengl3.cpp"
 	"${CMAKE_SOURCE_DIR}/extern/imgui/src/backends/imgui_impl_sdl.cpp"
-	"${CMAKE_SOURCE_DIR}/extern/imgui/src/backends/imgui_impl_sdlrenderer.cpp"
 )
 set(imgui_HEADERS
 	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imconfig.h"
@@ -85,7 +84,6 @@ set(imgui_HEADERS
 	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_opengl3.h"
 	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_opengl3_loader.h"
 	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_sdl.h"
-	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_sdlrenderer.h"
 )
 add_library(imgui STATIC ${imgui_SOURCES} ${imgui_HEADERS})
 target_include_directories(imgui PUBLIC "${CMAKE_SOURCE_DIR}/extern/imgui/include")
