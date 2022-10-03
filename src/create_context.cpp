@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
   unsigned int texture;
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
-  // set the texture wrapping/filtering options (on the currently bound texture object)
+  // set the texture wrapping/filtering options (on the currently bound texture_2D object)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -88,16 +88,12 @@ int main(int argc, char *argv[])
   // load and generate the texture
   int width, height, nrChannels;
   unsigned char *data = stbi_load("../cs4621/images/container.jpg", &width, &height, &nrChannels, 0);
-  if (data)
-  {
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-      glGenerateMipmap(GL_TEXTURE_2D);
-  }
-  else
-  {
-      std::cout << "Failed to load texture" << std::endl;
-  }
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
   stbi_image_free(data);
+  shader.use();
+  shader.setInt("texture1", 0);
  
   // Run the event loop
   SDL_Event windowEvent;
@@ -110,10 +106,9 @@ int main(int argc, char *argv[])
     glClear(GL_COLOR_BUFFER_BIT);
     
     // Shaders
-    float timeValue = SDL_GetTicks64();
-    float hOff = sin(timeValue) / 2.0f;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
     shader.use();
-    shader.setFloat("hOff", 0.0);
 
     // render the triangles
     glBindVertexArray(VAO);
