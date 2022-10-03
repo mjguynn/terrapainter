@@ -94,6 +94,17 @@ target_include_directories(imgui PUBLIC "${CMAKE_SOURCE_DIR}/extern/imgui/includ
 # to/from ImVec2 and ImVec4
 target_link_libraries(imgui PUBLIC SDL2::SDL2 terrapainter_shared terrapainter_lib)
 
+# ======================= STB STUFF ==========================
+set(stb_SOURCES 
+	"${CMAKE_SOURCE_DIR}/extern/stb/src/stb_image_impl.cpp"
+)
+set(stb_HEADERS
+	"${CMAKE_SOURCE_DIR}/extern/stb/include/stb/stb_image.h"
+)
+add_library(stb STATIC ${stb_SOURCES} ${stb_HEADERS})
+target_include_directories(stb PUBLIC "${CMAKE_SOURCE_DIR}/extern/stb/include")
+target_link_libraries(stb PUBLIC terrapainter_shared)
+
 # ================== TERRAPAINTER (BIN) ======================
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
@@ -110,7 +121,15 @@ if(TARGET SDL2::SDL2main)
 	target_link_libraries(terrapainter PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2 terrapainter_lib terrapainter_shared imgui ${CMAKE_DL_LIBS})
+target_link_libraries(terrapainter PRIVATE 
+	terrapainter_shared
+	terrapainter_lib 
+	SDL2::SDL2 
+	imgui 
+	glad 
+	stb
+	${CMAKE_DL_LIBS}
+)
 
 if (NOT SDL2_FOUND)
 	# Ensure the SDL2 dylib is in the same directory as the binary so the binary

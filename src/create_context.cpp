@@ -2,14 +2,12 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "stb/stb_image.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include <iostream>
-#include <terrapainter/shader_s.h>
-#include <math.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <terrapainter/stb_image.h>
+#include "terrapainter/shader_s.h"
+#include <cmath>
 
 int main(int argc, char *argv[])
 {
