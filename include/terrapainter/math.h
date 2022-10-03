@@ -229,9 +229,9 @@ namespace math {
 			return *this - (2 * normal_component);
 		}
 
-		template<size_t C2>
+		template<size_t C2, std::convertible_to<F> S>
 			requires(C2 > C)
-		constexpr MVector<F, C2> extend(F pad) const {
+		constexpr MVector<F, C2> extend(S pad) const {
 			auto resized = MVector<F, C2>::splat(pad);
 			for (size_t i = 0; i < C; i++) {
 				resized[i] = (*this)[i];
@@ -451,10 +451,9 @@ namespace math {
 			return mul;
 		}
 
-		// Converts the matrix into row-echelon form. Returns the determinant
-		// of the matrix induced by the first M columns. The return value is
-		// meaningless if M > N.
-		constexpr F make_row_echelon() {
+	private:
+		template<bool Reduce>
+		constexpr F gauss_eliminate() {
 			F determinant = static_cast<F>(1);
 			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
@@ -489,6 +488,10 @@ namespace math {
 				// Get a version of the pivot row with the pivot
 				// "normalized" so we don't have to divide each iteration
 				MVector<F, N> prediv = mStorage[pivot_row] / pivot;
+				// Ideally this wouldn't be necessary, but we sometimes
+				// get values nearly imperceptibly off from 1 (but still
+				// greater than the epislon).
+				prediv[j] = 1;
 
 				// Move the row with the max value into the uppermost
 				// position in row-echelon form, making sure to update
@@ -502,13 +505,29 @@ namespace math {
 				mStorage[i] = prediv;
 				determinant *= pivot;
 
-				// And ensure the column is zero in all the rows
+				// (If reducing) ensure the column is zero in all
+				// rows above it by subtracting that row.
+				if constexpr (Reduce) {
+					for (size_t k = 0; k < i; k++) {
+						mStorage[k] -= mStorage[k][j] * prediv;
+					}
+				}
+
+				// Ensure the column is zero in all the rows
 				// underneath it by subtracting that row.
 				for (size_t k = i + 1; k < M; k++) {
 					mStorage[k] -= mStorage[k][j] * prediv;
 				}
 			}
 			return determinant;
+		}
+
+	public:
+		// Converts the matrix into row-echelon form. Returns the determinant
+		// of the matrix induced by the first M columns. The return value is
+		// meaningless if M > N.
+		constexpr F make_row_echelon() {
+			return this->gauss_eliminate<false>();
 		}
 		constexpr MMatrix row_echelon() const {
 			auto copy = *this;
@@ -517,13 +536,13 @@ namespace math {
 		}
 
 		constexpr F make_reduced_row_echelon() {
-			F determinant = this->make_row_echelon();
-			for (size_t i = 0; i < M; ++i) {
-				for (size_t j = i + 1; j < N; ++j) {
-					TODO();
-				}
-			}
-			return determinant;
+			return this->gauss_eliminate<true>();
+		}
+		
+		constexpr MMatrix reduced_row_echelon() const {
+			auto copy = *this;
+			copy.make_reduced_row_echelon();
+			return copy;
 		}
 
 		template<typename _ = void> 
@@ -532,7 +551,6 @@ namespace math {
 			if constexpr (N == 2) {
 				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
 			}
-
 			auto copy = *this;
 			return copy.make_row_echelon();
 		}
@@ -547,17 +565,17 @@ namespace math {
 				};
 				return unscaled / this->determinant();
 			}
-
 			auto system = MMatrix<F, M, 2 * N>::zero();
 			for (size_t i = 0; i < M; ++i) {
-				auto sys_row = mStorage[i].extend<2*N>(static_cast<F>(0));
+				MVector<F, 2*N> sys_row = mStorage[i].extend(static_cast<F>(0));
 				sys_row[N + i] = static_cast<F>(1);
 				system.set_row(i, sys_row);
 			}
 			system.make_reduced_row_echelon();
 			auto inv = MMatrix<F, M, N>::zero();
 			for (size_t i = 0; i < M; ++i) {
-				inv.set_row(i, system.row(i).slice<N, 2 * N>());
+				MVector<F, N> inv_row = system.row(i).slice<N, 2*N>();
+				inv.set_row(i, inv_row);
 			}
 			return inv;
 		}

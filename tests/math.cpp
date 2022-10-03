@@ -647,13 +647,178 @@ TEST_CASE("Matrix determinant") {
 			0.580531, 0.84377,
 			0.788602, 0.764121
 		};
-		REQUIRE(aeq(d.determinant(), -0.221803f));
+		REQUIRE(aeq(d.determinant(), -0.2218027813f));
+	}
+}
+
+TEST_CASE("Matrix reduced row echelon form") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().reduced_row_echelon() == mat2::identity());
+		REQUIRE(mat3::identity().reduced_row_echelon() == mat3::identity());
+
+		mat2 m2_permute = {
+			0, 1,
+			1, 0
+		};
+		REQUIRE(m2_permute.reduced_row_echelon() == mat2::identity());
+		
+		mat3 m3_permute = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(m3_permute.reduced_row_echelon() == mat3::identity());
+	}
+	SECTION("Tall") {
+		math::MMatrix<float, 3, 2> indep = {
+			1, 5,
+			-5, 2,
+			0, 6
+		};
+		math::MMatrix<float, 3, 2> indep_rre = {
+			1, 0,
+			0, 1,
+			0, 0
+		};
+		REQUIRE(indep.reduced_row_echelon() == indep_rre);
+
+		math::MMatrix<float, 3, 2> dep_a = {
+			1, 0,
+			1, 0,
+			1, 0
+		};
+		math::MMatrix<float, 3, 2> dep_a_rre = {
+			1, 0,
+			0, 0,
+			0, 0
+		};
+		REQUIRE(dep_a.reduced_row_echelon() == dep_a_rre);
+
+		math::MMatrix<float, 3, 2> dep_b = {
+			0, 1,
+			0, 1,
+			0, 1
+		};
+		math::MMatrix<float, 3, 2> dep_b_rre = {
+			0, 1,
+			0, 0,
+			0, 0
+		};
+		REQUIRE(dep_b.reduced_row_echelon() == dep_b_rre);
+	}
+	SECTION("Square") 
+	{
+		mat3 random = {
+			1.0, 6.7, -2.0,
+			-3.3, 4, 0,
+			1, 0, -1
+		};
+		mat3 random_rre = {
+			1, 0, 0,
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(random.reduced_row_echelon() == random_rre);
+
+		mat3 dep_col = {
+			1, -4, -2,
+			-3.3, 0, 0,
+			1, -2, -1
+		};
+		mat3 dep_col_rre = {
+			1, 0, 0,
+			0, 1, 0.5,
+			0, 0, 0
+		};
+		REQUIRE(dep_col.reduced_row_echelon() == dep_col_rre);
+
+		mat3 zero_col = {
+			1, 0, -2,
+			-3.3, 0, 0,
+			1, 0, 1
+		};
+		mat3 zero_col_rre = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(zero_col.reduced_row_echelon(), zero_col_rre));
+
+		mat3 zero_col_dep_row = {
+			1, 0, -2,
+			-3.3, 0, 0,
+			2, 0, -4
+		};
+		mat3 zero_col_dep_row_rre = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(zero_col_dep_row.reduced_row_echelon(), zero_col_dep_row_rre));
+
+		mat3 dep_row = {
+			6.2, 0, -17,
+			1, 2, 3,
+			4, 8, 12
+		};
+		mat3 dep_row_rre = {
+			1, 0, -2.74193548387096774193548387097, 
+			0, 1, 2.87096774193548387096774193548, 
+			0, 0, 0
+		};
+		REQUIRE(aeq(dep_row.reduced_row_echelon(), dep_row_rre));
+
+		mat3 zero_row_dep_row = {
+			0, 0, 0,
+			1, 2, 3,
+			4, 8, 12
+		};
+		mat3 zero_row_dep_row_rre = {
+			1, 2, 3,
+			0, 0, 0,
+			0, 0, 0
+		};
+		REQUIRE(zero_row_dep_row.reduced_row_echelon() == zero_row_dep_row_rre);
+	}
+	SECTION("Wide") {
+		mat3x4 random = {
+			1.0, 6.7, -2.0, -12,
+			-3.3, 4, 0, 19,
+			1, 0, -1, 16
+		};
+		mat3x4 random_rre = {
+			1, 0, 0, -16.7476532302595251242407509663, 
+			0, 1, 0, -9.06681391496410822749861954721, 
+			0, 0, 1, -32.7476532302595251242407509663
+		};
+		REQUIRE(aeq(random.reduced_row_echelon(), random_rre));
+
+		mat3x4 dep_col = {
+			1, -4, -2, 3,
+			-3.3, 0, 0, 2,
+			1, -2, -1, 5
+		};
+		mat3x4 dep_col_rre = {
+			1, 0, 0, 0,
+			0, 1, 0.5, 0,
+			0, 0, 0, 1
+		};
+		REQUIRE(dep_col.reduced_row_echelon() == dep_col_rre);
+
+		mat3x4 dep_row = {
+			6.2, 0, -17, 8,
+			1, 2, 3, 6,
+			4, 8, 12, 24
+		};
+		mat3x4 dep_row_rre = {
+			1, 0, -2.74193548387096774193548387097, 1.29032258064516129032258064516,
+			0, 1, 2.87096774193548387096774193548, 2.35483870967741935483870967742, 
+			0, 0, 0, 0
+		};
+		REQUIRE(aeq(dep_row.reduced_row_echelon(), dep_row_rre));
 	}
 }
 /*
-TEST_CASE("Reduced row echelon form") {
-
-}
 TEST_CASE("Matrix inverse") {
 	SECTION("Basic") {
 		REQUIRE(mat2::identity().inverse() == mat2::identity());
