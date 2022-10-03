@@ -466,6 +466,15 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 		REQUIRE(aeq(a * b, axb));
 	}
 }
+TEST_CASE("Matrix-vector multiply") {
+	mat2x3 mul = {
+		16, -2.4, 0,
+		1, -16, -0.1,
+	};
+	vec3 v = { 1, 2, -0.5 };
+	vec2 mulxv = { 11.2, -30.95 };
+	REQUIRE(mul * v == mulxv);
+}
 TEST_CASE("Matrix row-echelon form") {
 	SECTION("Basic cases") {
 		mat3 ident = mat3::identity();

@@ -401,6 +401,14 @@ namespace math {
 		}
 		MAT_DERIVE_BINOP(-, const MMatrix&);
 
+		constexpr MVector<F, M> operator*(const MVector<F, N>& vec) const {
+			auto result = MVector<F, M>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				result[i] = dot(mStorage[i], vec);
+			}
+			return result;
+		}
+
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator*=(S scalar) {
 			for (size_t i = 0; i < M; i++) mStorage[i] *= scalar;
