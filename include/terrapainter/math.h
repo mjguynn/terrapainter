@@ -576,7 +576,7 @@ namespace math {
 			system.make_reduced_row_echelon();
 			auto inv = MMatrix<F, M, N>::zero();
 			for (size_t i = 0; i < M; ++i) {
-				MVector<F, N> inv_row = system.row(i).slice<N, 2*N>();
+				MVector<F, N> inv_row = system.row(i).template slice<N, 2*N>();
 				inv.set_row(i, inv_row);
 			}
 			return inv;
