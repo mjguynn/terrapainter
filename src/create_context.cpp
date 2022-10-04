@@ -1,3 +1,4 @@
+#include <cmath>
 #include "glad/glad.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
@@ -5,52 +6,60 @@
 #include "stb/stb_image.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
-#include <iostream>
 #include "terrapainter/shader_s.h"
-#include <cmath>
+#include "terrapainter/util.h"
 
 int main(int argc, char *argv[])
 {
+
+    // Initialize SDL
+    SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "1");
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
+        error("Failed to initialize SDL: %s\n", SDL_GetError());
+    }
+
+    // Set version
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+    // Create window
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_Window *window = SDL_CreateWindow("Terrapainter", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+
+    // Create OpenGL context
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+
+    SDL_GL_MakeCurrent(window, context);
+    SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    // Set up IMGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplSDL2_InitForOpenGL(window, context);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImGuiIO& io = ImGui::GetIO();
   
-  // Initialize SDL
-  if (SDL_Init(SDL_INIT_VIDEO) < 0)
-  {
-    printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-  }
+    int claimed_width, claimed_height;
+    SDL_GetWindowSize(window, &claimed_width, &claimed_height);
+    int real_width, real_height;
+    SDL_GL_GetDrawableSize(window, &real_width, &real_height);
 
-  // Set version
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    float dpi_scale = float(real_width * real_height) / float(claimed_width * claimed_height);
+    io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(16 * dpi_scale));
 
-  // Create window
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-  SDL_Window *window = SDL_CreateWindow("Terrapainter", 100, 100, 800, 600, SDL_WINDOW_OPENGL);
+    style.ScaleAllSizes(1.0f / dpi_scale);
 
-  // Create OpenGL context
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-
-  SDL_GL_MakeCurrent(window, context);
-  SDL_GL_SetSwapInterval(1); // Enable vsync
-
-  // Initialize GLAD
-  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-  {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
-  }
-
-  // Set up IMGUI
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  ImGui::StyleColorsDark();
-  ImGui_ImplSDL2_InitForOpenGL(window, context);
-  ImGui_ImplOpenGL3_Init("#version 330");
-  io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", 15);
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+        error("Failed to initialize GLAD");
+    }
 
   // Set viewport
   glViewport(0, 0, 800, 600);
@@ -138,6 +147,9 @@ int main(int argc, char *argv[])
     while (SDL_PollEvent(&windowEvent))
     {
       ImGui_ImplSDL2_ProcessEvent(&windowEvent);
+      // This makes dragging windows feel snappy
+      io.MouseDrawCursor = ImGui::IsMouseDragging(0);
+
       if (windowEvent.type == SDL_QUIT) {
           running = false;
       }
