@@ -8,6 +8,33 @@
 #include "SDL_opengl.h"
 #include "terrapainter/shader_s.h"
 #include "terrapainter/util.h"
+#include "terrapainter/math.h"
+
+class SceneNode {
+    // The coordinate space of this node, relative to its parent.
+    mat4 transform;
+
+public:
+    
+};
+
+float get_dpi_scale() {
+    const int PRIMARY_DISPLAY_INDEX = 0;
+#if defined(_WIN32)
+    const float DEFAULT_DDPI = 72.0f;
+#else
+    const float DEFAULT_DDPI = 96.0f;
+#endif
+
+    float ddpi;
+    if(!SDL_GetDisplayDPI(PRIMARY_DISPLAY_INDEX, nullptr, nullptr, &ddpi)) {
+        return ddpi / DEFAULT_DDPI;
+    }
+    else {
+        return 1.0f;
+    }
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -45,14 +72,9 @@ int main(int argc, char *argv[])
 
     ImGuiStyle& style = ImGui::GetStyle();
     ImGuiIO& io = ImGui::GetIO();
-  
-    int claimed_width, claimed_height;
-    SDL_GetWindowSize(window, &claimed_width, &claimed_height);
-    int real_width, real_height;
-    SDL_GL_GetDrawableSize(window, &real_width, &real_height);
 
-    float dpi_scale = float(real_width * real_height) / float(claimed_width * claimed_height);
-    io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(16 * dpi_scale));
+    float dpi_scale = get_dpi_scale();
+    io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
 
     style.ScaleAllSizes(1.0f / dpi_scale);
 
