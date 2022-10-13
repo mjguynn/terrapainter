@@ -9,6 +9,7 @@
 #include "terrapainter/shader_s.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
+#include "camera.h"
 
 class SceneNode
 {

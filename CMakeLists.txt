@@ -107,7 +107,6 @@ target_link_libraries(stb PUBLIC terrapainter_shared)
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/create_context.cpp"
-	"${CMAKE_SOURCE_DIR}/src/camera.cpp"
 )
 set(terrapainter_HEADERS
 )
