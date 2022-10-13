@@ -6,7 +6,7 @@
 #include "stb/stb_image.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
-#include "terrapainter/shader_s.h"
+#include "terrapainter/shader_m.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
 #include "camera.h"
@@ -38,6 +38,18 @@ float get_dpi_scale()
     return 1.0f;
   }
 }
+
+// ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = 800 / 2.0f;
+float lastY = 600 / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f; // time between current frame and last frame
+float lastFrame = 0.0f;
+// ------------------- (END) -----------------
 
 int main(int argc, char *argv[])
 {
@@ -87,6 +99,9 @@ int main(int argc, char *argv[])
   {
     error("Failed to initialize GLAD");
   }
+
+  // Set global opengl state
+  glEnable(GL_DEPTH_TEST);
 
   // Set viewport
   glViewport(0, 0, 800, 600);
@@ -154,6 +169,11 @@ int main(int argc, char *argv[])
   SDL_Event windowEvent;
   while (running)
   {
+    // update time
+    float currentFrame = static_cast<float>(SDL_GetTicks());
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
     // input
 
     // rendering commands
@@ -164,6 +184,14 @@ int main(int argc, char *argv[])
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     shader.use();
+
+    // Pass projection matrix to shader
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
+    shader.setMat4("projection", projection);
+
+    // Camera transformation
+    glm::mat4 view = camera.GetViewMatrix();
+    shader.setMat4("view", view);
 
     // render the triangles
     glBindVertexArray(VAO);
@@ -191,6 +219,24 @@ int main(int argc, char *argv[])
       else if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
       {
         glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
+      }
+      else if (windowEvent.type == SDL_KEYDOWN)
+      {
+        switch (windowEvent.key.keysym.sym)
+        {
+        case SDLK_UP:
+          camera.ProcessKeyboard(FORWARD, deltaTime);
+          break;
+        case SDLK_DOWN:
+          camera.ProcessKeyboard(BACKWARD, deltaTime);
+          break;
+        case SDLK_LEFT:
+          camera.ProcessKeyboard(LEFT, deltaTime);
+          break;
+        case SDLK_RIGHT:
+          camera.ProcessKeyboard(RIGHT, deltaTime);
+          break;
+        }
       }
     }
 
