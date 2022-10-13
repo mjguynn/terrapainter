@@ -222,6 +222,20 @@ TEST_CASE("Vector linear interpolation", "[linalg]") {
 	REQUIRE(aeq(lerp(x, y, 0.33f), vec3{ 8.04f, -30.46f, 56.7125f }, 1e-5f));
 	REQUIRE(aeq(lerp(x, y, -1.f), vec3{ 24.f, -81.f, 174.75f }));
 }
+TEST_CASE("Vector cubic bezier interpolation", "[linalg]") {
+	vec3 ps[4] = {
+		{0, 0, 1}, // p0
+		{0, 1, 1}, // cp0
+		{1, 1, 1}, // cp1
+		{1, 0, 1}, // p1
+	};
+	auto interp = [ps](float fac) {
+		return math::cubic_bezier(ps[0], ps[1], ps[2], ps[3], fac);
+	};
+	REQUIRE(aeq(interp(0.f), ps[0]));
+	REQUIRE(aeq(interp(0.2f), vec3{ 0.104, 0.48, 1 }));
+	REQUIRE(aeq(interp(1.f), ps[3]));
+}
 TEST_CASE("Vector reflection", "[linalg]") {
 	SECTION("Basic") {
 		vec3 n = { 0.0, 0.0, 1.0 };
@@ -464,5 +478,405 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 			-267.5, -3197.5
 		};
 		REQUIRE(aeq(a * b, axb));
+	}
+}
+TEST_CASE("Matrix-vector multiply", "[linalg]") {
+	mat2x3 mul = {
+		16, -2.4, 0,
+		1, -16, -0.1,
+	};
+	vec3 v = { 1, 2, -0.5 };
+	vec2 mulxv = { 11.2, -30.95 };
+	REQUIRE(mul * v == mulxv);
+}
+TEST_CASE("Matrix row-echelon form", "[linalg]") {
+	SECTION("Basic cases") {
+		mat3 ident = mat3::identity();
+		REQUIRE(ident.row_echelon() == ident);
+
+		mat2x3 normal = {
+			1, 0, 0,
+			0, 1, 0,
+		};
+		REQUIRE(normal.row_echelon() == normal);
+
+		mat2x3 shifted = {
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(shifted.row_echelon() == shifted);
+
+		mat2 left_corner = {
+			1, 0,
+			0, 0
+		};
+		REQUIRE(left_corner.row_echelon() == left_corner);
+
+		mat2 right_corner = {
+			0, 1,
+			0, 0
+		};
+		REQUIRE(right_corner.row_echelon() == right_corner);
+	}
+	SECTION("Row swaps, no scaling") {
+		// identity = permute_123
+		mat3 permute_231 = {
+			0, 1, 0,
+			0, 0, 1,
+			1, 0, 0
+		};
+		REQUIRE(permute_231.row_echelon() == mat3::identity());
+
+		mat3 permute_312 = {
+			0, 0, 1,
+			1, 0, 0,
+			0, 1, 0
+		};
+		REQUIRE(permute_312.row_echelon() == mat3::identity());
+
+		mat3 permute_321 = {
+			0, 0, 1,
+			0, 1, 0,
+			1, 0, 0
+		};
+		REQUIRE(permute_321.row_echelon() == mat3::identity());
+
+		mat3 permute_213 = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(permute_213.row_echelon() == mat3::identity());
+
+		mat3 permute_132 = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 1, 0
+		};
+		REQUIRE(permute_213.row_echelon() == mat3::identity());
+
+		mat2x3 shifted_permute = {
+			0, 0, 1,
+			0, 1, 0
+		};
+		mat2x3 shifted_permute_re = {
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(shifted_permute.row_echelon() == shifted_permute_re);
+	}
+	SECTION("Random matrices") {
+		mat3 a = {
+			2.5, 3.6, -7,
+			-12, 0, 0,
+			0, 1, -1
+		};
+		mat3 a_re = {
+			1, 0, 0,
+			0, 1, -1.9444444444,
+			0, 0, 1,
+		};
+		REQUIRE(aeq(a.row_echelon(), a_re));
+
+		mat3 b = {
+			6, 3, 0,
+			-15, -7.5, 0,
+			0, 1, 1
+		};
+		mat3 b_re = {
+			1, 0.5, 0,
+			0, 1, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(b.row_echelon(), b_re));
+
+		mat2x3 c = {
+			0, -5.7, 6.2,
+			0.1, 0, 1
+		};
+		mat2x3 c_re = {
+			1, 0, 10,
+			0, 1, -1.0877192982
+		};
+		REQUIRE(c.row_echelon() == c_re);
+
+		mat2x3 d = {
+			0, -5.7, 6.2,
+			0, 0.1, 1
+		};
+		mat2x3 d_re = {
+			0, 1, -1.0877192982,
+			0, 0, 1
+		};
+		REQUIRE(d.row_echelon() == d_re);
+	}
+	SECTION("Tall Matrices") {
+		math::MMatrix<float, 3, 2> tall = {
+			1, 0,
+			0, 1,
+			0.5, 1
+		};
+		math::MMatrix<float, 3, 2> tall_re = {
+			1, 0,
+			0, 1,
+			0, 0
+		};
+		REQUIRE(tall.row_echelon() == tall_re);
+	}
+}
+TEST_CASE("Matrix determinant", "[linalg]") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().determinant() == 1);
+		REQUIRE(mat3::identity().determinant() == 1);
+		
+		mat3 permuted = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(permuted.determinant() == -1);
+
+		mat3 missing = {
+			1, 0, 0,
+			0, 0, 0,
+			0, 1, 0
+		};
+		REQUIRE(missing.determinant() == 0);
+	}
+	SECTION("Random") {
+		mat3 a = {
+			7.0,	16.5,	32.25,
+			-22.5,	-23,	-6,
+			-100,	1,		2
+		};
+		REQUIRE(aeq(a.determinant(), -64538.125f));
+
+		mat3 b = {
+			6, 3, 0,
+			-15, -7.5, 0,
+			0, 1, 1
+		};
+		REQUIRE(b.determinant() == 0);
+
+		mat4 c = {
+			0.426719, 0.0979894, 0.57436, 0.88369,
+			0.30224, 0.00128982, 0.805764, 0.808081,
+			0.898543, 0.798784, 0.898152, 0.882801,
+			0.343767, 0.622619, 0.583506, 0.264387
+		};
+		REQUIRE(aeq(c.determinant(), -0.034146f));
+
+		mat2 d = {
+			0.580531, 0.84377,
+			0.788602, 0.764121
+		};
+		REQUIRE(aeq(d.determinant(), -0.2218027813f));
+	}
+}
+
+TEST_CASE("Matrix reduced row echelon form", "[linalg]") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().reduced_row_echelon() == mat2::identity());
+		REQUIRE(mat3::identity().reduced_row_echelon() == mat3::identity());
+
+		mat2 m2_permute = {
+			0, 1,
+			1, 0
+		};
+		REQUIRE(m2_permute.reduced_row_echelon() == mat2::identity());
+		
+		mat3 m3_permute = {
+			0, 1, 0,
+			1, 0, 0,
+			0, 0, 1
+		};
+		REQUIRE(m3_permute.reduced_row_echelon() == mat3::identity());
+	}
+	SECTION("Tall") {
+		math::MMatrix<float, 3, 2> indep = {
+			1, 5,
+			-5, 2,
+			0, 6
+		};
+		math::MMatrix<float, 3, 2> indep_rre = {
+			1, 0,
+			0, 1,
+			0, 0
+		};
+		REQUIRE(indep.reduced_row_echelon() == indep_rre);
+
+		math::MMatrix<float, 3, 2> dep_a = {
+			1, 0,
+			1, 0,
+			1, 0
+		};
+		math::MMatrix<float, 3, 2> dep_a_rre = {
+			1, 0,
+			0, 0,
+			0, 0
+		};
+		REQUIRE(dep_a.reduced_row_echelon() == dep_a_rre);
+
+		math::MMatrix<float, 3, 2> dep_b = {
+			0, 1,
+			0, 1,
+			0, 1
+		};
+		math::MMatrix<float, 3, 2> dep_b_rre = {
+			0, 1,
+			0, 0,
+			0, 0
+		};
+		REQUIRE(dep_b.reduced_row_echelon() == dep_b_rre);
+	}
+	SECTION("Square") 
+	{
+		mat3 random = {
+			1.0, 6.7, -2.0,
+			-3.3, 4, 0,
+			1, 0, -1
+		};
+		mat3 random_rre = {
+			1, 0, 0,
+			0, 1, 0,
+			0, 0, 1
+		};
+		REQUIRE(random.reduced_row_echelon() == random_rre);
+
+		mat3 dep_col = {
+			1, -4, -2,
+			-3.3, 0, 0,
+			1, -2, -1
+		};
+		mat3 dep_col_rre = {
+			1, 0, 0,
+			0, 1, 0.5,
+			0, 0, 0
+		};
+		REQUIRE(dep_col.reduced_row_echelon() == dep_col_rre);
+
+		mat3 zero_col = {
+			1, 0, -2,
+			-3.3, 0, 0,
+			1, 0, 1
+		};
+		mat3 zero_col_rre = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(zero_col.reduced_row_echelon(), zero_col_rre));
+
+		mat3 zero_col_dep_row = {
+			1, 0, -2,
+			-3.3, 0, 0,
+			2, 0, -4
+		};
+		mat3 zero_col_dep_row_rre = {
+			1, 0, 0,
+			0, 0, 1,
+			0, 0, 0
+		};
+		REQUIRE(aeq(zero_col_dep_row.reduced_row_echelon(), zero_col_dep_row_rre));
+
+		mat3 dep_row = {
+			6.2, 0, -17,
+			1, 2, 3,
+			4, 8, 12
+		};
+		mat3 dep_row_rre = {
+			1, 0, -2.74193548387096774193548387097, 
+			0, 1, 2.87096774193548387096774193548, 
+			0, 0, 0
+		};
+		REQUIRE(aeq(dep_row.reduced_row_echelon(), dep_row_rre));
+
+		mat3 zero_row_dep_row = {
+			0, 0, 0,
+			1, 2, 3,
+			4, 8, 12
+		};
+		mat3 zero_row_dep_row_rre = {
+			1, 2, 3,
+			0, 0, 0,
+			0, 0, 0
+		};
+		REQUIRE(zero_row_dep_row.reduced_row_echelon() == zero_row_dep_row_rre);
+	}
+	SECTION("Wide") {
+		mat3x4 random = {
+			1.0, 6.7, -2.0, -12,
+			-3.3, 4, 0, 19,
+			1, 0, -1, 16
+		};
+		mat3x4 random_rre = {
+			1, 0, 0, -16.7476532302595251242407509663, 
+			0, 1, 0, -9.06681391496410822749861954721, 
+			0, 0, 1, -32.7476532302595251242407509663
+		};
+		REQUIRE(aeq(random.reduced_row_echelon(), random_rre));
+
+		mat3x4 dep_col = {
+			1, -4, -2, 3,
+			-3.3, 0, 0, 2,
+			1, -2, -1, 5
+		};
+		mat3x4 dep_col_rre = {
+			1, 0, 0, 0,
+			0, 1, 0.5, 0,
+			0, 0, 0, 1
+		};
+		REQUIRE(dep_col.reduced_row_echelon() == dep_col_rre);
+
+		mat3x4 dep_row = {
+			6.2, 0, -17, 8,
+			1, 2, 3, 6,
+			4, 8, 12, 24
+		};
+		mat3x4 dep_row_rre = {
+			1, 0, -2.74193548387096774193548387097, 1.29032258064516129032258064516,
+			0, 1, 2.87096774193548387096774193548, 2.35483870967741935483870967742, 
+			0, 0, 0, 0
+		};
+		REQUIRE(aeq(dep_row.reduced_row_echelon(), dep_row_rre));
+	}
+}
+
+TEST_CASE("Matrix inverse", "[linalg]") {
+	SECTION("Basic") {
+		REQUIRE(mat2::identity().inverse() == mat2::identity());
+		REQUIRE(mat3::identity().inverse() == mat3::identity());
+		REQUIRE(mat4::identity().inverse() == mat4::identity());
+
+		mat3 permute = {
+			0, 1, 0,
+			0, 0, 1,
+			1, 0, 0
+		};
+		// this is not true in general
+		REQUIRE(permute.inverse() == permute.transpose());
+	}
+	SECTION("Random") {
+		mat2 r2 = {
+			0.580531, -0.84377,
+			0.788602, 7.64121
+		};
+		mat2 r2_inv = {
+			1.49788, 0.165401,
+			-0.154587, 0.113799
+		};
+		REQUIRE(aeq(r2.inverse(), r2_inv, 1e6f));
+
+		mat3 r3 = {
+			1.0, 6.7, -2.0,
+			-3.3, 4, 0,
+			1, 0, -1
+		};
+		mat3 r3_inv = {
+			0.220872, -0.369961, -0.441745,
+			0.18222, -0.0552181, -0.36444,
+			0.220872, -0.369961, -1.44174
+		};
+		REQUIRE(aeq(r3.inverse(), r3_inv, 1e6f));
 	}
 }

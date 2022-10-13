@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdlib>
 #include <concepts>
 #include <cmath>
@@ -13,48 +14,106 @@
 //! Graphics-oriented linear algebra.
 
 namespace math {
-	// There are three pieces of illegal C++ at play here:
-	// 	1. Anonymous unions. I'm only using these since I want MVector to
-	//	   inherit the public fields from MVectorStorage, but you can't
-	//	   inherit from a union. Although it's technically illegal, it's
-	// 	   supported as an extension by every C++ compiler out there.
-	//  2. Anonymous structs. I'm using these to get convenient x/y/z/w
-	//     member access. Once again: technically illegal, supported as an
-	//     extension by every C++ compiler out there.
-	//  3. Union type punning. This is the only "dangerous" one. If the
-	//     compiler doesn't support anonymous unions and structs, there will
-	//     be a syntax error at compile time; if it doesn't support union type
-	//     punning, there *might* be a bug at *runtime*. According to the 
-	//     C++ standard, union type punning is illegal. However:
-	//		- GCC explicitly supports it: https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#Type-punning
-	//		- MSVC's own STL relies on it: https://github.com/microsoft/STL/blob/020aad2e088a21bbcad60f66d8419963219c1106/stl/src/xmath.hpp#L60
-	//		- Clang's own libc++ relies on it: https://github.com/llvm/llvm-project/blob/2d52c6bfae801b016dd3627b8c0e7c4a99405549/libcxx/include/__functional/hash.h#L283
-	//	   These are really the only three compilers I care about.
+
+	// Operator access relies on reinterpret_cast, which does not function
+	// in a constant context.
+	#define _IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest) \
+		if(std::is_constant_evaluated()) { \
+			switch (idx) { \
+				case 0: return x; \
+				case 1: return y; \
+				case 2: return z; \
+				case 3: return w; \
+				default: return rest; \
+			} \
+		} \
+	
+	#define IMPL_MEMBER_ACCESS(count, x, y, z, w, rest) \
+		constexpr F& operator[](size_t idx) { \
+			check_member_layout(); \
+			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			assert(idx < count); \
+			char* member = reinterpret_cast<char*>(this) + sizeof(F) * idx; \
+			return *reinterpret_cast<F*>(member); \
+		} \
+		constexpr const F& operator[](size_t idx) const { \
+			check_member_layout(); \
+			_IMPL_CONSTEVAL_ACCESS(idx, x, y, z, w, rest); \
+			assert(idx < count); \
+			const char* member = reinterpret_cast<const char*>(this) + sizeof(F) * idx; \
+			return *reinterpret_cast<const F*>(member); \
+		}
 
 	template<std::floating_point F, size_t C>
-	struct alignas(sizeof(F) * 4) MVectorStorage {
-		union {
-			std::array<F, C> elems;
-			struct { F x, y, z, w; };
-		};
+	struct MVectorStorage {
+		F x, y, z, w;
+		F mExtra[C-4];
+		IMPL_MEMBER_ACCESS(C, x, y, z, w, mExtra[idx - 4])
+
+		constexpr MVectorStorage() : x(), y(), z(), w(), mExtra() {};
+
+		template<typename ...Args>
+			requires(sizeof...(Args) == C-4 && std::conjunction_v<std::is_same<F, Args>...>)
+		constexpr MVectorStorage(F _x, F _y, F _z, F _w, Args... _extra)
+			: x(_x), y(_y), z(_z), w(_w), mExtra{ _extra... } {}
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, mExtra) == 4 * sizeof(F));
+		}
 	};
+
+	template<std::floating_point F>
+	struct alignas(sizeof(F) * 4) MVectorStorage<F, 4> {
+		F x, y, z, w;
+		IMPL_MEMBER_ACCESS(4, x, y, z, w, w);
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, w) == 3 * sizeof(F));
+		}
+	};
+
 	template<std::floating_point F>
 	struct alignas(sizeof(F) * 4) MVectorStorage<F, 3> {
-		union {
-			std::array<F, 3> elems;
-			struct { F x, y, z; };
-		};
+		F x, y, z;
+		IMPL_MEMBER_ACCESS(3, x, y, z, z, z);
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, z) == 2 * sizeof(F));
+		}
 	};
 	template<std::floating_point F>
 	struct MVectorStorage<F, 2> {
-		union {
-			std::array<F, 2> elems;
-			struct { F x, y; };
-		};
+		F x, y;
+		IMPL_MEMBER_ACCESS(2, x, y, y, y, y);
+	private:
+		// These need to be in a function so they can refer to MVectorStorage.
+		consteval static void check_member_layout() {
+			static_assert(std::is_standard_layout<MVectorStorage>());
+			static_assert(offsetof(MVectorStorage, x) == 0 * sizeof(F));
+			static_assert(offsetof(MVectorStorage, y) == 1 * sizeof(F));
+		}
 	};
 
-	template<std::floating_point F, size_t C>
-		requires(2 <= C && C <= 4)
+	#undef IMPL_MEMBER_ACCESS
+	#undef _IMPL_CONSTEVAL_ACCESS
+
+	template<std::floating_point F, size_t C> 
+		requires(2 <= C)
 	struct MVector : public MVectorStorage<F, C> {
 		/// The number of elements in vectors of this type.
 		constexpr static size_t SIZE = C;
@@ -65,7 +124,10 @@ namespace math {
 		/// Scalar "splat" scalar cast. Sets all elements to `splat`.
 		template<std::convertible_to<F> S>
 		explicit constexpr MVector(S splat) : MVector() {
-			this->elems.fill(static_cast<F>(splat));
+			F converted = static_cast<F>(splat);
+			for (size_t i = 0; i < C; i++) {
+				(*this)[i] = converted;
+			}
 		}
 
 		template<std::convertible_to<F> S>
@@ -80,10 +142,13 @@ namespace math {
 		/// Per-element bracket initialization syntax.
 		template<typename ...Args>
 			requires(sizeof...(Args) == C && std::conjunction_v<std::is_convertible<F, Args>...>)
-		constexpr MVector(const Args&... args) : MVectorStorage<F,C> { static_cast<F>(args)... } {}
+		constexpr MVector(const Args&... args) : MVectorStorage<F,C> ( static_cast<F>(args)... ) {}
 
 		constexpr bool operator==(const MVector& other) const {
-			return this->elems == other.elems;
+			for(size_t i = 0; i < C; i++){
+				if ((*this)[i] != other[i]) return false;
+			}
+			return true;
 		}
 
 		constexpr bool operator!=(const MVector& other) const { return !(*this == other); }
@@ -94,14 +159,14 @@ namespace math {
 		}
 
 		constexpr MVector& operator+=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] += other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] += other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(+, const MVector&);
 		
 
 		constexpr MVector& operator-=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] -= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] -= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(-, const MVector&);
@@ -115,7 +180,7 @@ namespace math {
 		template<std::convertible_to<F> S>
 		constexpr MVector& operator*=(S scalar) {
 			F scalar_cvt = static_cast<F>(scalar);
-			for (size_t i = 0; i < C; i++) this->elems[i] *= scalar_cvt;
+			for (size_t i = 0; i < C; i++) (*this)[i] *= scalar_cvt;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -123,7 +188,7 @@ namespace math {
 
 		/// Element-wise vector multiplication (not the dot product!)
 		constexpr MVector& operator*=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] *= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] *= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(*, const MVector&);
@@ -142,20 +207,12 @@ namespace math {
 
 		/// Element-wise vector division.
 		constexpr MVector& operator/=(const MVector& other) {
-			for (size_t i = 0; i < C; i++) this->elems[i] /= other.elems[i];
+			for (size_t i = 0; i < C; i++) (*this)[i] /= other[i];
 			return *this;
 		}
 		VEC_DERIVE_BINOP(/, const MVector&)
 
 		#undef VEC_DERIVE_BINOP
-
-		/// Indexed element access.
-		constexpr const F& operator[](size_t index) const {
-			return this->elems[index];
-		}
-		constexpr F& operator[](size_t index) {
-			return this->elems[index];
-		}
 
 		// Returns the magnitude of this vector.
 		constexpr F mag() const {
@@ -171,6 +228,16 @@ namespace math {
 			// Intellisense syntax highlighting *HATES* this line for some reason
 			MVector normal_component = dot(*this, normal) * normal;
 			return *this - (2 * normal_component);
+		}
+
+		template<size_t Start, size_t End>
+			requires(Start + 1 < End && End <= C)
+		constexpr MVector<F, End - Start> slice() const {
+			auto sliced = MVector<F, End - Start>::zero();
+			for (size_t i = 0; i < End - Start; i++) {
+				sliced[i] = (*this)[i+Start];
+			}
+			return sliced;
 		}
 	};
 
@@ -192,7 +259,7 @@ namespace math {
 	template<std::floating_point F, size_t C>
 	inline constexpr F dot(const MVector<F, C>& l, const MVector<F, C>& r) {
 		F sum = static_cast<F>(0);
-		for (size_t i = 0; i < C; i++) sum += l.elems[i] * r.elems[i];
+		for (size_t i = 0; i < C; i++) sum += l[i] * r[i];
 		return sum;
 	}
 
@@ -200,13 +267,6 @@ namespace math {
 	inline constexpr MVector<F,C> lerp(const MVector<F, C>& p0, const MVector<F, C>& p1, S factor) {
 		F factor_cvt = static_cast<F>(factor);
 		return (static_cast<F>(1) - factor_cvt) * p0 + (factor_cvt) * p1;
-	}
-
-	template<std::floating_point F, size_t C, std::convertible_to<F> S>
-	inline constexpr MVector<F,C> cerp(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
-		F factor_cvt = static_cast<F>(factor);
-		// Waiting to implement cubic interpolation until I've done matrices
-		TODO();
 	}
 
 	template<std::floating_point F>
@@ -233,47 +293,45 @@ namespace math {
 	}
 
 	template<std::floating_point F, size_t M, size_t N>
-		requires (2 <= M <= 4 && 2 <= N <= 4)
+		requires (2 <= M && 2 <= N)
 	class MMatrix {
-		// We use column-major matrices instead of row-major matrices
-		// because that's what OpenGL actually requires. It would be
-		// a pain to transpose every matrix we use...
-		std::array<MVector<F, M>, N> cols;
+		// Row-major storage.
+		std::array<MVector<F, N>, M> mStorage;
 
 	public:
 		/// Default constructor (all zeroes).
-		constexpr MMatrix() : cols() {}
+		constexpr MMatrix() : mStorage() {}
 
 		/// Entry-by-entry initialization.
 		template<typename... Args>
 			requires(sizeof...(Args) == N * M && std::conjunction_v<std::is_convertible<F, Args>...>)
 		constexpr MMatrix(const Args&... args) : MMatrix() {
 			// This initialization code is absolutely batshit insane
-			auto write_entry = [](MMatrix* mat, size_t& i, F val) {
-				mat->cols[i % N][i / N] = val;
-				++i;
+			auto write_entry = [](MMatrix& mat, size_t& k, F val) {
+				mat.mStorage[k / N][k % N] = val;
+				++k;
 			};
 			size_t i = 0;
-			(..., write_entry(this, i, static_cast<F>(args)));
+			(..., write_entry(*this, i, static_cast<F>(args)));
 		}
 
-		constexpr MVector<F, M> col(size_t i) const {
-			return this->cols[i];
-		}
-
-		constexpr MMatrix& set_col(size_t i, const MVector<F, M>& c) {
-			this->cols[i] = c;
-			return *this;
-		}
-
-		constexpr MVector<F, N> row(size_t j) const {
-			auto rv = MVector<F, N>::zero();
-			for (size_t i = 0; i < N; i++) rv[i] = this->cols[i][j];
+		constexpr MVector<F, M> col(size_t j) const {
+			auto rv = MVector<F, M>::zero();
+			for (size_t i = 0; i < M; i++) rv[i] = mStorage[i][j];
 			return rv;
 		}
 
-		constexpr MMatrix& set_row(size_t j, const MVector<F, N>& r) {
-			for (size_t i = 0; i < N; i++) this->cols[i][j] = r[i];
+		constexpr MMatrix& set_col(size_t j, const MVector<F, M>& c) {
+			for (size_t i = 0; i < M; i++) mStorage[i][j] = c[i];
+			return *this;
+		}
+
+		constexpr MVector<F, N> row(size_t i) const {
+			return mStorage[i];
+		}
+
+		constexpr MMatrix& set_row(size_t i, const MVector<F, N>& r) {
+			mStorage[i] = r;
 			return *this;
 		}
 
@@ -282,7 +340,7 @@ namespace math {
 		constexpr static MMatrix splat(S splat) {
 			MMatrix<F, M, N> z;
 			for (size_t i = 0; i < N; i++) {
-				z.cols[i] = MVector<F,M>::splat(splat);
+				z.mStorage[i] = MVector<F,N>::splat(splat);
 			}
 			return z;
 		}
@@ -294,7 +352,7 @@ namespace math {
 		consteval static MMatrix identity() requires (N==M) {
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
-				mat.cols[i][i] = static_cast<F>(1);
+				mat.mStorage[i][i] = static_cast<F>(1);
 			}
 			return mat;
 		}
@@ -303,8 +361,8 @@ namespace math {
 			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<F,N>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
 			auto mat = MMatrix::zero();
-			size_t j = 0;
-			(..., mat.set_row(j++, rows));
+			size_t i = 0;
+			(..., mat.set_row(i++, rows));
 			return mat;
 		}
 
@@ -312,8 +370,8 @@ namespace math {
 			requires(sizeof...(Args) == N && std::conjunction_v<std::is_same<MVector<F, M>, Args>...>)
 		constexpr static MMatrix from_cols(const Args&... cols) {
 			auto mat = MMatrix::zero();
-			size_t i = 0;
-			(..., mat.set_col(i++, cols));
+			size_t j = 0;
+			(..., mat.set_col(j++, cols));
 			return mat;
 		}
 
@@ -326,20 +384,28 @@ namespace math {
 		}
 
 		constexpr MMatrix& operator+=(const MMatrix& other) {
-			for (size_t i = 0; i < N; i++) this->cols[i] += other.cols[i];
+			for (size_t i = 0; i < M; i++) mStorage[i] += other.mStorage[i];
 			return *this;
 		}
 		MAT_DERIVE_BINOP(+, const MMatrix&);
 
 		constexpr MMatrix& operator-=(const MMatrix& other) {
-			for (size_t i = 0; i < N; i++) this->cols[i] -= other.cols[i];
+			for (size_t i = 0; i < M; i++) mStorage[i] -= other.mStorage[i];
 			return *this;
 		}
 		MAT_DERIVE_BINOP(-, const MMatrix&);
 
+		constexpr MVector<F, M> operator*(const MVector<F, N>& vec) const {
+			auto result = MVector<F, M>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				result[i] = dot(mStorage[i], vec);
+			}
+			return result;
+		}
+
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator*=(S scalar) {
-			for (size_t i = 0; i < N; i++) this->cols[i] *= scalar;
+			for (size_t i = 0; i < M; i++) mStorage[i] *= scalar;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -348,7 +414,7 @@ namespace math {
 		template<std::convertible_to<F> S>
 		constexpr MMatrix& operator/=(S scalar) {
 			F inv = static_cast<F>(1) / static_cast<F>(scalar);
-			for (size_t i = 0; i < N; i++) this->cols[i] *= inv;
+			for (size_t i = 0; i < M; i++) mStorage[i] *= inv;
 			return *this;
 		}
 		template<std::convertible_to<F> S>
@@ -358,8 +424,8 @@ namespace math {
 
 		constexpr MMatrix<F, N, M> transpose() const {
 			auto transposed = MMatrix<F,N,M>::zero();
-			for (size_t i = 0; i < N; i++) {
-				transposed.set_row(i, this->col(i));
+			for (size_t j = 0; j < M; j++) {
+				transposed.set_col(j, mStorage[j]);
 			}
 			return transposed;
 		}
@@ -377,6 +443,139 @@ namespace math {
 			}
 			return mul;
 		}
+
+	private:
+		template<bool Reduce>
+		constexpr F gauss_eliminate() {
+			F determinant = static_cast<F>(1);
+			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
+				// Scan through remaining rows, find the one with the max value
+				// in the j-th column.
+				// Technically, we only need to find the first nonzero value...
+				// but this gives better numerical stability
+				F pivot = mStorage[i][j];
+				size_t pivot_row = i;
+
+				for (size_t k = i + 1; k < M; k++) {
+					// Fun trick: fabs is slow because it needs to handle
+					// a bunch of edge cases. But since we're comparing two
+					// magnitudes, we can just compare the squares...
+					F cur = mStorage[k][j];
+					if (cur * cur > pivot * pivot) {
+						pivot = cur;
+						pivot_row = k;
+					}
+				}
+
+				if (pivot == static_cast<F>(0)) {
+					// every row had a zero in column j
+					// on next iter, use row i, but with column j+1
+					i -= 1;
+					// Also, this means column j is entirely zero,
+					// so the determinant of the MxM induced submatrix
+					// is definitely zero!
+					determinant = 0;
+					continue;
+				}
+
+				// Get a version of the pivot row with the pivot
+				// "normalized" so we don't have to divide each iteration
+				MVector<F, N> prediv = mStorage[pivot_row] / pivot;
+				// Ideally this wouldn't be necessary, but we sometimes
+				// get values nearly imperceptibly off from 1 (but still
+				// greater than the epislon).
+				prediv[j] = 1;
+
+				// Move the row with the max value into the uppermost
+				// position in row-echelon form, making sure to update
+				// the scale: swapping rows negates det, scaling a row
+				// scales the det by that same amount.
+				if (pivot_row != i) {
+					// swap rows, update determinant scale accordingly
+					mStorage[pivot_row] = mStorage[i];
+					determinant = -determinant;
+				}
+				mStorage[i] = prediv;
+				determinant *= pivot;
+
+				// (If reducing) ensure the column is zero in all
+				// rows above it by subtracting that row.
+				if constexpr (Reduce) {
+					for (size_t k = 0; k < i; k++) {
+						mStorage[k] -= mStorage[k][j] * prediv;
+					}
+				}
+
+				// Ensure the column is zero in all the rows
+				// underneath it by subtracting that row.
+				for (size_t k = i + 1; k < M; k++) {
+					mStorage[k] -= mStorage[k][j] * prediv;
+				}
+			}
+			return determinant;
+		}
+
+	public:
+		// Converts the matrix into row-echelon form. Returns the determinant
+		// of the matrix induced by the first M columns. The return value is
+		// meaningless if M > N.
+		constexpr F make_row_echelon() {
+			return this->gauss_eliminate<false>();
+		}
+		constexpr MMatrix row_echelon() const {
+			auto copy = *this;
+			copy.make_row_echelon();
+			return copy;
+		}
+
+		constexpr F make_reduced_row_echelon() {
+			return this->gauss_eliminate<true>();
+		}
+		
+		constexpr MMatrix reduced_row_echelon() const {
+			auto copy = *this;
+			copy.make_reduced_row_echelon();
+			return copy;
+		}
+
+		template<typename _ = void> 
+			requires(N == M)
+		constexpr F determinant() const {
+			if constexpr (N == 2) {
+				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
+			}
+			auto copy = *this;
+			return copy.make_row_echelon();
+		}
+
+		template<typename _ = void> 
+			requires(N == M)
+		constexpr MMatrix inverse() const {
+			if constexpr (N == 2) {
+				MMatrix<F, 2, 2> unscaled = {
+					mStorage[1][1], -mStorage[0][1],
+					-mStorage[1][0], mStorage[0][0]
+				};
+				return unscaled / this->determinant();
+			}
+			auto system = MMatrix<F, M, 2 * N>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				auto sys_row = MVector<F, 2 * N>::zero();
+				for (size_t j = 0; j < N; ++j) {
+					sys_row[j] = mStorage[i][j];
+				}
+				sys_row[N + i] = static_cast<F>(1);
+				system.set_row(i, sys_row);
+			}
+			system.make_reduced_row_echelon();
+			auto inv = MMatrix<F, M, N>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				MVector<F, N> inv_row = system.row(i).template slice<N, 2*N>();
+				inv.set_row(i, inv_row);
+			}
+			return inv;
+		}
+		
 
 		// We DON'T do rotate, scale, transform matrices here
 		// rotate: only makes sense for square & different in each dim
@@ -425,18 +624,38 @@ namespace math {
 	template<std::floating_point F, size_t C>
 	inline bool aeq(const MVector<F, C>& left, const MVector<F, C>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
 		for (size_t i = 0; i < C; i++) {
-			if (!aeq(left.elems[i], right.elems[i], tolerance)) return false;
+			if (!aeq(left[i], right[i], tolerance)) return false;
 		}
 		return true;
 	}
 
 	template<std::floating_point F, size_t M, size_t N>
 	inline bool aeq(const MMatrix<F, M, N>& left, const MMatrix<F, M, N>& right, F tolerance = std::numeric_limits<F>::epsilon()) {
-		// TODO: if the matrix changes to row-major, rewrite this using row() instead of col()
-		for (size_t i = 0; i < N; i++) {
-			if (!aeq(left.col(i), right.col(i), tolerance)) return false;
+		for (size_t i = 0; i < M; i++) {
+			if (!aeq(left.row(i), right.row(i), tolerance)) return false;
 		}
 		return true;
+	}
+
+	namespace {
+		template<std::floating_point F>
+		static constexpr MMatrix<F, 4, 4> CUBIC_BEZIER_MATRIX = {
+			1, 0, 0, 0,
+			-3, 3, 0, 0,
+			3, -6, 3, 0,
+			-1, 3, -3, 1
+		};
+	}
+	template<std::floating_point F, size_t C, std::convertible_to<F> S>
+	inline constexpr MVector<F, C> cubic_bezier(const MVector<F, C>& p0, const MVector<F, C>& cp0, const MVector<F, C>& cp1, const MVector<F, C>& p1, S factor) {
+		F cvt = static_cast<F>(factor);
+		MVector<F, 4> facs = { 1, cvt, cvt * cvt, cvt * cvt * cvt };
+		auto result = MVector<F, C>::zero();
+		for (size_t i = 0; i < C; ++i) {
+			MVector<F, 4> gathered = { p0[i], cp0[i], cp1[i], p1[i] };
+			result[i] = dot(facs, CUBIC_BEZIER_MATRIX<F> * gathered);
+		}
+		return result;
 	}
 }
 
@@ -454,3 +673,4 @@ using mat3x4 = math::MMatrix<float, 3, 4>;
 using math::dot;
 using math::cross;
 using math::aeq;
+using math::lerp;

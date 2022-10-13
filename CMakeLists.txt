@@ -64,6 +64,46 @@ add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_l
 target_include_directories(terrapainter_lib PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(terrapainter_lib PRIVATE terrapainter_shared)
 
+# ========================== IMGUI ===========================
+set(imgui_SOURCES
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui_demo.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui_draw.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui_tables.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/imgui_widgets.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/backends/imgui_impl_opengl3.cpp"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/src/backends/imgui_impl_sdl.cpp"
+)
+set(imgui_HEADERS
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imconfig.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imgui.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imgui_internal.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imstb_rectpack.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imstb_textedit.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/imstb_truetype.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_opengl3.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_opengl3_loader.h"
+	"${CMAKE_SOURCE_DIR}/extern/imgui/include/imgui/backends/imgui_impl_sdl.h"
+)
+add_library(imgui STATIC ${imgui_SOURCES} ${imgui_HEADERS})
+target_include_directories(imgui PUBLIC "${CMAKE_SOURCE_DIR}/extern/imgui/include")
+# That's right, we link against terrapainter_lib!
+# The reason for this is that we need to include our math class to support conversions
+# to/from ImVec2 and ImVec4
+target_link_libraries(imgui PUBLIC SDL2::SDL2 terrapainter_shared terrapainter_lib)
+
+# ======================= STB STUFF ==========================
+set(stb_SOURCES 
+	"${CMAKE_SOURCE_DIR}/extern/stb/src/stb_image_impl.cpp"
+)
+set(stb_HEADERS
+	"${CMAKE_SOURCE_DIR}/extern/stb/include/stb/stb_image.h"
+)
+add_library(stb STATIC ${stb_SOURCES} ${stb_HEADERS})
+target_include_directories(stb PUBLIC "${CMAKE_SOURCE_DIR}/extern/stb/include")
+target_link_libraries(stb PUBLIC terrapainter_shared)
+
+# ================== TERRAPAINTER (BIN) ======================
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/create_context.cpp"
@@ -71,15 +111,24 @@ set(terrapainter_SOURCES
 set(terrapainter_HEADERS
 )
 
-add_executable(terrapainter WIN32 ${terrapainter_SOURCES} ${terrapainter_HEADERS})
+add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT terrapainter)
+set_property(TARGET terrapainter PROPERTY VS_DPI_AWARE "ON")
 
 # From SDL2 docs, this target is only available on certain platforms
 if(TARGET SDL2::SDL2main)
 	target_link_libraries(terrapainter PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(terrapainter PRIVATE glad SDL2::SDL2 terrapainter_lib terrapainter_shared ${CMAKE_DL_LIBS})
+target_link_libraries(terrapainter PRIVATE 
+	terrapainter_shared
+	terrapainter_lib 
+	SDL2::SDL2 
+	imgui 
+	glad 
+	stb
+	${CMAKE_DL_LIBS}
+)
 
 if (NOT SDL2_FOUND)
 	# Ensure the SDL2 dylib is in the same directory as the binary so the binary

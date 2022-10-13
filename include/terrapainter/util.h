@@ -43,3 +43,7 @@
     assert(!"TODO"); \
     abort(); \
 } while(0)
+
+
+#define error(...) do { fprintf(stderr, "[error] " __VA_ARGS__); exit(-1); } while(0)
+#define info(...) fprintf(stderr, "[info] " __VA_ARGS__)
