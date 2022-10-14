@@ -10,34 +10,6 @@
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
 
-class SceneNode
-{
-  // The coordinate space of this node, relative to its parent.
-  mat4 transform;
-
-public:
-};
-
-float get_dpi_scale()
-{
-  const int PRIMARY_DISPLAY_INDEX = 0;
-#if defined(_WIN32)
-  const float DEFAULT_DDPI = 72.0f;
-#else
-  const float DEFAULT_DDPI = 96.0f;
-#endif
-
-  float ddpi;
-  if (!SDL_GetDisplayDPI(PRIMARY_DISPLAY_INDEX, nullptr, nullptr, &ddpi))
-  {
-    return ddpi / DEFAULT_DDPI;
-  }
-  else
-  {
-    return 1.0f;
-  }
-}
-
 int main(int argc, char *argv[])
 {
 
@@ -76,21 +48,15 @@ int main(int argc, char *argv[])
   ImGuiStyle &style = ImGui::GetStyle();
   ImGuiIO &io = ImGui::GetIO();
 
-  float dpi_scale = get_dpi_scale();
-  io.Fonts->AddFontFromFileTTF("../extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
-
-  style.ScaleAllSizes(1.0f / dpi_scale);
-
-  // Initialize GLAD
-  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-  {
+    // Initialize GLAD
+  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
     error("Failed to initialize GLAD");
   }
 
   // Set viewport
   glViewport(0, 0, 800, 600);
 
-  Shader shader("../shaders/3.3.shader.vs", "../shaders/3.3.shader.fs");
+  Shader shader("shaders/3.3.shader.vs", "shaders/3.3.shader.fs");
 
   float vertices[] = {
       // positions          // colors           // texture coords
@@ -138,7 +104,7 @@ int main(int argc, char *argv[])
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   // load and generate the texture
   int width, height, nrChannels;
-  unsigned char *data = stbi_load("../images/container.jpg", &width, &height, &nrChannels, 0);
+  unsigned char *data = stbi_load("images/container.jpg", &width, &height, &nrChannels, 0);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
 

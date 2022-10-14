@@ -113,7 +113,9 @@ set(terrapainter_HEADERS
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT terrapainter)
+set_property(TARGET terrapainter PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/app/")
 set_property(TARGET terrapainter PROPERTY VS_DPI_AWARE "ON")
+set_property(TARGET terrapainter PROPERTY RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_SOURCE_DIR}/app>)
 
 # From SDL2 docs, this target is only available on certain platforms
 if(TARGET SDL2::SDL2main)
