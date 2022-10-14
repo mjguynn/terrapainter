@@ -94,6 +94,9 @@ int main(int argc, char *argv[])
 
   style.ScaleAllSizes(1.0f / dpi_scale);
 
+  // Grab mouse
+  SDL_SetRelativeMouseMode(SDL_TRUE);
+
   // Initialize GLAD
   if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
   {
@@ -269,28 +272,16 @@ int main(int argc, char *argv[])
       {
         glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
       }
+      else if (windowEvent.type == SDL_KEYDOWN)
+      {
+        if (windowEvent.key.keysym.sym == SDLK_ESCAPE)
+        {
+          running = false;
+        }
+      }
       else if (windowEvent.type == SDL_MOUSEMOTION)
       {
-        int x, y;
-        SDL_GetMouseState(&x, &y);
-
-        float xpos = static_cast<float>(x);
-        float ypos = static_cast<float>(y);
-
-        if (firstMouse)
-        {
-          lastX = xpos;
-          lastY = ypos;
-          firstMouse = false;
-        }
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-        lastX = xpos;
-        lastY = ypos;
-
-        camera.ProcessMouseMovement(xoffset, yoffset);
+        camera.ProcessMouseMovement(windowEvent.motion.xrel, -windowEvent.motion.yrel);
       }
       else if (windowEvent.type == SDL_MOUSEWHEEL)
       {
