@@ -6,10 +6,10 @@
 #include "stb/stb_image.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
-#include "terrapainter/shader_m.h"
+#include "learnopengl/shader_m.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
-#include "camera.h"
+#include "learnopengl/camera.h"
 
 class SceneNode
 {
@@ -42,9 +42,6 @@ float get_dpi_scale()
 // ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = 800 / 2.0f;
-float lastY = 600 / 2.0f;
-bool firstMouse = true;
 
 // timing
 float deltaTime = 0.0f; // time between current frame and last frame
