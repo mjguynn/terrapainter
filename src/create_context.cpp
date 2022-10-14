@@ -190,11 +190,28 @@ int main(int argc, char *argv[])
   while (running)
   {
     // update time
-    float currentFrame = static_cast<float>(SDL_GetTicks());
+    float currentFrame = static_cast<float>(SDL_GetTicks64()) * 0.001f;
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
     // input
+    const Uint8 *currentKeyStates = SDL_GetKeyboardState(NULL);
+    if (currentKeyStates[SDL_SCANCODE_UP])
+    {
+      camera.ProcessKeyboard(FORWARD, deltaTime);
+    }
+    else if (currentKeyStates[SDL_SCANCODE_DOWN])
+    {
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
+    }
+    else if (currentKeyStates[SDL_SCANCODE_LEFT])
+    {
+      camera.ProcessKeyboard(LEFT, deltaTime);
+    }
+    else if (currentKeyStates[SDL_SCANCODE_RIGHT])
+    {
+      camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
 
     // rendering commands
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -251,24 +268,6 @@ int main(int argc, char *argv[])
       else if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
       {
         glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
-      }
-      else if (windowEvent.type == SDL_KEYDOWN)
-      {
-        switch (windowEvent.key.keysym.sym)
-        {
-        case SDLK_UP:
-          camera.ProcessKeyboard(FORWARD, deltaTime);
-          break;
-        case SDLK_DOWN:
-          camera.ProcessKeyboard(BACKWARD, deltaTime);
-          break;
-        case SDLK_LEFT:
-          camera.ProcessKeyboard(LEFT, deltaTime);
-          break;
-        case SDLK_RIGHT:
-          camera.ProcessKeyboard(RIGHT, deltaTime);
-          break;
-        }
       }
       else if (windowEvent.type == SDL_MOUSEMOTION)
       {
