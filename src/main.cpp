@@ -23,6 +23,29 @@ bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
         return false;
     }
 }
+
+void set_pixel(
+    SDL_Surface* const surface,
+    const int x,
+    const int y,
+    const Uint8 r,
+    const Uint8 g,
+    const Uint8 b)
+{
+    Uint32* const pixels = (Uint32*)surface->pixels;
+    const Uint32 color = SDL_MapRGB(surface->format, r, g, b);
+    pixels[x + (y * surface->w)] = color;
+}
+
+int clamp(const int val, const int min, const int max)
+{
+    if (val < min)
+        return min;
+    if (val > max)
+        return max;
+    return val;
+}
+
 int main(int argc, char *argv[])
 {
     // Initialize SDL
