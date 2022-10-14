@@ -293,6 +293,10 @@ int main(int argc, char *argv[])
 
         camera.ProcessMouseMovement(xoffset, yoffset);
       }
+      else if (windowEvent.type == SDL_MOUSEWHEEL)
+      {
+        camera.ProcessMouseScroll(static_cast<float>(windowEvent.wheel.y));
+      }
     }
 
     // Start the Dear ImGui frame
