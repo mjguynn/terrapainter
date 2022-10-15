@@ -42,6 +42,10 @@ float get_dpi_scale()
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
+// timing
+float deltaTime = 0.0f; // time between current frame and last frame
+float lastFrame = 0.0f;
+
 int main(int argc, char *argv[])
 {
 
