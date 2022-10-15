@@ -1,5 +1,5 @@
 #include <cmath>
-#include "glad/glad.h"
+#include "glad/gl.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
@@ -8,6 +8,7 @@
 #include "terrapainter/shader_s.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
+#include "painter.h"
 
 bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     if (windowEvent.type == SDL_QUIT) {
@@ -22,28 +23,6 @@ bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     else {
         return false;
     }
-}
-
-void set_pixel(
-    SDL_Surface* const surface,
-    const int x,
-    const int y,
-    const Uint8 r,
-    const Uint8 g,
-    const Uint8 b)
-{
-    Uint32* const pixels = (Uint32*)surface->pixels;
-    const Uint32 color = SDL_MapRGB(surface->format, r, g, b);
-    pixels[x + (y * surface->w)] = color;
-}
-
-int clamp(const int val, const int min, const int max)
-{
-    if (val < min)
-        return min;
-    if (val > max)
-        return max;
-    return val;
 }
 
 int main(int argc, char *argv[])
@@ -83,7 +62,7 @@ int main(int argc, char *argv[])
     ImGuiIO &io = ImGui::GetIO();
 
     // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+    if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
         error("Failed to initialize GLAD");
     }
 

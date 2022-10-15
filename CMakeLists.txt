@@ -12,12 +12,6 @@ include(FetchContent)
 
 # ================== DEPENDENCIES ======================
 FetchContent_Declare(
-	glad
-	GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-)
-FetchContent_MakeAvailable(glad)
-
-FetchContent_Declare(
 	SDL2
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
 	GIT_TAG origin/main
@@ -57,12 +51,24 @@ set(terrapainter_lib_SOURCES
 )
 set(terrapainter_lib_HEADERS
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/math.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/pixel.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/util.h"
 )
 
 add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_lib_HEADERS})
 target_include_directories(terrapainter_lib PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_link_libraries(terrapainter_lib PRIVATE terrapainter_shared)
+
+# ========================== GLAD ===========================
+set(glad_SOURCES
+	"${CMAKE_SOURCE_DIR}/extern/glad/src/gl.c"
+)
+set(glad_HEADERS
+	"${CMAKE_SOURCE_DIR}/extern/glad/include/glad/gl.h"
+	"${CMAKE_SOURCE_DIR}/extern/glad/include/KHR/khrplatform.h"
+)
+add_library(glad STATIC ${glad_SOURCES} ${glad_HEADERS})
+target_include_directories(glad PUBLIC "${CMAKE_SOURCE_DIR}/extern/glad/include")
 
 # ========================== IMGUI ===========================
 set(imgui_SOURCES
@@ -107,8 +113,10 @@ target_link_libraries(stb PUBLIC terrapainter_shared)
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/main.cpp"
+	"${CMAKE_SOURCE_DIR}/src/painter.cpp"
 )
 set(terrapainter_HEADERS
+	"${CMAKE_SOURCE_DIR}/src/painter.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})
