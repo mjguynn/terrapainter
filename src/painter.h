@@ -18,12 +18,12 @@ public:
 	Painter& operator= (const Painter&) = delete;
 
 	// Uses 0.0-1.0 coordinates
-	RGBu8 get_pixel(vec2 coords) const {
-		return mPixels[to_offset(coords)];
+	RGBu8 get_pixel(int x, int y) const {
+		return mPixels[to_offset(x, y)];
 	}
 
-	void set_pixel(vec2 coords, RGBu8 val) {
-		mPixels[to_offset(coords)] = val;
+	void set_pixel(int x, int y, RGBu8 val) {
+		mPixels[to_offset(x, y)] = val;
 	}
 
 	void process_event(SDL_Event& event);
@@ -35,22 +35,15 @@ public:
 
 private:
 
-	void draw_circle(vec2 coords, float radius);
+	void draw_circle(int x, int y, float radius, RGBu8 color);
 
 	// Converts float X & Y coordinates to an offset into the pixel array
-	size_t to_offset(vec2 coords) const {
-		assert(0 <= coords.x && coords.x <= 1);
-		assert(0 <= coords.y && coords.y <= 1);
+	size_t to_offset(int x, int y) const {
+		assert(0 <= x && x < mWidth);
+		assert(0 <= y && y < mHeight);
+		assert(mPixels.size() == mWidth * mHeight);
 		// Row offset: number of rows passed * number of pixels in a row
-		size_t row_offset = static_cast<int>(coords.y * mHeight) * mWidth;
-		return row_offset + static_cast<int>(coords.x * mWidth);
-	}
-
-	vec2 to_coords(int x, int y) const {
-		return vec2 {
-			float(x) / float(mWidth),
-			float(y) / float(mHeight),
-		};
+		return y * mWidth + x;
 	}
 
 	// Invariant: size is width * height
@@ -63,6 +56,9 @@ private:
 	// The current brush radius
 	float mRadius;
 	
+	// The current color
+	RGBu8 mColor;
+
 	// The pixel buffer
 	std::vector<RGBu8> mPixels;
 

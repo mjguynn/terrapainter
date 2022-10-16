@@ -5,7 +5,8 @@ Painter::Painter(int width, int height)
 	: mWidth(width), 
     mHeight(height), 
     mDrawing(false),
-    mRadius(0.05),
+    mRadius(20.0f),
+    mColor(255, 0, 0),
     mPixels(width * height),
     mShader(),
     mTexture(0), // Temp value
@@ -59,14 +60,13 @@ void Painter::process_event(SDL_Event& event) {
         mDrawing = true;
         int x, y;
         SDL_GetMouseState(&x, &y);
-        draw_circle(to_coords(x, y), mRadius);
+        draw_circle(x, mHeight - y, mRadius);
     }
     else if (event.type == SDL_MOUSEBUTTONUP) {
         mDrawing = false;
     }
-    else if (event.type == SDL_MOUSEMOTION) {
-        auto coords = to_coords(event.motion.x, event.motion.y);
-        draw_circle(coords, mRadius);
+    else if (mDrawing && event.type == SDL_MOUSEMOTION) {
+        draw_circle(event.motion.x, mHeight - event.motion.y, mRadius);
     }
     else if (event.type == SDL_MOUSEWHEEL) {
         auto scroll_delta = 0.01f * event.wheel.y;
@@ -78,8 +78,21 @@ void Painter::process_ui() {
 	TODO();
 }
 
-void Painter::draw_circle(vec2 coords, float radius) {
-    // TODO();
+void Painter::draw_circle(int x, int y, float radius, RGBu8 color) {
+    int iRadius = int(radius);
+    int left = std::max(0, x-iRadius);
+    int right = std::min(mWidth, x + iRadius);
+    int bottom = std::max(0, y - iRadius);
+    int top = std::min(mHeight, y + iRadius);
+
+    for (int i = left; i < right; i++) {
+        for (int j = bottom; j < top; j++) {
+            vec2 offset = { float(i-x), float(j-y) };
+            if (offset.mag() <= mRadius) {
+                set_pixel(i, j, color);
+            }
+        }
+    }
 }
 
 void Painter::draw() {
@@ -109,6 +122,4 @@ void Painter::draw() {
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);
-
-   
 }

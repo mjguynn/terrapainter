@@ -141,6 +141,8 @@ namespace math {
 			return MVector::splat(0);
 		}
 
+		
+
 		/// Per-element bracket initialization syntax.
 		template<typename ...Args>
 			requires(sizeof...(Args) == C && std::conjunction_v<std::is_convertible<T, Args>...>)
