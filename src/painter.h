@@ -6,6 +6,7 @@
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include "terrapainter/pixel.h"
+#include "shaders/unlit.h"
 
 // NOTE: A lot of this could be refactored into a general image type
 class Painter {
@@ -13,13 +14,16 @@ public:
 	Painter(int width, int height);
 	~Painter();
 
+	Painter(const Painter&) = delete;
+	Painter& operator= (const Painter&) = delete;
+
 	// Uses 0.0-1.0 coordinates
 	RGBu8 get_pixel(vec2 coords) const {
-		//return mPixels[to_offset(coords)];
+		return mPixels[to_offset(coords)];
 	}
 
 	void set_pixel(vec2 coords, RGBu8 val) {
-		//mPixels[to_offset(coords)] = val;
+		mPixels[to_offset(coords)] = val;
 	}
 
 	void process_event(SDL_Event& event);
@@ -27,7 +31,7 @@ public:
 	// Stub
 	void process_ui();
 
-	void render();
+	void draw();
 
 private:
 
@@ -43,8 +47,6 @@ private:
 	}
 
 	vec2 to_coords(int x, int y) const {
-		assert(0 <= x && x < mWidth);
-		assert(0 <= y && y < mHeight);
 		return vec2 {
 			float(x) / float(mWidth),
 			float(y) / float(mHeight),
@@ -60,10 +62,17 @@ private:
 
 	// The current brush radius
 	float mRadius;
+	
+	// The pixel buffer
+	std::vector<RGBu8> mPixels;
 
-	// The OpenGL pixel buffer ID
-	GLuint mPixels;
+	// The shader program
+	UnlitShader mShader;
 
-	// The OpenGL texture ID
+	// The texture handle
 	GLuint mTexture;
+
+	// The vertices
+	GLuint mVAO;
+	GLuint mVBO;
 };

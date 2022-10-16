@@ -72,6 +72,8 @@ int main(int argc, char *argv[])
     bool running = true;
     bool show_demo_window = true;
 
+    Painter painter(800, 600);
+
     // Run the event loop
     SDL_Event windowEvent;
     while (running)
@@ -80,8 +82,9 @@ int main(int argc, char *argv[])
         while (SDL_PollEvent(&windowEvent))
         {
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
+            painter.process_event(windowEvent);
             // This makes dragging windows feel snappy
-            io.MouseDrawCursor = ImGui::IsMouseDragging(0);
+            io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
             if (should_quit(window, windowEvent)) {
                 running = false;
             }
@@ -94,6 +97,8 @@ int main(int argc, char *argv[])
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
+        painter.draw();
+
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
