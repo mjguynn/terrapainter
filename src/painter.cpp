@@ -9,7 +9,7 @@ Painter::Painter(int width, int height)
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
     mColor(255, 0, 0),
-    mPixels(width* height),
+    mPixels(size_t(width) * size_t(height)),
     mShader(),
     mUiCircleShader(width, height),
     mTexture(0), // Temp value

@@ -39,9 +39,9 @@ private:
 	size_t to_offset(int x, int y) const {
 		assert(0 <= x && x < mWidth);
 		assert(0 <= y && y < mHeight);
-		assert(mPixels.size() == mWidth * mHeight);
+		assert(mPixels.size() == size_t(mWidth) * size_t(mHeight));
 		// Row offset: number of rows passed * number of pixels in a row
-		return y * mWidth + x;
+		return size_t(y) * mWidth + x;
 	}
 
 	// Invariant: size is width * height
