@@ -3,6 +3,7 @@
 #include <limits>
 #include <iostream>
 #include <fstream>
+#include "terrapainter/util.h"
 #include "shadermgr.h"
 
 using namespace std::literals::string_literals;
@@ -17,7 +18,7 @@ GLuint load_shader_from_file(GLenum shaderType, std::string path) {
 		return 0;
 	}
 	const size_t shaderFileSize = shaderFile.tellg();
-	if (!shaderFileSize > std::numeric_limits<GLint>::max()) {
+	if (shaderFileSize > std::numeric_limits<GLint>::max()) {
 		fprintf(stderr, "[error] Shader file \"%s\" too large\n", path.c_str());
 		return 0;
 	}
@@ -26,7 +27,14 @@ GLuint load_shader_from_file(GLenum shaderType, std::string path) {
 
 	auto shader = glCreateShader(shaderType);
 	const char* shaderSources[1] = { shaderSource.get() };
+
+	// We checked this already...
+	DIAG_PUSHIGNORE_MSVC(4838);
+	DIAG_PUSHIGNORE_GCC("narrowing")
 	GLint shaderSourceSizes[1] = { shaderFileSize };
+	DIAG_POP_GCC();
+	DIAG_POP_MSVC();
+
 	glShaderSource(shader, 1, shaderSources, shaderSourceSizes );
 	glCompileShader(shader);
 	int success;
@@ -41,13 +49,9 @@ GLuint load_shader_from_file(GLenum shaderType, std::string path) {
 	return shader;
 }
 GLuint ShaderManager::program(std::string shaderName) {
-	// Make the shader lowercase
-	std::transform(
-		shaderName.begin(), 
-		shaderName.end(), 
-		shaderName.begin(),
-		std::tolower
-	);
+	for (auto& c : shaderName) {
+		c = std::tolower(c);
+	}
 
 	auto location = mPrograms.find(shaderName);
 	if (location != mPrograms.end()) {
