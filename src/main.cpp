@@ -68,6 +68,9 @@ int main(int argc, char *argv[])
 
     // Set viewport
     glViewport(0, 0, 800, 600);
+    // Enable transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     bool running = true;
 

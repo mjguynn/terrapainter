@@ -11,6 +11,7 @@ Painter::Painter(int width, int height)
     mColor(255, 0, 0),
     mPixels(width * height),
     mShader(),
+    mUiCircleShader(width, height),
     mTexture(0), // Temp value
     mVAO(0), // Temp value
     mVBO(0) // Temp value
@@ -108,6 +109,9 @@ void Painter::draw_circle(int x, int y, float radius, RGBu8 color) {
 
 void Painter::draw() {
     constexpr auto TRANSFORM = mat4::identity();
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    vec2 center = vec2{ x, mHeight - y };
 
     // Upload texture
     glBindTexture(GL_TEXTURE_2D, mTexture);
@@ -127,9 +131,11 @@ void Painter::draw() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Select shader & draw
-    mShader.use(TRANSFORM, mTexture);
     glBindVertexArray(mVAO);
     {
+        mShader.use(TRANSFORM, mTexture);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        mUiCircleShader.use(center, mRadius, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);

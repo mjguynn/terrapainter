@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 #include "terrapainter/pixel.h"
 #include "shaders/unlit.h"
+#include "shaders/screenspace_circle.h"
 
 // NOTE: A lot of this could be refactored into a general image type
 class Painter {
@@ -32,7 +33,6 @@ public:
 	void draw_ui();
 
 private:
-
 	void draw_circle(int x, int y, float radius, RGBu8 color);
 
 	// Converts float X & Y coordinates to an offset into the pixel array
@@ -65,6 +65,9 @@ private:
 
 	// The shader program
 	UnlitShader mShader;
+
+	// The shader program for the UI circle
+	ScreenspaceCircleShader mUiCircleShader;
 
 	// The texture handle
 	GLuint mTexture;
