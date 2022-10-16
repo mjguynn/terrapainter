@@ -4,7 +4,7 @@ project(
 	terrapainter 	
 	VERSION 0.1		
 	DESCRIPTION "yes"		
-	LANGUAGES CXX
+	LANGUAGES CXX C
 )
 
 include(CTest)
