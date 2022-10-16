@@ -132,6 +132,14 @@ namespace math {
 			}
 		}
 
+		/// Per-element cast conversion
+		template<std::convertible_to<T> U>
+		explicit constexpr MVector(const MVector<U, C>& other) : MVector() {
+			for (size_t i = 0; i < C; i++) {
+				(*this)[i] = static_cast<T>(other[i]);
+			}
+		}
+
 		template<std::convertible_to<T> S>
 		constexpr static MVector splat(S splat) {
 			return static_cast<MVector>(splat);

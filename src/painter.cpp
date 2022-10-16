@@ -6,6 +6,8 @@ Painter::Painter(int width, int height)
     mHeight(height), 
     mDrawing(false),
     mRadius(20.0f),
+    mRadiusMin(1.0f),
+    mRadiusMax(100.0f),
     mColor(255, 0, 0),
     mPixels(width * height),
     mShader(),
@@ -55,27 +57,36 @@ Painter::~Painter() {
     
 }
 
-void Painter::process_event(SDL_Event& event) {
+void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
+    if (io.WantCaptureMouse) {
+        return;
+    }
     if (event.type == SDL_MOUSEBUTTONDOWN) {
         mDrawing = true;
         int x, y;
         SDL_GetMouseState(&x, &y);
-        draw_circle(x, mHeight - y, mRadius);
+        draw_circle(x, mHeight - y, mRadius, mColor);
     }
     else if (event.type == SDL_MOUSEBUTTONUP) {
         mDrawing = false;
     }
     else if (mDrawing && event.type == SDL_MOUSEMOTION) {
-        draw_circle(event.motion.x, mHeight - event.motion.y, mRadius);
+        draw_circle(event.motion.x, mHeight - event.motion.y, mRadius, mColor);
     }
     else if (event.type == SDL_MOUSEWHEEL) {
-        auto scroll_delta = 0.01f * event.wheel.y;
-        mRadius = std::clamp(mRadius + scroll_delta, 0.01f, 1.0f);
+        auto scroll_delta = 0.5f * event.wheel.y;
+        mRadius = std::clamp(mRadius + scroll_delta, mRadiusMin, mRadiusMax);
     }
 }
 
-void Painter::process_ui() {
-	TODO();
+void Painter::draw_ui() {
+    vec3 rgb = static_cast<vec3>(mColor) / 255.0f;
+    if (ImGui::Begin("Paint Controls", nullptr, 0)) {
+        ImGui::ColorPicker3("Brush Color", reinterpret_cast<float*>(&rgb), 0);
+        mColor = static_cast<RGBu8>(rgb * 255.0f);
+        ImGui::SliderFloat("Brush Radius", &mRadius, mRadiusMin, mRadiusMax, "%.2f", 0);
+    }
+    ImGui::End();
 }
 
 void Painter::draw_circle(int x, int y, float radius, RGBu8 color) {

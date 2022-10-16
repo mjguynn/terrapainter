@@ -4,7 +4,7 @@
 #include <vector>
 #include "glad/gl.h"
 #include "SDL.h"
-#include "SDL_opengl.h"
+#include "imgui/imgui.h"
 #include "terrapainter/pixel.h"
 #include "shaders/unlit.h"
 
@@ -26,12 +26,10 @@ public:
 		mPixels[to_offset(x, y)] = val;
 	}
 
-	void process_event(SDL_Event& event);
-
-	// Stub
-	void process_ui();
-
+	void process_event(SDL_Event& event, ImGuiIO& io);
+	
 	void draw();
+	void draw_ui();
 
 private:
 
@@ -56,6 +54,9 @@ private:
 	// The current brush radius
 	float mRadius;
 	
+	float mRadiusMin;
+	float mRadiusMax;
+
 	// The current color
 	RGBu8 mColor;
 

@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
     glViewport(0, 0, 800, 600);
 
     bool running = true;
-    bool show_demo_window = true;
 
     Painter painter(800, 600);
 
@@ -82,7 +81,7 @@ int main(int argc, char *argv[])
         while (SDL_PollEvent(&windowEvent))
         {
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
-            painter.process_event(windowEvent);
+            painter.process_event(windowEvent, io);
             // This makes dragging windows feel snappy
             io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
             if (should_quit(window, windowEvent)) {
@@ -103,10 +102,7 @@ int main(int argc, char *argv[])
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        if (show_demo_window)
-        {
-            ImGui::ShowDemoWindow(&show_demo_window);
-        }
+        painter.draw_ui();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
