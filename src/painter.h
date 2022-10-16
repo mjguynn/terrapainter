@@ -75,4 +75,7 @@ private:
 	// The vertices
 	GLuint mVAO;
 	GLuint mVBO;
+
+	// Whether the texture has been modified since the last texture upload
+	bool mNeedsUpload;
 };

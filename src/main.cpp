@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     SDL_GL_MakeCurrent(window, context);
-    SDL_GL_SetSwapInterval(1); // Enable vsync
+    SDL_GL_SetSwapInterval(1);
 
     // Set up IMGUI
     IMGUI_CHECKVERSION();
@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
         // handle events
         while (SDL_PollEvent(&windowEvent))
         {
+            if (windowEvent.type == SDL_KEYDOWN && windowEvent.key.keysym.sym == SDLK_F5) {
+                g_shaderMgr.refresh();
+            }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
             painter.process_event(windowEvent, io);
             // This makes dragging windows feel snappy
@@ -106,11 +109,16 @@ int main(int argc, char *argv[])
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         painter.draw_ui();
+        ImGui::ShowMetricsWindow();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // swap buffers
         SDL_GL_SwapWindow(window);
+
+        // sync on previous commands -- 
+        // this hurts FPS a bit but should provide better latency
+        glFinish();
     }
 
     // Shutdown IMGUI

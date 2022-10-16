@@ -1,20 +1,21 @@
 #include "painter.h"
 #include "imgui/imgui.h"
 
-Painter::Painter(int width, int height) 
-	: mWidth(width), 
-    mHeight(height), 
+Painter::Painter(int width, int height)
+    : mWidth(width),
+    mHeight(height),
     mDrawing(false),
     mRadius(20.0f),
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
     mColor(255, 0, 0),
-    mPixels(width * height),
+    mPixels(width* height),
     mShader(),
     mUiCircleShader(width, height),
     mTexture(0), // Temp value
     mVAO(0), // Temp value
-    mVBO(0) // Temp value
+    mVBO(0), // Temp value
+    mNeedsUpload(true)
 {
     // Zero initialize
     mPixels.resize(width * height);
@@ -75,7 +76,7 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
         draw_circle(event.motion.x, mHeight - event.motion.y, mRadius, mColor);
     }
     else if (event.type == SDL_MOUSEWHEEL) {
-        auto scroll_delta = 0.5f * event.wheel.y;
+        auto scroll_delta = 4.0f * event.wheel.y;
         mRadius = std::clamp(mRadius + scroll_delta, mRadiusMin, mRadiusMax);
     }
 }
@@ -105,6 +106,8 @@ void Painter::draw_circle(int x, int y, float radius, RGBu8 color) {
             }
         }
     }
+
+    mNeedsUpload = true;
 }
 
 void Painter::draw() {
@@ -114,8 +117,8 @@ void Painter::draw() {
     vec2 center = vec2{ x, mHeight - y };
 
     // Upload texture
-    glBindTexture(GL_TEXTURE_2D, mTexture);
-    {
+    if (mNeedsUpload) {
+        glBindTexture(GL_TEXTURE_2D, mTexture);
         glTexSubImage2D(
             GL_TEXTURE_2D, 
             0, 
@@ -127,16 +130,18 @@ void Painter::draw() {
             GL_UNSIGNED_BYTE, 
             mPixels.data()
         );
+        glBindTexture(GL_TEXTURE_2D, 0);
+        mNeedsUpload = false;
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    
     // Select shader & draw
     glBindVertexArray(mVAO);
     {
         mShader.use(TRANSFORM, mTexture);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        mUiCircleShader.use(center, mRadius, 2);
+        mUiCircleShader.use(center, mRadius, 1);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);
+
 }

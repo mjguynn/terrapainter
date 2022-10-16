@@ -11,6 +11,7 @@ public:
 
 	GLuint program(std::string shaderName);
 
+	void refresh();
 private:
 	// Map from shader program name to shader program
 	// All shader names are in lowercase
