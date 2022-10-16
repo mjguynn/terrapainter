@@ -1,4 +1,7 @@
 #include <cmath>
+#include <functional>
+#include <span>
+#include <vector>
 #include "glad/gl.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
@@ -25,8 +28,59 @@ bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     }
 }
 
+struct CommandArg {
+    const char* sName;
+    const char* lName;
+    bool takesValue;
+    std::function<void(const char*)> callback;
+};
+
+bool parse_cmdline(int argc, char* argv[], const std::span<CommandArg>& args) {
+    CommandArg* current = nullptr;
+    for (int i = 1; i < argc; i++) {
+        if (current) {
+            current->callback(argv[i]);
+            current = nullptr;
+            continue;
+        }
+        bool matched = false;
+        for (auto& arg : args) {
+            if (!strcmp(arg.sName, argv[i]) || !strcmp(arg.lName, argv[i])) {
+                if (!arg.takesValue) arg.callback(nullptr);
+                else current = &arg;
+                matched = true;
+            }
+        }
+        if (!matched) {
+            fprintf(stderr, "Unknown argument %s\n", argv[i]);
+            return false;
+        }
+    }
+    if (current) {
+        fprintf(stderr, "No option given for argument %s\n", argv[argc - 1]);
+        return false;
+    }
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
+    int windowX = 100;
+    int windowY = 100;
+    int viewportWidth = 800;
+    int viewportHeight = 600;
+
+    std::vector<CommandArg> args = {
+        CommandArg { "-w", "--width", true, [&](const char* w) {viewportWidth = std::stoi(w);}},
+        CommandArg { "-h", "--height", true, [&](const char* h) {viewportHeight = std::stoi(h);}},
+        CommandArg { "-x", "--xpos", true, [&](const char* x) {windowX = std::stoi(x); }},
+        CommandArg { "-y", "--ypos", true, [&](const char* y) {windowY = std::stoi(y); }},
+    };
+
+    if (!parse_cmdline(argc, argv, args)) {
+        std::exit(-1);
+    }
+
     // Initialize SDL
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "1");
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
@@ -43,7 +97,30 @@ int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_Window *window = SDL_CreateWindow("Terrapainter", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+
+    SDL_DisplayMode displayMode;
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    auto screenWidth = displayMode.w;
+    auto screenHeight = displayMode.h;
+    int fakeViewportHeight = viewportHeight;
+    if (viewportWidth == screenWidth && viewportHeight == screenHeight) {
+        // Clearly, the user is *trying* to make a fullscreen window.
+        // Since we're debugging we want the app to be fast to start.
+        // But Windows goes "oh fullscreen app clearly it's a Video Game
+        // let me put it in Exclusive Fullscreen Mode which makes your
+        // screen lock up for like 5 seconds and then 5 seconds more
+        // every time you Alt-Tab™ surely that's a good idea"
+        // ... to get around this we just fudge the height a bit
+        fakeViewportHeight +=1;
+    }
+    SDL_Window *window = SDL_CreateWindow(
+        "Terrapainter", 
+        windowX, 
+        windowY, 
+        viewportWidth, 
+        fakeViewportHeight,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
+    );
 
     // Create OpenGL context
     SDL_GLContext context = SDL_GL_CreateContext(window);
@@ -67,14 +144,14 @@ int main(int argc, char *argv[])
     }
 
     // Set viewport
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, viewportWidth, viewportHeight);
     // Enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     bool running = true;
 
-    Painter painter(800, 600);
+    Painter painter(viewportWidth, viewportHeight);
 
     // Run the event loop
     SDL_Event windowEvent;
