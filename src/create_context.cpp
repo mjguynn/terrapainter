@@ -10,14 +10,9 @@
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
 #include "learnopengl/camera.h"
+#include "learnopengl/mesh.h"
 
-class SceneNode
-{
-  // The coordinate space of this node, relative to its parent.
-  mat4 transform;
-
-public:
-};
+using namespace std;
 
 float get_dpi_scale()
 {
@@ -41,7 +36,7 @@ float get_dpi_scale()
 
 // ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 400.0f, 0.0f));
 
 // timing
 float deltaTime = 0.0f; // time between current frame and last frame
@@ -87,7 +82,7 @@ int main(int argc, char *argv[])
   ImGuiIO &io = ImGui::GetIO();
 
   float dpi_scale = get_dpi_scale();
-  io.Fonts->AddFontFromFileTTF("../extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
+  io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
 
   style.ScaleAllSizes(1.0f / dpi_scale);
 
@@ -106,81 +101,65 @@ int main(int argc, char *argv[])
   // Set viewport
   glViewport(0, 0, 800, 600);
 
-  Shader shader("../shaders/7.4.camera.vs", "../shaders/7.4.camera.fs");
+  Shader shader("../cs4621/shaders/heightmap.vs", "../cs4621/shaders/heightmap.fs");
+
+  stbi_set_flip_vertically_on_load(true);
+  int width, height, nChannels;
+  unsigned char *data = stbi_load("../cs4621/images/Sans_undertale.jpg",
+                                &width, &height, &nChannels,
+                                0);
+  if (data)
+  {
+      cout << "Loaded heightmap of size " << height << " x " << width << endl;
+  }
+  else
+  {
+      cout << "Failed to load texture" << endl;
+  }
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
-  float vertices[] = {
-      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-      0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-      0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-      0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-      -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+  std::vector<Vertex> vertices;
+  float yScale = 96.0f / 256.0f, yShift = 16.0f;
+  int rez = 1;
+  unsigned bytePerPixel = nChannels;
+  for(int i = 0; i < height; i++)
+  {
+      for(int j = 0; j < width; j++)
+      {
+          unsigned char* pixelOffset = data + (j + width * i) * bytePerPixel;
+          unsigned char y = pixelOffset[0];
 
-      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-      0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-      0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-      0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-      -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+          vertices.push_back( 
+            Vertex { 
+              vec3(-height/2.0f + height*i/(float)height, (int) y * yScale - yShift, -width/2.0f + width*j/(float)width) 
+              }
+            );
+      }
+  }
+  std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
+  stbi_image_free(data);
 
-      -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-      -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-      -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+  std::vector<unsigned> indices;
+  for(unsigned i = 0; i < height-1; i += rez)
+  {
+      for(unsigned j = 0; j < width; j += rez)
+      {
+          for(unsigned k = 0; k < 2; k++)
+          {
+              indices.push_back(j + width * (i + k*rez));
+          }
+      }
+  }
+  std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 
-      0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-      0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-      0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-      0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-      0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-      0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+  Mesh* map = new Mesh(vertices, indices);
 
-      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-      0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
-      0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-      0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
 
-      -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-      0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-      0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-      0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-      -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-      -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
-  // world space positions of our cubes
-  glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f, 0.0f, 0.0f),
-      glm::vec3(2.0f, 5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f, 3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),
-      glm::vec3(1.5f, 2.0f, -2.5f),
-      glm::vec3(1.5f, 0.2f, -1.5f),
-      glm::vec3(-1.3f, 1.0f, -1.5f)};
-
-  // create Vertex Array Object, Vertex Buffer Object, and Element Buffer Object
-  unsigned int VBO, VAO;
-  glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &VBO);
-
-  glBindVertexArray(VAO);
-
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // position attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
-  // texture coord attribute
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);
+  const int numStrips = (height-1)/rez;
+  const int numTrisPerStrip = (width/rez)*2-2;
+  std::cout << "Created lattice of " << numStrips << " strips with " << numTrisPerStrip << " triangles each" << std::endl;
+  std::cout << "Created " << numStrips * numTrisPerStrip << " triangles total" << std::endl;
 
   bool running = true;
   bool show_demo_window = true;
@@ -225,26 +204,32 @@ int main(int argc, char *argv[])
     shader.use();
 
     // Camera Projection
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100000.0f);
     shader.setMat4("projection", projection);
 
     // Camera View
     glm::mat4 view = camera.GetViewMatrix();
     shader.setMat4("view", view);
 
-    // render boxes
-    glBindVertexArray(VAO);
-    for (unsigned int i = 0; i < 10; i++)
-    {
-      // calculate the model matrix for each object and pass it to shader before drawing
-      glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-      model = glm::translate(model, cubePositions[i]);
-      float angle = 20.0f * i;
-      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-      shader.setMat4("model", model);
+    // World Transformation
+    glm::mat4 model = glm::mat4(1.0f);
+    shader.setMat4("model", model);
 
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+    map->DrawStrips(numTrisPerStrip, numStrips);
+
+    // // render boxes
+    // glBindVertexArray(VAO);
+    // for (unsigned int i = 0; i < 10; i++)
+    // {
+    //   // calculate the model matrix for each object and pass it to shader before drawing
+    //   glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+    //   model = glm::translate(model, cubePositions[i]);
+    //   float angle = 20.0f * i;
+    //   model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+    //   shader.setMat4("model", model);
+
+    //   glDrawArrays(GL_TRIANGLES, 0, 36);
+    // }
 
     // handle events
     while (SDL_PollEvent(&windowEvent))

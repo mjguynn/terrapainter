@@ -84,7 +84,7 @@ namespace math {
 	};
 
 	template<std::floating_point F>
-	struct alignas(sizeof(F) * 4) MVectorStorage<F, 3> {
+	struct MVectorStorage<F, 3> {
 		F x, y, z;
 		IMPL_MEMBER_ACCESS(3, x, y, z, z, z);
 	private:
