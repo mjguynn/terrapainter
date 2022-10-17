@@ -5,6 +5,7 @@
 #include <fstream>
 #include <optional>
 #include <utility>
+#include <vector>
 #include "terrapainter/util.h"
 #include "shadermgr.h"
 
