@@ -57,7 +57,7 @@ ShaderManager::Program::Program()
 {
 	// Nothing else, for now
 }
-ShaderManager::Program::Program(Program&& moved)
+ShaderManager::Program::Program(Program&& moved) noexcept
 	: mProgram(moved.mProgram),
 	vertex(std::move(moved.vertex)),
 	fragment(std::move(moved.fragment)),

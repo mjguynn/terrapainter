@@ -1,0 +1,54 @@
+#version 430 core
+
+// u_v1 = center
+// u_f1 = radius
+const int TP_STROKE_SDF_CIRCLE = 0;
+
+// u_v1 = start
+// u_v2 = end
+// u_f1 = radius
+const int TP_STROKE_SDF_ROD = 1;
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout (binding = 0, r8) uniform restrict image2D u_stroke;
+
+uniform int u_sdf;
+uniform ivec2 u_v1;
+uniform ivec2 u_v2;
+uniform float u_f1;
+
+float circle(ivec2 coords) {
+	vec2 offset = vec2(coords - u_v1);
+	float dist = length(offset);
+	return clamp( u_f1 - dist, 0.0f, 1.0f);
+}
+
+float rod(ivec2 coords) {
+	ivec2 lineDir = u_v2 - u_v1;
+	ivec2 shifted = coords - u_v1;
+	float fac_num = dot(lineDir, shifted);
+	float fac_den = dot(lineDir, lineDir);
+	float fac = clamp(fac_num / fac_den, 0.0f, 1.0f);
+	vec2 offset = vec2(shifted) - fac * vec2(lineDir);
+	float dist = length(offset);
+	return clamp( u_f1 - dist, 0.0f, 1.0f);
+}
+
+void main() {
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	vec4 texel = imageLoad(u_stroke, coords);
+	float fac;
+	switch(u_sdf) {
+		case TP_STROKE_SDF_CIRCLE:
+			fac = circle(coords);
+			break;
+		case TP_STROKE_SDF_ROD:
+			fac = rod(coords);
+			break;
+		default:
+			fac = 0.0f;
+			break;
+	}
+	texel.r = max(texel.r, fac);
+	imageStore(u_stroke, coords, texel);
+}

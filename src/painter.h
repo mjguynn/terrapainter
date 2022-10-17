@@ -7,7 +7,6 @@
 #include "SDL.h"
 #include "imgui/imgui.h"
 #include "terrapainter/pixel.h"
-#include "shaders/unlit.h"
 #include "shaders/screenspace_circle.h"
 
 // NOTE: A lot of this could be refactored into a general image type
@@ -19,31 +18,39 @@ public:
 	Painter(const Painter&) = delete;
 	Painter& operator= (const Painter&) = delete;
 
-	RGBu8 get_pixel(ivec2 coords) const {
-		return mPixels[to_offset(coords)];
-	}
-
-	void set_pixel(ivec2 coords, RGBu8 val) {
-		mPixels[to_offset(coords)] = val;
-	}
-
 	void process_event(SDL_Event& event, ImGuiIO& io);
 	
 	void draw();
 	void draw_ui();
 
 private:
-	void draw_circle(ivec2 position, float radius, RGBu8 color);
-	void draw_rod(ivec2 start, ivec2 end, float radius, RGBu8 color);
+	class CompositeShader {
+		GLuint mProgram;
+		GLuint mBlendModeLocation;
+		GLuint mBaseTextureLocation;
+		GLuint mLayerMaskLocation;
+		GLuint mLayerTintLocation;
 
-	// Converts float X & Y coordinates to an offset into the pixel array
-	size_t to_offset(ivec2 coords) const {
-		assert(0 <= coords.x && coords.x < mDims.x);
-		assert(0 <= coords.y && coords.y < mDims.y);
-		assert(mPixels.size() == size_t(mDims.x) * size_t(mDims.y));
-		// Row offset: number of rows passed * number of pixels in a row
-		return size_t(coords.y) * mDims.x + coords.x;
-	}
+	public:
+		CompositeShader();
+		void use(GLuint baseT, GLuint layerT, vec3 layerTint);
+	};
+
+	class StrokeShader {
+		GLuint mProgram;
+		GLuint mSdfLocation;
+		GLuint mV1Location;
+		GLuint mV2Location;
+		GLuint mF1Location;
+
+		void submit(GLuint dest, ivec2 dims, int sdf, ivec2 v1, ivec2 v2, float f1);
+	public:
+		StrokeShader();
+		void draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius);
+		void draw_rod(GLuint dest, ivec2 dims, ivec2 start, ivec2 end, float radius);
+	};
+
+	void commit();
 
 	// Invariant: dims.x * dims.y = mPixels.size();
 	ivec2 mDims;
@@ -61,22 +68,28 @@ private:
 	// The current color
 	RGBu8 mColor;
 
-	// The pixel buffer
-	std::vector<RGBu8> mPixels;
+	// The composite shader
+	CompositeShader mCompositeS;
 
-	// The shader program
-	UnlitShader mShader;
+	// The stroke-drawing shader
+	StrokeShader mStrokeS;
 
 	// The shader program for the UI circle
-	ScreenspaceCircleShader mUiCircleShader;
+	ScreenspaceCircleShader mCircleS;
 
-	// The texture handle
-	GLuint mTexture;
+	// The base texture handle
+	GLuint mBaseT;
+
+	// The secondary texture handle, used for commits
+	GLuint mBufferT;
+
+	// The texture handle for the stroke layer
+	GLuint mStrokeT;
+
+	// Framebuffer, used for committing strokes & also during init
+	GLuint mFramebuffer;
 
 	// The vertices
 	GLuint mVAO;
 	GLuint mVBO;
-
-	// Whether the texture has been modified since the last texture upload
-	bool mNeedsUpload;
 };

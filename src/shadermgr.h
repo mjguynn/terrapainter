@@ -26,7 +26,7 @@ private:
 	public:
 		Program();
 		~Program();
-		Program(Program&& moved);
+		Program(Program&& moved) noexcept;
 
 		Program(const Program&) = delete;
 		Program& operator= (const Program&) = delete;
