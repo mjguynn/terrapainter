@@ -38,8 +38,7 @@
 build/
 
 # app runtime
-app/terrapainter.exe
-app/terrapainter.pdb
+app/terrapainter*
 app/SDL2.dll
-app/terrapainter
+app/SDL2d.dll
 app/imgui.ini

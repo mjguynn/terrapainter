@@ -6,7 +6,8 @@ const int TP_STROKE_SDF_CIRCLE = 0;
 
 // u_v1 = start
 // u_v2 = end
-// u_f1 = radius
+// u_f1 = start radius
+// u_f2 = end radius
 const int TP_STROKE_SDF_ROD = 1;
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -18,6 +19,7 @@ uniform int u_sdf;
 uniform ivec2 u_v1;
 uniform ivec2 u_v2;
 uniform float u_f1;
+uniform float u_f2;
 
 float circle(ivec2 coords) {
 	vec2 offset = vec2(coords - u_v1);
@@ -31,9 +33,10 @@ float rod(ivec2 coords) {
 	float fac_num = dot(lineDir, shifted);
 	float fac_den = dot(lineDir, lineDir);
 	float fac = clamp(fac_num / fac_den, 0.0f, 1.0f);
+	float radius = (u_f2 - u_f1) * smoothstep(0, 1, fac);
 	vec2 offset = vec2(shifted) - fac * vec2(lineDir);
 	float dist = length(offset);
-	return clamp( u_f1 - dist, 0.0f, 1.0f);
+	return clamp( radius - dist, 0.0f, 1.0f);
 }
 
 void main() {

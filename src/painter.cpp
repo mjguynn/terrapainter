@@ -72,9 +72,10 @@ Painter::StrokeShader::StrokeShader() {
     mV1Location = glGetUniformLocation(mProgram, "u_v1");
     mV2Location = glGetUniformLocation(mProgram, "u_v2");
     mF1Location = glGetUniformLocation(mProgram, "u_f1");
+    mF2Location = glGetUniformLocation(mProgram, "u_f2");
     glUseProgram(0);
 }
-void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1) {
+void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1, float f2) {
     glUseProgram(mProgram);
     glBindImageTexture(0, dest, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
     glUniform1i(mSdfLocation, sdf);
@@ -82,28 +83,28 @@ void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sd
     glUniform2i(mV1Location, v1.x, v1.y);
     glUniform2i(mV2Location, v2.x, v2.y);
     glUniform1f(mF1Location, f1);
+    glUniform1f(mF2Location, f2);
     glDispatchCompute( (size.x + 7) / 8, (size.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 void Painter::StrokeShader::draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius) {
     auto [min, max] = get_region_bounds(dims, center, radius);
-    submit(dest, min, max-min, 0, center, ivec2::zero(), radius);
+    submit(dest, min, max-min, 0, center, ivec2::zero(), radius, 0);
 }
-void Painter::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 start, ivec2 end, float radius) {
+void Painter::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, ivec2 endPos, float startRadius, float endRadius) {
     ivec2 min, max;
     {
-        int ir = static_cast<int>(radius + 0.5);
-        auto bStart = get_region_bounds(dims, start, ir);
-        auto bEnd = get_region_bounds(dims, end, ir);
+        auto bStart = get_region_bounds(dims, startPos, int(startRadius + 0.5));
+        auto bEnd = get_region_bounds(dims, endPos, int(endRadius + 0.5));
         min = math::vmin(bStart.first, bEnd.first);
         max = math::vmax(bStart.second, bEnd.second);
     }
-    submit(dest, min, max - min, 1, start, end, radius);
+    submit(dest, min, max - min, 1, startPos, endPos, startRadius, endRadius);
 }
 
 Painter::Painter(int width, int height)
     : mDims(width, height),
-    mStrokeStart(std::nullopt),
+    mStrokeState(std::nullopt),
     mRadius(20.0f),
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
@@ -165,22 +166,31 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
         int x, y;
         SDL_GetMouseState(&x, &y);
         ivec2 center = { x, mDims.y - y };
-        mStrokeStart = center;
+        mStrokeState = StrokeState{ .last_position = center, .last_radius = mRadius };
         mStrokeS.draw_circle(mStrokeT, mDims, center, mRadius);
     }
     else if (event.type == SDL_MOUSEBUTTONUP) {
-        mStrokeStart = std::nullopt;
+        mStrokeState = std::nullopt;
         commit();
     }
-    else if (mStrokeStart && event.type == SDL_MOUSEMOTION) {
+    else if (mStrokeState.has_value() && event.type == SDL_MOUSEMOTION) {
         ivec2 current = { event.motion.x, mDims.y - event.motion.y };
         mStrokeS.draw_circle(mStrokeT, mDims, current, mRadius);
-        mStrokeS.draw_rod(mStrokeT, mDims, mStrokeStart.value(), current, mRadius);
-        mStrokeStart = current;
+        mStrokeS.draw_rod(mStrokeT, 
+            mDims, 
+            mStrokeState->last_position, 
+            current, 
+            mStrokeState->last_radius, 
+            mRadius
+        );
+        mStrokeState->last_position = current;
+        mStrokeState->last_radius = mRadius;
     }
     else if (event.type == SDL_MOUSEWHEEL) {
         auto scroll_delta = 4.0f * event.wheel.y;
         mRadius = std::clamp(mRadius + scroll_delta, mRadiusMin, mRadiusMax);
+    } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_LEFT) {
+        mRadius += 10;
     }
 }
 

@@ -43,11 +43,19 @@ private:
 		GLuint mV1Location;
 		GLuint mV2Location;
 		GLuint mF1Location;
-		void submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1);
+		GLuint mF2Location;
+		void submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1, float f2);
 	public:
 		StrokeShader();
 		void draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius);
-		void draw_rod(GLuint dest, ivec2 dims, ivec2 start, ivec2 end, float radius);
+		void draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, ivec2 endPos, float startRadius, float endRadius);
+	};
+
+	struct StrokeState {
+		// The last position drawn in the current stroke
+		ivec2 last_position;
+		// The last radius in the current stroke
+		float last_radius;
 	};
 
 	void commit();
@@ -55,9 +63,8 @@ private:
 	// Invariant: dims.x * dims.y = mPixels.size();
 	ivec2 mDims;
 
-	// If currently drawing: contains the starting stroke pixel position
-	// If not currently drawing: nullopt
-	std::optional<ivec2> mStrokeStart;
+	// Whether currently drawing
+	std::optional<StrokeState> mStrokeState;
 
 	// The current brush radius
 	float mRadius;
