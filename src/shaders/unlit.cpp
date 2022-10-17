@@ -1,6 +1,6 @@
 #include "unlit.h"
 UnlitShader::UnlitShader() 
-	: mProgram(g_shaderMgr.program("unlit")), 
+	: mProgram(g_shaderMgr.graphics("unlit")), 
 	mTransformLocation(0) // Temp value 
 {
 	glUseProgram(mProgram);

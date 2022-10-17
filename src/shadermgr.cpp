@@ -1,4 +1,4 @@
-#include <algorithm>
+#include <array>
 #include <memory>
 #include <limits>
 #include <iostream>
@@ -9,9 +9,6 @@
 #include "shadermgr.h"
 
 using namespace std::literals::string_literals;
-
-ShaderManager::ShaderManager() : mPrograms() {
-}
 
 std::optional<GLuint> load_shader_from_file(GLenum shaderType, std::string path) {
 	std::ifstream shaderFile(path.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
@@ -52,71 +49,116 @@ std::optional<GLuint> load_shader_from_file(GLenum shaderType, std::string path)
 
 	return shader;
 }
-
-// We return a pair instead of an optional because we still *want* to reserve a name for this shader, even if we couldn't compile it.
-// This lets us pass the invalid shader ID back and start using it. Then, we can fix the shader and hot-reload it, and all is well in the world.
-std::pair<bool, GLuint> load_program_from_files(std::string vertexPath, std::string fragmentPath, const GLuint* existing = nullptr) {
-	GLuint program = existing ? *existing : glCreateProgram();
-
-	auto maybe_vert = load_shader_from_file(GL_VERTEX_SHADER, vertexPath);
-	auto maybe_frag = load_shader_from_file(GL_FRAGMENT_SHADER, fragmentPath);
-	if (!maybe_vert || !maybe_frag) {
-		fprintf(stderr, "[error] shader linkage failed because one or more shaders failed to compile");
-		return { false, program };
+ShaderManager::Program::Program() 
+	: mProgram(glCreateProgram()), 
+	vertex(std::nullopt), 
+	fragment(std::nullopt), 
+	compute(std::nullopt) 
+{
+	// Nothing else, for now
+}
+ShaderManager::Program::Program(Program&& moved)
+	: mProgram(moved.mProgram),
+	vertex(std::move(moved.vertex)),
+	fragment(std::move(moved.fragment)),
+	compute(std::move(moved.compute))
+{
+	moved.mProgram = 0;
+}
+ShaderManager::Program::~Program() { 
+	if (mProgram) {
+		glDeleteProgram(mProgram);
 	}
-	auto vert = maybe_vert.value();
-	auto frag = maybe_frag.value();
-	glAttachShader(program, vert);
-	glAttachShader(program, frag);
-	glLinkProgram(program);
-	glDetachShader(program, vert);
-	glDetachShader(program, frag);
-	glDeleteShader(vert);
-	glDeleteShader(frag);
+}
+GLuint ShaderManager::Program::id() const { 
+	return mProgram; 
+}
+bool ShaderManager::Program::rebuild() {
+	std::vector<GLuint> shaders;
+	bool stageCompilationFailed = false;
+
+	auto try_compile = [&](GLenum mode, const std::optional<std::string>& path) {
+		if (path.has_value()) {
+			auto maybe = load_shader_from_file(mode, path.value());
+			if (maybe.has_value()) {
+				shaders.push_back(maybe.value());
+			} else {
+				stageCompilationFailed = true;
+			}
+		}
+	};
+
+	try_compile(GL_VERTEX_SHADER, vertex);
+	try_compile(GL_FRAGMENT_SHADER, fragment);
+	try_compile(GL_COMPUTE_SHADER, compute);
+
+	if (stageCompilationFailed) {
+		fprintf(stderr, "[error] shader linkage failed because one or more shaders failed to compile");
+		return false;
+	}
+
+	for (auto shader : shaders) {
+		glAttachShader(mProgram, shader);
+	}
+
+	glLinkProgram(mProgram);
+
+	for (auto shader : shaders) {
+		glDetachShader(mProgram, shader);
+		glDeleteShader(shader);
+	}
+
 	int success;
-	glGetProgramiv(program, GL_LINK_STATUS, &success);
+	glGetProgramiv(mProgram, GL_LINK_STATUS, &success);
 	if (!success) {
 		char info[1024];
-		glGetProgramInfoLog(program, sizeof(info), NULL, info);
+		glGetProgramInfoLog(mProgram, sizeof(info), NULL, info);
 		fprintf(stderr, "[error] shader linkage failed\n[details]\n");
 		fprintf(stderr, "%s\n", info);
-		return { false, program };
+		return false;
+	} else {
+		return true;
 	}
-
-	return {true, program};
-
 }
-GLuint ShaderManager::program(std::string shaderName) {
-	for (auto& c : shaderName) c = std::tolower(c);
 
+ShaderManager::ShaderManager() : mPrograms() {
+	// Nothing here, for now...
+}
+
+template<typename T>
+GLuint ShaderManager::find_or_create(std::string shaderName, T callback) {
 	auto location = mPrograms.find(shaderName);
 	if (location != mPrograms.end()) {
-		return location->second;
+		return location->second.id();
 	}
-
-	auto [result, program] = load_program_from_files(
-		"shaders/"s + shaderName + ".vert",
-		"shaders/"s + shaderName + ".frag"
-	);
-
-	mPrograms.insert({ shaderName, program });
-	return program;
+	Program p;
+	callback(&p);
+	GLuint id = p.id();
+	mPrograms.insert({ shaderName, std::move(p) });
+	return id;
+}
+GLuint ShaderManager::graphics(std::string shaderName) {
+	return find_or_create(shaderName, [shaderName](Program* p) {
+		p->vertex = "shaders/"s + shaderName + ".vert";
+		p->fragment = "shaders/"s + shaderName + ".frag";
+		p->rebuild();
+	});
+}
+GLuint ShaderManager::compute(std::string shaderName) {
+	return find_or_create(shaderName, [shaderName](Program* p) {
+		p->compute = "shaders/"s + shaderName + ".comp";
+		p->rebuild();
+	});
 }
 void ShaderManager::refresh() {
 	fprintf(stderr, "[info] refreshing all shaders...");
-	for (auto& [name, program] : mPrograms) {
-		load_program_from_files(
-			"shaders/"s + name + ".vert",
-			"shaders/"s + name + ".frag",
-			&program
-		);
+	for (auto& [_, program] : mPrograms) {
+		program.rebuild();
 	}
 	fprintf(stderr, " done\n");
 }
 ShaderManager::~ShaderManager() {
-	for (auto& [_, program] : mPrograms) {
-		glDeleteProgram(program);
-	}
+	// There used to be stuff in here, but now it's in
+	// ShaderManager::Program::~Program()
 }
-
 ShaderManager g_shaderMgr;

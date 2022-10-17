@@ -3,7 +3,7 @@
 #include "SDL_opengl.h"
 
 ScreenspaceCircleShader::ScreenspaceCircleShader(int viewWidth, int viewHeight)
-	: mProgram(g_shaderMgr.program("screenspace_circle")), 
+	: mProgram(g_shaderMgr.graphics("screenspace_circle")), 
 	mCenterLocation(), // Temp value 
 	mScreenSizeLocation(), // Temp value
 	mRadiusLocation(), // Temp value
