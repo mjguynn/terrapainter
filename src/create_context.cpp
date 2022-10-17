@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   ImGuiIO &io = ImGui::GetIO();
 
   float dpi_scale = get_dpi_scale();
-  io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
+  // io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
 
   style.ScaleAllSizes(1.0f / dpi_scale);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
   stbi_image_free(data);
 
-  // normal calculation
+  // ------------------ Normal (start)-------------------------
 
   // Every 3 consecutive element defines a face.
   std::vector<unsigned int> facedata;
@@ -176,8 +176,8 @@ int main(int argc, char *argv[])
     vec3 normal = cross(side2, side1);
 
     normaldata[facedata.at(i)] += normal;
-    normaldata[facedata.at(i+1)] += normal;
-    normaldata[facedata.at(i+2)] += normal;
+    normaldata[facedata.at(i + 1)] += normal;
+    normaldata[facedata.at(i + 2)] += normal;
   }
 
   for (int i = 0; i < normaldata.size(); i += 1)
@@ -197,6 +197,7 @@ int main(int argc, char *argv[])
       }
     }
   }
+  // ------------------- Normal(End) -----------------
 
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 

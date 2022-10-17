@@ -6,65 +6,70 @@
 
 using namespace std;
 
-struct Vertex {
-    vec3 Position;
-    // normal
-    vec3 Normal;
+struct Vertex
+{
+  vec3 Position;
+  // normal
+  vec3 Normal;
 };
 
-class Mesh {
-  public:
-    vector<Vertex> vertices;
-    vector<unsigned int> indices;
-    unsigned int VAO;
+class Mesh
+{
+public:
+  vector<Vertex> vertices;
+  vector<unsigned int> indices;
+  unsigned int VAO;
 
-    Mesh(vector<Vertex> vertices, vector<unsigned int> indices) {
-      this->vertices = vertices;
-      this->indices = indices;
-      setupMesh();
+  Mesh(vector<Vertex> vertices, vector<unsigned int> indices)
+  {
+    this->vertices = vertices;
+    this->indices = indices;
+    setupMesh();
+  }
+
+  void Draw(GLenum mode)
+  {
+    // TODO
+  }
+
+  void DrawStrips(unsigned int NUM_TRIS_PER_STRIP, unsigned int NUM_STRIPS)
+  {
+    glBindVertexArray(VAO);
+    for (unsigned int strip = 0; strip < NUM_STRIPS; strip++)
+    {
+      glDrawElements(GL_TRIANGLE_STRIP, NUM_TRIS_PER_STRIP + 2, GL_UNSIGNED_INT, (void *)(sizeof(unsigned int) * (NUM_TRIS_PER_STRIP + 2) * strip));
     }
+    glBindVertexArray(0);
+  }
 
-    void Draw(GLenum mode) {
-      // TODO
-    }
+private:
+  unsigned int VBO, EBO;
 
-    void DrawStrips(unsigned int NUM_TRIS_PER_STRIP, unsigned int NUM_STRIPS) {
-      glBindVertexArray(VAO);
-      for (unsigned int strip = 0; strip < NUM_STRIPS; strip++)
-      {
-        glDrawElements(GL_TRIANGLE_STRIP, NUM_TRIS_PER_STRIP+2, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * (NUM_TRIS_PER_STRIP+2) * strip));
-      }
-      glBindVertexArray(0);
-    }
+  void setupMesh()
+  {
+    // create buffers/arrays
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
-  private:
-    unsigned int VBO, EBO;
+    glBindVertexArray(VAO);
+    // load data into vertex buffers
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // A great thing about structs is that their memory layout is sequential for all its items.
+    // The effect is that we can simply pass a pointer to the struct and it translates perfectly to a glm::vec3/2 array which
+    // again translates to 3/2 floats which translates to a byte array.
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
-    void setupMesh() {
-        // create buffers/arrays
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
-        glBindVertexArray(VAO);
-        // load data into vertex buffers
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        // A great thing about structs is that their memory layout is sequential for all its items.
-        // The effect is that we can simply pass a pointer to the struct and it translates perfectly to a glm::vec3/2 array which
-        // again translates to 3/2 floats which translates to a byte array.
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-
-        // set the vertex attribute pointers
-        // vertex Positions
-        glEnableVertexAttribArray(0);	
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        // normal Positions
-        glEnableVertexAttribArray(0);	
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-        glBindVertexArray(0);
-    }
+    // set the vertex attribute pointers
+    // vertex Positions
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    // normal Positions
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Normal));
+    glBindVertexArray(0);
+  }
 };
-
