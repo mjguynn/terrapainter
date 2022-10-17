@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   ImGuiIO &io = ImGui::GetIO();
 
   float dpi_scale = get_dpi_scale();
-  io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
+  // io.Fonts->AddFontFromFileTTF("../cs4621/extern/source-code-pro/SourceCodePro-Regular.ttf", floor(12 * dpi_scale));
 
   style.ScaleAllSizes(1.0f / dpi_scale);
 
@@ -101,11 +101,11 @@ int main(int argc, char *argv[])
   // Set viewport
   glViewport(0, 0, 800, 600);
 
-  Shader shader("../cs4621/shaders/heightmap.vs", "../cs4621/shaders/heightmap.fs");
+  Shader shader("cs4621/shaders/heightmap.vs", "cs4621/shaders/heightmap.fs");
 
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
-  unsigned char *data = stbi_load("../cs4621/images/iceland_heightmap.png",
+  unsigned char *data = stbi_load("cs4621/images/iceland_heightmap.png",
                                   &width, &height, &nChannels,
                                   0);
   if (data)
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
   stbi_image_free(data);
 
-  // normal calculation
+  // ------------------ Normal (start)-------------------------
 
   // Every 3 consecutive element defines a face.
   std::vector<unsigned int> facedata;
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     normaldata[facedata[i] + 2] += normal;
   }
 
-  for (int i = 0; i < normaldatasize(); i += 1)
+  for (int i = 0; i < normaldata.size(); i += 1)
   {
     normaldata[i] = normaldata[i].normalize();
     vertices[i].Normal = normaldata[i];
@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
       }
     }
   }
+  // ------------------- Normal(End) -----------------
 
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 

@@ -2,6 +2,7 @@
 out vec4 FragColor;
 
 in float Height; // from -16 to 48
+in vec3 Norm; 
 
 vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	float t = (curh - minh) / (maxh - minh);
