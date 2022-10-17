@@ -12,6 +12,8 @@ const int TP_STROKE_SDF_ROD = 1;
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout (binding = 0, r8) uniform restrict image2D u_stroke;
 
+uniform ivec2 u_origin;
+
 uniform int u_sdf;
 uniform ivec2 u_v1;
 uniform ivec2 u_v2;
@@ -35,7 +37,7 @@ float rod(ivec2 coords) {
 }
 
 void main() {
-	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 coords = u_origin + ivec2(gl_GlobalInvocationID.xy);
 	vec4 texel = imageLoad(u_stroke, coords);
 	float fac;
 	switch(u_sdf) {

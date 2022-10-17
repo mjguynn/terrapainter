@@ -54,30 +54,51 @@ void Painter::CompositeShader::use(GLuint baseT, GLuint layerT, vec3 layerTint) 
     glBindTexture(GL_TEXTURE_2D, layerT);
 }
 
+// Find in-bounds pixels in a square region around `coord`
+// Returns: (min_x, min_y) and (max_x, max_y)
+std::pair<ivec2, ivec2> get_region_bounds(ivec2 dims, ivec2 coord, int radius) {
+    int left = std::max(0, coord.x - radius);
+    int right = std::min(dims.x, coord.x + radius);
+    int bottom = std::max(0, coord.y - radius);
+    int top = std::min(dims.y, coord.y + radius);
+    return { ivec2{left, bottom}, ivec2 {right, top} };
+}
+
 Painter::StrokeShader::StrokeShader() {
     mProgram = g_shaderMgr.compute("canvas_stroke");
     glUseProgram(mProgram);
     mSdfLocation = glGetUniformLocation(mProgram, "u_sdf");
+    mOriginLocation = glGetUniformLocation(mProgram, "u_origin");
     mV1Location = glGetUniformLocation(mProgram, "u_v1");
     mV2Location = glGetUniformLocation(mProgram, "u_v2");
     mF1Location = glGetUniformLocation(mProgram, "u_f1");
     glUseProgram(0);
 }
-void Painter::StrokeShader::submit(GLuint dest, ivec2 dims, int sdf, ivec2 v1, ivec2 v2, float f1) {
+void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1) {
     glUseProgram(mProgram);
     glBindImageTexture(0, dest, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
     glUniform1i(mSdfLocation, sdf);
+    glUniform2i(mOriginLocation, origin.x, origin.y);
     glUniform2i(mV1Location, v1.x, v1.y);
     glUniform2i(mV2Location, v2.x, v2.y);
     glUniform1f(mF1Location, f1);
-    glDispatchCompute(dims.x / 8, dims.y / 8, 1);
+    glDispatchCompute( (size.x + 7) / 8, (size.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 void Painter::StrokeShader::draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius) {
-    submit(dest, dims, 0, center, ivec2::zero(), radius);
+    auto [min, max] = get_region_bounds(dims, center, radius);
+    submit(dest, min, max-min, 0, center, ivec2::zero(), radius);
 }
 void Painter::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 start, ivec2 end, float radius) {
-    submit(dest, dims, 1, start, end, radius);
+    ivec2 min, max;
+    {
+        int ir = static_cast<int>(radius + 0.5);
+        auto bStart = get_region_bounds(dims, start, ir);
+        auto bEnd = get_region_bounds(dims, end, ir);
+        min = math::vmin(bStart.first, bEnd.first);
+        max = math::vmax(bStart.second, bEnd.second);
+    }
+    submit(dest, min, max - min, 1, start, end, radius);
 }
 
 Painter::Painter(int width, int height)
@@ -171,15 +192,6 @@ void Painter::draw_ui() {
         ImGui::SliderFloat("Brush Radius", &mRadius, mRadiusMin, mRadiusMax, "%.2f", 0);
     }
     ImGui::End();
-}
-// Find in-bounds pixels in a square region around `coord`
-// Returns: (min_x, min_y) and (max_x, max_y)
-std::pair<ivec2, ivec2> get_region_bounds(ivec2 dims, ivec2 coord, int radius) {
-    int left = std::max(0, coord.x - radius);
-    int right = std::min(dims.x, coord.x + radius);
-    int bottom = std::max(0, coord.y - radius);
-    int top = std::min(dims.y, coord.y + radius);
-    return { ivec2{left, bottom}, ivec2 {right, top} };
 }
 
 void Painter::commit() {

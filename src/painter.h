@@ -39,11 +39,11 @@ private:
 	class StrokeShader {
 		GLuint mProgram;
 		GLuint mSdfLocation;
+		GLuint mOriginLocation;
 		GLuint mV1Location;
 		GLuint mV2Location;
 		GLuint mF1Location;
-
-		void submit(GLuint dest, ivec2 dims, int sdf, ivec2 v1, ivec2 v2, float f1);
+		void submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1);
 	public:
 		StrokeShader();
 		void draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius);
