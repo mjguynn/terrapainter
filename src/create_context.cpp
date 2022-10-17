@@ -106,15 +106,15 @@ int main(int argc, char *argv[])
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
   unsigned char *data = stbi_load("../cs4621/images/iceland_heightmap.png",
-                                &width, &height, &nChannels,
-                                0);
+                                  &width, &height, &nChannels,
+                                  0);
   if (data)
   {
-      cout << "Loaded heightmap of size " << height << " x " << width << endl;
+    cout << "Loaded heightmap of size " << height << " x " << width << endl;
   }
   else
   {
-      cout << "Failed to load texture" << endl;
+    cout << "Failed to load texture" << endl;
   }
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -123,44 +123,85 @@ int main(int argc, char *argv[])
   float yScale = 96.0f / 256.0f, yShift = 16.0f;
   int rez = 1;
   unsigned bytePerPixel = nChannels;
-  for(int i = 0; i < height; i++)
+  for (int i = 0; i < height; i++)
   {
-      for(int j = 0; j < width; j++)
-      {
-          unsigned char* pixelOffset = data + (j + width * i) * bytePerPixel;
-          unsigned char y = pixelOffset[0];
+    for (int j = 0; j < width; j++)
+    {
+      unsigned char *pixelOffset = data + (j + width * i) * bytePerPixel;
+      unsigned char y = pixelOffset[0];
 
-          vertices.push_back( 
-            Vertex { 
-              .Position = vec3(-height/2.0f + height*i/(float)height, (int) y * yScale - yShift, -width/2.0f + width*j/(float)width)
-              }
-            );
-      }
+      vertices.push_back(
+          Vertex{
+              .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)});
+    }
   }
   std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
   stbi_image_free(data);
 
-  std::vector<unsigned> indices;
-  for(unsigned i = 0; i < height-1; i += rez)
+  // normal calculation
+
+  // Every 3 consecutive element defines a face.
+  std::vector<unsigned int> facedata;
+  // loading each face in
+  for (int i = 0; i < height - 1; i++)
   {
-      for(unsigned j = 0; j < width; j += rez)
-      {
-          for(unsigned k = 0; k < 2; k++)
-          {
-              indices.push_back(j + width * (i + k*rez));
-          }
-          
-      }
+    for (int j = 0; j < width - 1; j++)
+    {
+      facedata.push_back(i * width + j);
+      facedata.push_back(i * width + j + 1);
+      facedata.push_back((i + 1) * width + j);
+      facedata.push_back(i * width + j + 1);
+      facedata.push_back((i + 1) * width + j);
+      facedata.push_back((i + 1) * width + j + 1);
+    }
   }
 
+  // normal of every vertice
+  std::vector<vec3> normaldata;
+  for (int i = 0; i < vertices.size(); i++)
+  {
+    normaldata.push_back(vec3(0));
+  }
+
+  for (int i = 0; i < facedata.size(); i += 3)
+  {
+    vec3 v1 = vertices[i].Position;
+    vec3 v2 = vertices[i + 1].Position;
+    vec3 v3 = vertices[i + 2].Position;
+
+    vec3 side1 = v2 - v1;
+    vec3 side2 = v3 - v1;
+    vec3 normal = cross(side2, side1);
+
+    normaldata[facedata[i]] += normal;
+    normaldata[facedata[i] + 1] += normal;
+    normaldata[facedata[i] + 2] += normal;
+  }
+
+  for (int i = 0; i < normaldatasize(); i += 1)
+  {
+    normaldata[i] = normaldata[i].normalize();
+    vertices[i].Normal = normaldata[i];
+  }
+
+  std::vector<unsigned> indices;
+  for (unsigned i = 0; i < height - 1; i += rez)
+  {
+    for (unsigned j = 0; j < width; j += rez)
+    {
+      for (unsigned k = 0; k < 2; k++)
+      {
+        indices.push_back(j + width * (i + k * rez));
+      }
+    }
+  }
 
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 
-  Mesh* map = new Mesh(vertices, indices);
+  Mesh *map = new Mesh(vertices, indices);
 
-
-  const int numStrips = (height-1)/rez;
-  const int numTrisPerStrip = (width/rez)*2-2;
+  const int numStrips = (height - 1) / rez;
+  const int numTrisPerStrip = (width / rez) * 2 - 2;
   std::cout << "Created lattice of " << numStrips << " strips with " << numTrisPerStrip << " triangles each" << std::endl;
   std::cout << "Created " << numStrips * numTrisPerStrip << " triangles total" << std::endl;
 
