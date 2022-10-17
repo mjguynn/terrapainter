@@ -20,15 +20,15 @@ void main(){
 	vec3 base = texture(u_baseTexture, v_texCoord).rgb;
 	vec3 layer = u_layerTint;
 	
-	vec3 blended = vec3(fac, 0.f, 0.f);
-	/*switch (u_blendMode) {
+	vec3 blended;
+	switch (u_blendMode) {
 		case TP_CANVAS_BLEND_MIX:
 			blended = mix(base, layer, fac);
 			break;
 		default:
 			blended = vec3(1.0, 0.0, 1.0);
 			break;
-	}*/
+	}
 	
 	o_color = vec4(blended.rgb, 1.0);
 }

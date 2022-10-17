@@ -25,7 +25,7 @@ static void init_canvas(GLuint framebuffer, GLuint texture, GLenum internalForma
     // Zero-initialize canvas texture
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glClearBufferfv(GL_COLOR, 0, clearColor);
 
     // Reset texture & framebuffer
@@ -99,10 +99,11 @@ Painter::Painter(int width, int height)
 {
     // Name framebuffer & textures
     glGenFramebuffers(1, &mFramebuffer);
-    GLuint textures[2];
-    glGenTextures(2, textures);
+    GLuint textures[3];
+    glGenTextures(3, textures);
     mBaseT = textures[0];
-    mStrokeT = textures[1];
+    mBufferT = textures[1];
+    mStrokeT = textures[2];
     
     init_canvas(mFramebuffer, mBaseT, GL_RGB8, GL_RGB, width, height);
     init_canvas(mFramebuffer, mBufferT, GL_RGB8, GL_RGB, width, height);
@@ -128,8 +129,8 @@ Painter::Painter(int width, int height)
 }
 
 Painter::~Painter() {
-    GLuint textures[2] = { mBaseT, mStrokeT };
-    glDeleteTextures(2, textures);
+    GLuint textures[3] = { mBaseT, mBufferT, mStrokeT };
+    glDeleteTextures(3, textures);
     glDeleteFramebuffers(1, &mFramebuffer);
     glDeleteVertexArrays(1, &mVAO);
     glDeleteBuffers(1, &mVBO);
@@ -148,7 +149,7 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
     }
     else if (event.type == SDL_MOUSEBUTTONUP) {
         mStrokeStart = std::nullopt;
-        //commit();
+        commit();
     }
     else if (mStrokeStart && event.type == SDL_MOUSEMOTION) {
         ivec2 current = { event.motion.x, mDims.y - event.motion.y };
@@ -182,22 +183,29 @@ std::pair<ivec2, ivec2> get_region_bounds(ivec2 dims, ivec2 coord, int radius) {
 }
 
 void Painter::commit() {
+    GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
     glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mBufferT, 0);
+    // commit stroke to base & swap buffers
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mBufferT, 0);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    
+    glClearBufferfv(GL_COLOR, 0, clearColor);
     glBindVertexArray(mVAO);
     {
         mCompositeS.use(mBaseT, mStrokeT, vec3(mColor) / 255.0f);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);
-    
+    std::swap(mBaseT, mBufferT);
+
+    // clear stroke layer
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mStrokeT, 0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClearBufferfv(GL_COLOR, 0, clearColor);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    std::swap(mBufferT, mBaseT);
 }
 void Painter::draw() {
-    constexpr auto TRANSFORM = mat4::identity();
     int x, y;
     SDL_GetMouseState(&x, &y);
     vec2 center = vec2{ x, mDims.y - y };
