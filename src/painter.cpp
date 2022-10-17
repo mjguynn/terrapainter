@@ -133,19 +133,10 @@ void Painter::draw_rod(ivec2 start, ivec2 end, float radius, RGBu8 color) {
         for (int j = min.y; j < max.y; j++) {
             ivec2 coord = { i, j };
             ivec2 relativeCoord = coord - start;
-            float num = dot(lineDir, relativeCoord);
-            float den = dot(lineDir, lineDir);
-            float fac = num / den;
-
-            vec2 offset;
-            if (fac < 0) {
-                offset = vec2(relativeCoord); // start is closest
-            } else if (fac > 1) {
-                offset = vec2(coord - end); // end is closest
-            } else {
-                offset = vec2(relativeCoord) - fac * vec2(lineDir);
-            }
-
+            float fac_num = dot(lineDir, relativeCoord);
+            float fac_den = dot(lineDir, lineDir);
+            float fac = std::clamp(fac_num / fac_den, 0.0f, 1.0f);
+            vec2 offset = vec2(relativeCoord) - fac * vec2(lineDir);
             if (offset.mag() <= radius) {
                 set_pixel(coord, color);
             }
