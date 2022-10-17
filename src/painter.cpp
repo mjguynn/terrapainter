@@ -108,7 +108,7 @@ Painter::Painter(int width, int height)
     mRadius(20.0f),
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
-    mColor(255, 0, 0),
+    mColor(1.0f, 1.0f, 1.0f),
     mCompositeS(),
     mStrokeS(), // TODO
     mCircleS(width, height),
@@ -195,10 +195,10 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
 }
 
 void Painter::draw_ui() {
-    vec3 rgb = static_cast<vec3>(mColor) / 255.0f;
     if (ImGui::Begin("Paint Controls", nullptr, 0)) {
-        ImGui::ColorPicker3("Brush Color", reinterpret_cast<float*>(&rgb), 0);
-        mColor = static_cast<RGBu8>(rgb * 255.0f);
+        float height = mColor.x;
+        ImGui::SliderFloat("Height", &height, 0.0f, 1.0f, "%.3f");
+        mColor = vec3::splat(height);
         ImGui::SliderFloat("Brush Radius", &mRadius, mRadiusMin, mRadiusMax, "%.2f", 0);
     }
     ImGui::End();
@@ -214,7 +214,7 @@ void Painter::commit() {
     glClearBufferfv(GL_COLOR, 0, clearColor);
     glBindVertexArray(mVAO);
     {
-        mCompositeS.use(mBaseT, mStrokeT, vec3(mColor) / 255.0f);
+        mCompositeS.use(mBaseT, mStrokeT, mColor);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);
@@ -235,7 +235,7 @@ void Painter::draw() {
     // Select shader & draw
     glBindVertexArray(mVAO);
     {
-        mCompositeS.use(mBaseT, mStrokeT, vec3(mColor) / 255.0f);
+        mCompositeS.use(mBaseT, mStrokeT, mColor);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         mCircleS.use(center, mRadius, 1);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

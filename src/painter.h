@@ -72,8 +72,8 @@ private:
 	float mRadiusMin;
 	float mRadiusMax;
 
-	// The current color
-	RGBu8 mColor;
+	// The current color (0.0-1.0)
+	vec3 mColor;
 
 	// The composite shader
 	CompositeShader mCompositeS;
