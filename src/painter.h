@@ -36,7 +36,7 @@ private:
 
 	public:
 		CompositeShader();
-		void use(GLuint baseT, GLuint layerT, vec3 layerTint);
+		void use(int mBlendMode, GLuint baseT, GLuint layerT, vec3 layerTint);
 	};
 
 	class StrokeShader {
@@ -61,6 +61,12 @@ private:
 		float last_radius;
 	};
 
+	enum BlendMode {
+		Mix = 0,
+		Add = 1,
+		Sub = 2
+	};
+
 	void commit();
 
 	// Invariant: dims.x * dims.y = mPixels.size();
@@ -77,6 +83,9 @@ private:
 
 	// The current color (0.0-1.0)
 	vec3 mColor;
+
+	// The current blend mode
+	int mBlendMode;
 
 	// The composite shader
 	CompositeShader mCompositeS;

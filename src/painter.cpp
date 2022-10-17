@@ -42,9 +42,9 @@ Painter::CompositeShader::CompositeShader() {
     mLayerTintLocation = glGetUniformLocation(mProgram, "u_layerTint");
     glUseProgram(0);
 }
-void Painter::CompositeShader::use(GLuint baseT, GLuint layerT, vec3 layerTint) {
+void Painter::CompositeShader::use(int blendMode, GLuint baseT, GLuint layerT, vec3 layerTint) {
     glUseProgram(mProgram);
-    glUniform1i(mBlendModeLocation, 0);
+    glUniform1i(mBlendModeLocation, blendMode);
     glUniform1i(mBaseTextureLocation, 0);
     glUniform1i(mLayerMaskLocation, 1);
     glUniform3f(mLayerTintLocation, layerTint.x, layerTint.y, layerTint.z);
@@ -109,6 +109,7 @@ Painter::Painter(int width, int height)
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
     mColor(1.0f, 1.0f, 1.0f),
+    mBlendMode(0),
     mCompositeS(),
     mStrokeS(), // TODO
     mCircleS(width, height),
@@ -189,8 +190,6 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
     else if (event.type == SDL_MOUSEWHEEL) {
         auto scroll_delta = 4.0f * event.wheel.y;
         mRadius = std::clamp(mRadius + scroll_delta, mRadiusMin, mRadiusMax);
-    } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_LEFT) {
-        mRadius += 10;
     }
 }
 
@@ -200,6 +199,11 @@ void Painter::draw_ui() {
         ImGui::SliderFloat("Height", &height, 0.0f, 1.0f, "%.3f");
         mColor = vec3::splat(height);
         ImGui::SliderFloat("Brush Radius", &mRadius, mRadiusMin, mRadiusMax, "%.2f", 0);
+        ImGui::Combo(
+            "Blend Mode", 
+            &mBlendMode, 
+            "Mix\0Add\0Subtract\0\0"
+        );
     }
     ImGui::End();
 }
@@ -214,7 +218,7 @@ void Painter::commit() {
     glClearBufferfv(GL_COLOR, 0, clearColor);
     glBindVertexArray(mVAO);
     {
-        mCompositeS.use(mBaseT, mStrokeT, mColor);
+        mCompositeS.use(mBlendMode, mBaseT, mStrokeT, mColor);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
     glBindVertexArray(0);
@@ -235,7 +239,7 @@ void Painter::draw() {
     // Select shader & draw
     glBindVertexArray(mVAO);
     {
-        mCompositeS.use(mBaseT, mStrokeT, mColor);
+        mCompositeS.use(mBlendMode, mBaseT, mStrokeT, mColor);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         mCircleS.use(center, mRadius, 1);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

@@ -2,6 +2,8 @@
 
 // Simple alpha mix of colors
 const int TP_CANVAS_BLEND_MIX = 0;
+const int TP_CANVAS_BLEND_ADD = 1;
+const int TP_CANVAS_BLEND_SUB = 2;
 
 // The selected blend mode
 uniform int u_blendMode;
@@ -24,6 +26,12 @@ void main(){
 	switch (u_blendMode) {
 		case TP_CANVAS_BLEND_MIX:
 			blended = mix(base, layer, fac);
+			break;
+		case TP_CANVAS_BLEND_ADD:
+			blended = base + fac * layer;
+			break;
+		case TP_CANVAS_BLEND_SUB:
+			blended = base - fac * layer;
 			break;
 		default:
 			blended = vec3(1.0, 0.0, 1.0);
