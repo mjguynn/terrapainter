@@ -8,6 +8,9 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "SDL.h"
 #include "SDL_opengl.h"
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
+#include "nfd.hpp"
 #include "terrapainter/shader_s.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
@@ -144,6 +147,15 @@ int main(int argc, char *argv[])
         error("Failed to initialize GLAD");
     }
 
+    // Initialize file dialogs
+    if (NFD::Init() != NFD_OKAY) {
+        error("Failed to initialize NFD (file dialogs)");
+    }
+
+    // "Initialize" STBI
+    stbi_set_flip_vertically_on_load(1);
+    stbi_flip_vertically_on_write(1);
+
     // Set viewport
     glViewport(0, 0, viewportWidth, viewportHeight);
     // Enable transparency
@@ -161,8 +173,34 @@ int main(int argc, char *argv[])
         // handle events
         while (SDL_PollEvent(&windowEvent))
         {
-            if (windowEvent.type == SDL_KEYDOWN && windowEvent.key.keysym.sym == SDLK_F5) {
-                g_shaderMgr.refresh();
+            if (windowEvent.type == SDL_KEYDOWN) {
+                const Uint8* state = SDL_GetKeyboardState(nullptr);
+                auto pressed = windowEvent.key.keysym.sym;
+                auto ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+                if (pressed == SDLK_F5) {
+                    g_shaderMgr.refresh();
+                }
+                else if (ctrl && pressed == SDLK_s) {
+                    fprintf(stderr, "[info] dumping texture...");
+                    auto pixels = painter.dump_texture();
+                    fprintf(stderr, " complete\n");
+
+                    nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
+                    NFD::UniquePathU8 path = nullptr;
+                    auto res = NFD::SaveDialog(
+                        path, 
+                        filters, 
+                        1, 
+                        nullptr, 
+                        "output.png"
+                    );
+
+                    if (res == NFD_ERROR) {
+                        fprintf(stderr, "[error] internal error (save dialog)");
+                    } else if (res == NFD_OKAY) {
+                        stbi_write_png(path.get(), viewportWidth, viewportHeight, 3, pixels.data(), viewportWidth * sizeof(RGBu8));
+                    }
+                }
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
             painter.process_event(windowEvent, io);
@@ -198,6 +236,9 @@ int main(int argc, char *argv[])
         // this hurts FPS a bit but should provide better latency
         glFinish();
     }
+
+    // Shutdown file dialog
+    NFD::Quit();
 
     // Shutdown IMGUI
     ImGui_ImplOpenGL3_Shutdown();

@@ -243,3 +243,13 @@ void Painter::draw() {
     glBindVertexArray(0);
 
 }
+
+std::vector<RGBu8> Painter::dump_texture() const {
+    size_t numPixels = size_t(mDims.x) * size_t(mDims.y);
+    std::vector<RGBu8> pixels(numPixels);
+    pixels.resize(numPixels);
+    glBindTexture(GL_TEXTURE_2D, mBaseT);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return pixels;
+}

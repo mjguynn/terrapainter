@@ -30,6 +30,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
+FetchContent_Declare(
+	nfd
+	GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+	GIT_TAG origin/master
+	GIT_SHALLOW true
+	GIT_PROGRESS true
+)
+FetchContent_MakeAvailable(nfd)
+
 # ================== TERRAPAINTER SETUP ======================
 # Dummy library which exists to "bundle up" all the shared compile options
 add_library(terrapainter_shared INTERFACE)
@@ -104,6 +113,7 @@ set(stb_SOURCES
 )
 set(stb_HEADERS
 	"${CMAKE_SOURCE_DIR}/extern/stb/include/stb/stb_image.h"
+	"${CMAKE_SOURCE_DIR}/extern/stb/include/stb/stb_image_write.h"
 )
 add_library(stb STATIC ${stb_SOURCES} ${stb_HEADERS})
 target_include_directories(stb PUBLIC "${CMAKE_SOURCE_DIR}/extern/stb/include")
@@ -115,13 +125,11 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/main.cpp"
 	"${CMAKE_SOURCE_DIR}/src/painter.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
-	"${CMAKE_SOURCE_DIR}/src/shaders/unlit.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.cpp"
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/painter.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"
-	"${CMAKE_SOURCE_DIR}/src/shaders/unlit.h"
 	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.h"
 )
 
@@ -141,7 +149,8 @@ target_link_libraries(terrapainter PRIVATE
 	terrapainter_lib 
 	SDL2::SDL2 
 	imgui 
-	glad 
+	glad
+	nfd
 	stb
 	${CMAKE_DL_LIBS}
 )

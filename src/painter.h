@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <optional>
 #include <vector>
 #include "glad/gl.h"
@@ -20,6 +19,10 @@ public:
 
 	void process_event(SDL_Event& event, ImGuiIO& io);
 	
+	// Retrieve the current texture from the GPU.
+	// This is an expensive operation.
+	std::vector<RGBu8> dump_texture() const;
+
 	void draw();
 	void draw_ui();
 
