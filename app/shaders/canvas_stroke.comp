@@ -33,7 +33,7 @@ float rod(ivec2 coords) {
 	float fac_num = dot(lineDir, shifted);
 	float fac_den = dot(lineDir, lineDir);
 	float fac = clamp(fac_num / fac_den, 0.0f, 1.0f);
-	float radius = (u_f2 - u_f1) * smoothstep(0, 1, fac);
+	float radius = (u_f2 - u_f1) * smoothstep(0, 1, fac) + u_f1;
 	vec2 offset = vec2(shifted) - fac * vec2(lineDir);
 	float dist = length(offset);
 	return clamp( radius - dist, 0.0f, 1.0f);
