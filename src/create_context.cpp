@@ -132,7 +132,9 @@ int main(int argc, char *argv[])
 
       vertices.push_back(
           Vertex{
-              .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)});
+              .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)
+              }
+        );
     }
   }
   std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
@@ -165,20 +167,20 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < facedata.size(); i += 3)
   {
-    vec3 v1 = vertices[i].Position;
-    vec3 v2 = vertices[i + 1].Position;
-    vec3 v3 = vertices[i + 2].Position;
+    vec3 v1 = vertices.at(facedata.at(i)).Position;
+    vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
+    vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
 
     vec3 side1 = v2 - v1;
     vec3 side2 = v3 - v1;
     vec3 normal = cross(side2, side1);
 
-    normaldata[facedata[i]] += normal;
-    normaldata[facedata[i] + 1] += normal;
-    normaldata[facedata[i] + 2] += normal;
+    normaldata[facedata.at(i)] += normal;
+    normaldata[facedata.at(i+1)] += normal;
+    normaldata[facedata.at(i+2)] += normal;
   }
 
-  for (int i = 0; i < normaldatasize(); i += 1)
+  for (int i = 0; i < normaldata.size(); i += 1)
   {
     normaldata[i] = normaldata[i].normalize();
     vertices[i].Normal = normaldata[i];

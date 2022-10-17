@@ -2,6 +2,7 @@
 out vec4 FragColor;
 
 in float Height; // from -16 to 48
+in vec3 Normal;
 
 vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	float t = (curh - minh) / (maxh - minh);
@@ -22,7 +23,6 @@ void main()
 	vec3 sand = vec3(208.0,191.0,146.0) / 255;
 	vec3 water = vec3(0.0, 117.0, 119.0) / 255;
 	vec3 dwater = vec3(35.0, 55.0, 110.0) / 255;
-
 
 	if (Height >= 70) {
 		color = c_smoothstep(peak, ppeak, Height, 70.0, 80.0);
