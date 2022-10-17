@@ -12,6 +12,6 @@ uniform mat4 projection;
 void main()
 {
 	Height = aPos.y;
-	gl_Position = projection * view * model * vec4(aPos, 1.0f);
 	Norm = aNorm; 
+	gl_Position = projection * view * model * vec4(aPos, 1.0f);
 }

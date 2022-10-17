@@ -101,11 +101,11 @@ int main(int argc, char *argv[])
   // Set viewport
   glViewport(0, 0, 800, 600);
 
-  Shader shader("cs4621/shaders/heightmap.vs", "cs4621/shaders/heightmap.fs");
+  Shader shader("../cs4621/shaders/heightmap.vs", "../cs4621/shaders/heightmap.fs");
 
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
-  unsigned char *data = stbi_load("cs4621/images/iceland_heightmap.png",
+  unsigned char *data = stbi_load("../cs4621/images/iceland_heightmap.png",
                                   &width, &height, &nChannels,
                                   0);
   if (data)
@@ -165,17 +165,17 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i < facedata.size(); i += 3)
   {
-    vec3 v1 = vertices[i].Position;
-    vec3 v2 = vertices[i + 1].Position;
-    vec3 v3 = vertices[i + 2].Position;
+    vec3 v1 = vertices.at(facedata.at(i)).Position;
+    vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
+    vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
 
     vec3 side1 = v2 - v1;
     vec3 side2 = v3 - v1;
     vec3 normal = cross(side2, side1);
 
-    normaldata[facedata[i]] += normal;
-    normaldata[facedata[i] + 1] += normal;
-    normaldata[facedata[i] + 2] += normal;
+    normaldata[facedata.at(i)] += normal;
+    normaldata[facedata.at(i + 1)] += normal;
+    normaldata[facedata.at(i + 2)] += normal;
   }
 
   for (int i = 0; i < normaldata.size(); i += 1)
