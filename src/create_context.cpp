@@ -34,12 +34,14 @@ float get_dpi_scale()
   }
 }
 
+// ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
 // camera
 Camera camera(glm::vec3(0.0f, 400.0f, 0.0f));
 
 // timing
 float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f;
+// ------------------- (END) -----------------
 
 int main(int argc, char *argv[])
 {
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
 
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
-  unsigned char *data = stbi_load("../cs4621/images/Sans_undertale.jpg",
+  unsigned char *data = stbi_load("../cs4621/images/iceland_heightmap.png",
                                 &width, &height, &nChannels,
                                 0);
   if (data)
@@ -130,7 +132,7 @@ int main(int argc, char *argv[])
 
           vertices.push_back( 
             Vertex { 
-              vec3(-height/2.0f + height*i/(float)height, (int) y * yScale - yShift, -width/2.0f + width*j/(float)width) 
+              .Position = vec3(-height/2.0f + height*i/(float)height, (int) y * yScale - yShift, -width/2.0f + width*j/(float)width)
               }
             );
       }
@@ -147,8 +149,11 @@ int main(int argc, char *argv[])
           {
               indices.push_back(j + width * (i + k*rez));
           }
+          
       }
   }
+
+
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 
   Mesh* map = new Mesh(vertices, indices);
