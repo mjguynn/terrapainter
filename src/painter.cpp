@@ -2,9 +2,8 @@
 #include "imgui/imgui.h"
 
 Painter::Painter(int width, int height)
-    : mWidth(width),
-    mHeight(height),
-    mDrawing(false),
+    : mDims(width, height),
+    mStrokeStart(std::nullopt),
     mRadius(20.0f),
     mRadiusMin(1.0f),
     mRadiusMax(100.0f),
@@ -27,7 +26,7 @@ Painter::Painter(int width, int height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, mWidth, mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     static float verts[] = {
          // POSITION                // TEXCOORD
@@ -64,16 +63,19 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
         return;
     }
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        mDrawing = true;
         int x, y;
         SDL_GetMouseState(&x, &y);
-        draw_circle(x, mHeight - y, mRadius, mColor);
+        ivec2 position = { x, mDims.y - y };
+        mStrokeStart = position;
+        draw_circle(position, mRadius, mColor);
     }
     else if (event.type == SDL_MOUSEBUTTONUP) {
-        mDrawing = false;
+        mStrokeStart = std::nullopt;
     }
-    else if (mDrawing && event.type == SDL_MOUSEMOTION) {
-        draw_circle(event.motion.x, mHeight - event.motion.y, mRadius, mColor);
+    else if (mStrokeStart && event.type == SDL_MOUSEMOTION) {
+        ivec2 position = { event.motion.x, mDims.y - event.motion.y };
+        draw_rod(mStrokeStart.value(), position, mRadius, mColor);
+        mStrokeStart = position;
     }
     else if (event.type == SDL_MOUSEWHEEL) {
         auto scroll_delta = 4.0f * event.wheel.y;
@@ -90,23 +92,65 @@ void Painter::draw_ui() {
     }
     ImGui::End();
 }
+// Find in-bounds pixels in a square region around `coord`
+// Returns: (min_x, min_y) and (max_x, max_y)
+std::pair<ivec2, ivec2> get_region_bounds(ivec2 dims, ivec2 coord, int radius) {
+    int left = std::max(0, coord.x - radius);
+    int right = std::min(dims.x, coord.x + radius);
+    int bottom = std::max(0, coord.y - radius);
+    int top = std::min(dims.y, coord.y + radius);
+    return { ivec2{left, bottom}, ivec2 {right, top} };
+}
 
-void Painter::draw_circle(int x, int y, float radius, RGBu8 color) {
-    int iRadius = int(radius);
-    int left = std::max(0, x-iRadius);
-    int right = std::min(mWidth, x + iRadius);
-    int bottom = std::max(0, y - iRadius);
-    int top = std::min(mHeight, y + iRadius);
-
-    for (int i = left; i < right; i++) {
-        for (int j = bottom; j < top; j++) {
-            vec2 offset = { float(i-x), float(j-y) };
-            if (offset.mag() <= mRadius) {
-                set_pixel(i, j, color);
+void Painter::draw_circle(ivec2 position, float radius, RGBu8 color) {
+    // left, right, bottom, top
+    auto [min, max] = get_region_bounds(mDims, position, int(radius + 0.5));
+    for (int i = min.x; i < max.x; i++) {
+        for (int j = min.y; j < max.y; j++) {
+            ivec2 coords = { i, j };
+            vec2 offset(coords - position);
+            if (offset.mag() <= radius) {
+                set_pixel(coords, color);
             }
         }
     }
+    mNeedsUpload = true;
+}
 
+void Painter::draw_rod(ivec2 start, ivec2 end, float radius, RGBu8 color) {
+    ivec2 min, max;
+    {
+        int ir = static_cast<int>(radius + 0.5);
+        auto bStart = get_region_bounds(mDims, start, ir);
+        auto bEnd = get_region_bounds(mDims, end, ir);
+        min = math::vmin(bStart.first, bEnd.first);
+        max = math::vmax(bStart.second, bEnd.second);
+    }
+
+    ivec2 lineDir = end - start;
+
+    for (int i = min.x; i < max.x; i++) {
+        for (int j = min.y; j < max.y; j++) {
+            ivec2 coord = { i, j };
+            ivec2 relativeCoord = coord - start;
+            float num = dot(lineDir, relativeCoord);
+            float den = dot(lineDir, lineDir);
+            float fac = num / den;
+
+            vec2 offset;
+            if (fac < 0) {
+                offset = vec2(relativeCoord); // start is closest
+            } else if (fac > 1) {
+                offset = vec2(coord - end); // end is closest
+            } else {
+                offset = vec2(relativeCoord) - fac * vec2(lineDir);
+            }
+
+            if (offset.mag() <= radius) {
+                set_pixel(coord, color);
+            }
+        }
+    }
     mNeedsUpload = true;
 }
 
@@ -114,7 +158,7 @@ void Painter::draw() {
     constexpr auto TRANSFORM = mat4::identity();
     int x, y;
     SDL_GetMouseState(&x, &y);
-    vec2 center = vec2{ x, mHeight - y };
+    vec2 center = vec2{ x, mDims.y - y };
 
     // Upload texture
     if (mNeedsUpload) {
@@ -124,8 +168,8 @@ void Painter::draw() {
             0, 
             0, 
             0, 
-            mWidth, 
-            mHeight, 
+            mDims.x, 
+            mDims.y, 
             GL_RGB, 
             GL_UNSIGNED_BYTE, 
             mPixels.data()

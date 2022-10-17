@@ -698,6 +698,10 @@ using mat4 = math::MMatrix<float, 4, 4>;
 using mat2x3 = math::MMatrix<float, 2, 3>;
 using mat3x4 = math::MMatrix<float, 3, 4>;
 
+using ivec2 = math::MVector<int, 2>;
+using ivec3 = math::MVector<int, 3>;
+using ivec4 = math::MVector<int, 4>;
+
 using math::dot;
 using math::cross;
 using math::aeq;

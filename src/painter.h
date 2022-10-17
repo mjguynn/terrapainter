@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 #include "glad/gl.h"
 #include "SDL.h"
@@ -18,13 +19,12 @@ public:
 	Painter(const Painter&) = delete;
 	Painter& operator= (const Painter&) = delete;
 
-	// Uses 0.0-1.0 coordinates
-	RGBu8 get_pixel(int x, int y) const {
-		return mPixels[to_offset(x, y)];
+	RGBu8 get_pixel(ivec2 coords) const {
+		return mPixels[to_offset(coords)];
 	}
 
-	void set_pixel(int x, int y, RGBu8 val) {
-		mPixels[to_offset(x, y)] = val;
+	void set_pixel(ivec2 coords, RGBu8 val) {
+		mPixels[to_offset(coords)] = val;
 	}
 
 	void process_event(SDL_Event& event, ImGuiIO& io);
@@ -33,23 +33,24 @@ public:
 	void draw_ui();
 
 private:
-	void draw_circle(int x, int y, float radius, RGBu8 color);
+	void draw_circle(ivec2 position, float radius, RGBu8 color);
+	void draw_rod(ivec2 start, ivec2 end, float radius, RGBu8 color);
 
 	// Converts float X & Y coordinates to an offset into the pixel array
-	size_t to_offset(int x, int y) const {
-		assert(0 <= x && x < mWidth);
-		assert(0 <= y && y < mHeight);
-		assert(mPixels.size() == size_t(mWidth) * size_t(mHeight));
+	size_t to_offset(ivec2 coords) const {
+		assert(0 <= coords.x && coords.x < mDims.x);
+		assert(0 <= coords.y && coords.y < mDims.y);
+		assert(mPixels.size() == size_t(mDims.x) * size_t(mDims.y));
 		// Row offset: number of rows passed * number of pixels in a row
-		return size_t(y) * mWidth + x;
+		return size_t(coords.y) * mDims.x + coords.x;
 	}
 
-	// Invariant: size is width * height
-	int mWidth;
-	int mHeight;
+	// Invariant: dims.x * dims.y = mPixels.size();
+	ivec2 mDims;
 
-	// Whether the mouse is down, basically
-	bool mDrawing;
+	// If currently drawing: contains the starting stroke pixel position
+	// If not currently drawing: nullopt
+	std::optional<ivec2> mStrokeStart;
 
 	// The current brush radius
 	float mRadius;
