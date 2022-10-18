@@ -11,6 +11,7 @@
 #include "terrapainter/math.h"
 #include "learnopengl/camera.h"
 #include "learnopengl/mesh.h"
+#include "learnopengl/skybox.h"
 
 using namespace std;
 
@@ -102,6 +103,7 @@ int main(int argc, char *argv[])
   glViewport(0, 0, 800, 600);
 
   Shader shader("../cs4621/shaders/heightmap.vs", "../cs4621/shaders/heightmap.fs");
+  Shader skyboxShader("../cs4621/shaders/skybox.vs", "../cs4621/shaders/skybox.fs"); 
 
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
@@ -187,11 +189,6 @@ int main(int argc, char *argv[])
     vertices[i].Normal = normaldata[i];
   }
   
-  std::vector<vec3> n100(normaldata.begin()+ 400000, normaldata.begin() + 400020);
-  for (vec3 v: n100) {
-  std::cout << v << std::endl;
-  }
-
   std::vector<unsigned> indices;
   for (unsigned i = 0; i < height - 1; i += rez)
   {
@@ -207,12 +204,27 @@ int main(int argc, char *argv[])
 
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 
-  Mesh *map = new Mesh(vertices, indices);
+  Mesh* map = new Mesh(vertices, indices);
 
   const int numStrips = (height - 1) / rez;
   const int numTrisPerStrip = (width / rez) * 2 - 2;
   std::cout << "Created lattice of " << numStrips << " strips with " << numTrisPerStrip << " triangles each" << std::endl;
   std::cout << "Created " << numStrips * numTrisPerStrip << " triangles total" << std::endl;
+
+  vector<std::string> faces
+  {
+      "../cs4621/images/skybox/right.jpg",
+      "../cs4621/images/skybox/left.jpg",
+      "../cs4621/images/skybox/bottom.jpg",
+      "../cs4621/images/skybox/top.jpg",
+      "../cs4621/images/skybox/front.jpg",
+      "../cs4621/images/skybox/back.jpg",
+  };
+
+  Skybox* skybox = new Skybox(faces);
+  skybox->loadCubemap();
+  skyboxShader.use();
+  skyboxShader.setInt("skybox", 0);
 
   bool running = true;
   bool show_demo_window = true;
@@ -272,6 +284,15 @@ int main(int argc, char *argv[])
     shader.setVec3("viewPos", camera.Position);
 
     map->DrawStrips(numTrisPerStrip, numStrips);
+
+    // draw skybox as last
+    glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+    skyboxShader.use();
+    view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+    skyboxShader.setMat4("view", -view);
+    skyboxShader.setMat4("projection", projection);
+    skybox->Draw();
+    glDepthFunc(GL_LESS); // set depth function back to default
 
     // handle events
     while (SDL_PollEvent(&windowEvent))
