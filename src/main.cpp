@@ -14,7 +14,7 @@
 #include "terrapainter/shader_s.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
-#include "painter.h"
+#include "canvas.h"
 
 bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     if (windowEvent.type == SDL_QUIT) {
@@ -66,7 +66,7 @@ bool parse_cmdline(int argc, char* argv[], const std::span<CommandArg>& args) {
     return true;
 }
 
-void save_canvas(Painter& canvas) {
+void save_canvas(Canvas& canvas) {
     auto [width, height] = canvas.dimensions();
 
     fprintf(stderr, "[info] dumping texture...");
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 
     bool running = true;
 
-    Painter painter(viewportWidth, viewportHeight);
+    Canvas painter(viewportWidth, viewportHeight);
 
     // Run the event loop
     SDL_Event windowEvent;

@@ -1,4 +1,4 @@
-#include "painter.h"
+#include "canvas.h"
 #include "imgui/imgui.h"
 
 static float SCREENSPACE_QUAD[] = {
@@ -33,7 +33,7 @@ static void init_canvas(GLuint framebuffer, GLuint texture, GLenum internalForma
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
-Painter::CompositeShader::CompositeShader() {
+Canvas::CompositeShader::CompositeShader() {
     mProgram = g_shaderMgr.graphics("canvas_composite");
     glUseProgram(mProgram);
     mBlendModeLocation = glGetUniformLocation(mProgram, "u_blendMode");
@@ -42,7 +42,7 @@ Painter::CompositeShader::CompositeShader() {
     mLayerTintLocation = glGetUniformLocation(mProgram, "u_layerTint");
     glUseProgram(0);
 }
-void Painter::CompositeShader::use(int blendMode, GLuint baseT, GLuint layerT, vec3 layerTint) {
+void Canvas::CompositeShader::use(int blendMode, GLuint baseT, GLuint layerT, vec3 layerTint) {
     glUseProgram(mProgram);
     glUniform1i(mBlendModeLocation, blendMode);
     glUniform1i(mBaseTextureLocation, 0);
@@ -64,7 +64,7 @@ std::pair<ivec2, ivec2> get_region_bounds(ivec2 dims, ivec2 coord, int radius) {
     return { ivec2{left, bottom}, ivec2 {right, top} };
 }
 
-Painter::StrokeShader::StrokeShader() {
+Canvas::StrokeShader::StrokeShader() {
     mProgram = g_shaderMgr.compute("canvas_stroke");
     glUseProgram(mProgram);
     mSdfLocation = glGetUniformLocation(mProgram, "u_sdf");
@@ -75,7 +75,7 @@ Painter::StrokeShader::StrokeShader() {
     mF2Location = glGetUniformLocation(mProgram, "u_f2");
     glUseProgram(0);
 }
-void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1, float f2) {
+void Canvas::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sdf, ivec2 v1, ivec2 v2, float f1, float f2) {
     glUseProgram(mProgram);
     glBindImageTexture(0, dest, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
     glUniform1i(mSdfLocation, sdf);
@@ -87,11 +87,11 @@ void Painter::StrokeShader::submit(GLuint dest, ivec2 origin, ivec2 size, int sd
     glDispatchCompute( (size.x + 7) / 8, (size.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
-void Painter::StrokeShader::draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius) {
+void Canvas::StrokeShader::draw_circle(GLuint dest, ivec2 dims, ivec2 center, float radius) {
     auto [min, max] = get_region_bounds(dims, center, radius);
     submit(dest, min, max-min, 0, center, ivec2::zero(), radius, 0);
 }
-void Painter::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, ivec2 endPos, float startRadius, float endRadius) {
+void Canvas::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, ivec2 endPos, float startRadius, float endRadius) {
     ivec2 min, max;
     {
         auto bStart = get_region_bounds(dims, startPos, int(startRadius + 0.5));
@@ -102,7 +102,7 @@ void Painter::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, iv
     submit(dest, min, max - min, 1, startPos, endPos, startRadius, endRadius);
 }
 
-Painter::Painter(int width, int height)
+Canvas::Canvas(int width, int height)
     : mDims(width, height),
     mStrokeState(std::nullopt),
     mRadius(20.0f),
@@ -151,7 +151,7 @@ Painter::Painter(int width, int height)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-Painter::~Painter() {
+Canvas::~Canvas() {
     GLuint textures[3] = { mBaseT, mBufferT, mStrokeT };
     glDeleteTextures(3, textures);
     glDeleteFramebuffers(1, &mFramebuffer);
@@ -159,7 +159,7 @@ Painter::~Painter() {
     glDeleteBuffers(1, &mVBO);
 }
 
-void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
+void Canvas::process_event(SDL_Event& event, ImGuiIO& io) {
     if (io.WantCaptureMouse) {
         return;
     }
@@ -193,7 +193,7 @@ void Painter::process_event(SDL_Event& event, ImGuiIO& io) {
     }
 }
 
-void Painter::draw_ui() {
+void Canvas::draw_ui() {
     if (ImGui::Begin("Paint Controls", nullptr, 0)) {
         float height = mColor.x;
         ImGui::SliderFloat("Height", &height, 0.0f, 1.0f, "%.3f");
@@ -208,7 +208,7 @@ void Painter::draw_ui() {
     ImGui::End();
 }
 
-void Painter::commit() {
+void Canvas::commit() {
     GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
@@ -231,7 +231,7 @@ void Painter::commit() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-void Painter::draw() {
+void Canvas::draw() {
     int x, y;
     SDL_GetMouseState(&x, &y);
     vec2 center = vec2{ x, mDims.y - y };
@@ -248,7 +248,7 @@ void Painter::draw() {
 
 }
 
-std::vector<RGBu8> Painter::dump_texture() const {
+std::vector<RGBu8> Canvas::dump_texture() const {
     size_t numPixels = size_t(mDims.x) * size_t(mDims.y);
     std::vector<RGBu8> pixels(numPixels);
     pixels.resize(numPixels);

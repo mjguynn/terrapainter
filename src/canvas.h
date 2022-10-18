@@ -8,14 +8,13 @@
 #include "terrapainter/pixel.h"
 #include "shaders/screenspace_circle.h"
 
-// NOTE: A lot of this could be refactored into a general image type
-class Painter {
+class Canvas {
 public:
-	Painter(int width, int height);
-	~Painter();
+	Canvas(int width, int height);
+	~Canvas();
 
-	Painter(const Painter&) = delete;
-	Painter& operator= (const Painter&) = delete;
+	Canvas(const Canvas&) = delete;
+	Canvas& operator= (const Canvas&) = delete;
 
 	void process_event(SDL_Event& event, ImGuiIO& io);
 
