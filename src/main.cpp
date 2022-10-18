@@ -80,6 +80,10 @@ class Config {
         mWindowX -= std::max(0, mWindowX + mViewportWidth - mScreenWidth);
         mWindowY -= std::max(0, mWindowY + mViewportHeight - mScreenHeight);
     }
+
+    bool is_fullscreen() const {
+        return mViewportWidth == mScreenWidth && mViewportHeight == mScreenHeight;
+    }
 public:
     // REQUIRES SDL to be init.
     Config(int defX, int defY, int defW, int defH, int screenW, int screenH, int argc, char* argv[])
@@ -127,10 +131,17 @@ public:
     int gl_width() const { return mViewportWidth;}
     int gl_height() const { return mViewportHeight;}
     int window_x() const { return mWindowX; }
-    int window_y() const { return mWindowY; }
+    int window_y() const { 
+        if (mWindowY == 0 && !is_fullscreen()) {
+            // We want a border!
+            return mWindowY + 40;
+        } else {
+            return mWindowY;
+        }
+    }
     int window_width() const { return mViewportWidth; }
     int window_height() const {
-        if (mViewportWidth == mScreenWidth && mViewportHeight == mScreenHeight) {
+        if (is_fullscreen()) {
             // Clearly, the user is *trying* to make a fullscreen window.
             // Since we're debugging we want the app to be fast to start.
             // But Windows goes "oh fullscreen app clearly it's a Video Game
@@ -160,11 +171,11 @@ void ui_load_canvas(SDL_Window* window, Config& cfg, Canvas& canvas) {
         SDL_GetWindowPosition(window, &x, &y);
         cfg.set_position(x, y);
         cfg.set_from_image(path.get());
-        glViewport(cfg.window_x(), cfg.window_y(), cfg.gl_width(), cfg.gl_height());
+        SDL_SetWindowPosition(window, cfg.window_x(), cfg.window_y());
+        SDL_SetWindowSize(window, cfg.window_width(), cfg.window_height());
+        glViewport(0, 0, cfg.gl_width(), cfg.gl_height());
         canvas.~Canvas();
         new(&canvas) Canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
-        SDL_SetWindowSize(window, cfg.window_width(), cfg.window_height());
-        SDL_SetWindowPosition(window, cfg.window_x(), cfg.window_y());
     }
 }
 void ui_save_canvas(Canvas& canvas) {
@@ -263,7 +274,7 @@ int main(int argc, char *argv[])
 
     bool running = true;
 
-    Canvas painter(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
+    Canvas canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
 
     // Run the event loop
     SDL_Event windowEvent;
@@ -280,21 +291,18 @@ int main(int argc, char *argv[])
                     g_shaderMgr.refresh();
                 }
                 else if (ctrl && pressed == SDLK_o) {
-                    ui_load_canvas(window, cfg, painter);
+                    ui_load_canvas(window, cfg, canvas);
                 }
                 else if (ctrl && pressed == SDLK_s) {
-                    ui_save_canvas(painter);
+                    ui_save_canvas(canvas);
                 }
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
-            painter.process_event(windowEvent, io);
+            canvas.process_event(windowEvent, io);
             // This makes dragging windows feel snappy
             io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
             if (should_quit(window, windowEvent)) {
                 running = false;
-            }
-            else if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                glViewport(0, 0, windowEvent.window.data1, windowEvent.window.data2);
             }
         }
 
@@ -302,13 +310,29 @@ int main(int argc, char *argv[])
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        painter.draw();
+        canvas.draw();
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        painter.draw_ui();
+        canvas.draw_ui();
+
+        /*if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("New")) {
+                    TODO();
+                }
+                if (ImGui::MenuItem("Load")) {
+                    ui_load_canvas(window, cfg, canvas);
+                }
+                if (ImGui::MenuItem("Save")) {
+                    ui_save_canvas(canvas);
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }*/
         ImGui::ShowMetricsWindow();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
