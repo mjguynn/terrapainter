@@ -11,7 +11,9 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 #include "nfd.hpp"
-#include "terrapainter/shader_s.h"
+#include "learnopengl/shader_m.h"
+#include "learnopengl/camera.h"
+#include "learnopengl/mesh.h"
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
 #include "canvas.h"
@@ -203,6 +205,130 @@ void ui_save_canvas(Canvas& canvas) {
     }
 }
 
+Mesh canvas_to_map(const Canvas& canvas) {
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    auto [width, height] = canvas.dimensions();
+    auto pixels = canvas.dump_texture();
+
+    std::vector<Vertex> vertices;
+    float yScale = 96.0f / 256.0f, yShift = 16.0f;
+    int rez = 1;
+    unsigned bytePerPixel = 3;
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            unsigned char* pixelOffset = (unsigned char*)pixels.data() + (j + width * i) * bytePerPixel;
+            unsigned char y = pixelOffset[0];
+
+            vertices.push_back(
+                Vertex{
+                    .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)
+                }
+            );
+        }
+    }
+    fprintf(stderr,"[info] generated %llu vertices \n",vertices.size() / 3);
+
+    // ------------------ Normal (start)-------------------------
+
+    // facedata[i] is the vertex index for face i // 3
+    std::vector<unsigned int> facedata;
+    // loading each face in
+    for (int i = 0; i < height - 1; i++)
+    {
+        for (int j = 0; j < width - 1; j++)
+        {
+            facedata.push_back(i * width + j);
+            facedata.push_back(i * width + j + 1);
+            facedata.push_back((i + 1) * width + j);
+            facedata.push_back(i * width + j + 1);
+            facedata.push_back((i + 1) * width + j + 1);
+            facedata.push_back((i + 1) * width + j);
+        }
+    }
+
+    // normal[i] is the vec3 normal of vertices[i]
+    std::vector<vec3> normaldata;
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        normaldata.push_back(vec3(0));
+    }
+
+    for (int i = 0; i < facedata.size(); i += 3)
+    {
+        vec3 v1 = vertices.at(facedata.at(i)).Position;
+        vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
+        vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
+
+        vec3 side1 = v2 - v1;
+        vec3 side2 = v3 - v1;
+        vec3 normal = cross(side1, side2);
+
+        normaldata[facedata.at(i)] += normal;
+        normaldata[facedata.at(i + 1)] += normal;
+        normaldata[facedata.at(i + 2)] += normal;
+    }
+
+
+    for (int i = 0; i < normaldata.size(); i += 1)
+    {
+        normaldata[i] = normaldata[i].normalize();
+        vertices[i].Normal = normaldata[i];
+    }
+
+    std::vector<vec3> n100(normaldata.begin() + 400000, normaldata.begin() + 400020);
+    for (vec3 v : n100) {
+        std::cout << v << std::endl;
+    }
+
+    std::vector<unsigned> indices;
+    for (unsigned i = 0; i < height - 1; i += rez)
+    {
+        for (unsigned j = 0; j < width; j += rez)
+        {
+            for (unsigned k = 0; k < 2; k++)
+            {
+                indices.push_back(j + width * (i + k * rez));
+            }
+        }
+    }
+    // ------------------- Normal(End) -----------------
+
+    const int numStrips = (height - 1) / rez;
+    const int numTrisPerStrip = (width / rez) * 2 - 2;
+    fprintf(stderr, "[info] loaded %llu indices\n", indices.size());
+
+    return Mesh(vertices, indices, numTrisPerStrip, numStrips);
+    
+    fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
+    fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
+}
+void draw_world(const Config& cfg, Camera& camera, Shader& shader, Mesh& map) {
+    shader.use();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)cfg.gl_width() / (float)cfg.gl_height(), 0.1f, 100000.0f);
+    shader.setMat4("projection", projection);
+
+    // Camera View
+    glm::mat4 view = camera.GetViewMatrix();
+    shader.setMat4("view", view);
+
+    // World Transformation
+    glm::mat4 model = glm::mat4(1.0f);
+    shader.setMat4("model", model);
+
+    shader.setVec3("LightDir", glm::vec3(0.0f, -5.0, 0.0f));
+    shader.setVec3("viewPos", camera.Position);
+
+    map.DrawStrips();
+}
+enum ModalState {
+    MODE_CANVAS,
+    MODE_WORLD,
+    MODE_STOP,
+};
+
 int main(int argc, char *argv[])
 {
     // Initialize SDL
@@ -268,55 +394,114 @@ int main(int argc, char *argv[])
 
     // Set viewport
     glViewport(0, 0, cfg.gl_width(), cfg.gl_height());
+    // Enable depth test (for 3D)
+    glEnable(GL_DEPTH_TEST);
     // Enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    bool running = true;
+    ModalState state = MODE_CANVAS;
+
+    // ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
+    Camera camera(glm::vec3(0.0f, 400.0f, 0.0f));
+    float deltaTime = 0.0f; // time between current frame and last frame
+    float lastFrame = 0.0f;
+    // ------------------- (END) -----------------
 
     Canvas canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
+    std::optional<Mesh> map = std::nullopt;
+    Shader worldShader("shaders/heightmap.vs", "shaders/heightmap.fs");
 
     // Run the event loop
     SDL_Event windowEvent;
-    while (running)
+    while (state != MODE_STOP)
     {
+        float currentFrame = static_cast<float>(SDL_GetTicks64()) * 0.001f;
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         // handle events
         while (SDL_PollEvent(&windowEvent))
         {
+            const Uint8* keys = SDL_GetKeyboardState(nullptr);
             if (windowEvent.type == SDL_KEYDOWN) {
-                const Uint8* state = SDL_GetKeyboardState(nullptr);
                 auto pressed = windowEvent.key.keysym.sym;
-                auto ctrl = state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL];
+                auto ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
                 if (pressed == SDLK_F5) {
                     g_shaderMgr.refresh();
-                }
-                else if (ctrl && pressed == SDLK_o) {
+                } else if (ctrl && pressed == SDLK_o) {
                     ui_load_canvas(window, cfg, canvas);
-                }
-                else if (ctrl && pressed == SDLK_s) {
+                } else if (ctrl && pressed == SDLK_s) {
                     ui_save_canvas(canvas);
+                } else if (pressed == SDLK_TAB) {
+                    // TODO: Refactor this!
+                    if (state == MODE_CANVAS) {
+                        // switch to world
+                        state = MODE_WORLD;
+                        map = canvas_to_map(canvas);
+                        SDL_SetRelativeMouseMode(SDL_TRUE);
+                    } else if (state == MODE_WORLD) {
+                        // switch to canvas
+                        state = MODE_CANVAS;
+                        map = std::nullopt;
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                    }
                 }
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
-            canvas.process_event(windowEvent, io);
+
+            if (state == MODE_CANVAS) canvas.process_event(windowEvent, io);
+            if (state == MODE_WORLD) {
+                if (windowEvent.type == SDL_MOUSEMOTION)
+                {
+                    camera.ProcessMouseMovement(windowEvent.motion.xrel, -windowEvent.motion.yrel);
+                }
+                else if (windowEvent.type == SDL_MOUSEWHEEL)
+                {
+                    camera.ProcessMouseScroll(static_cast<float>(windowEvent.wheel.y));
+                }
+                if (keys[SDL_SCANCODE_UP])
+                {
+                    camera.ProcessKeyboard(FORWARD, deltaTime);
+                }
+                else if (keys[SDL_SCANCODE_DOWN])
+                {
+                    camera.ProcessKeyboard(BACKWARD, deltaTime);
+                }
+                else if (keys[SDL_SCANCODE_LEFT])
+                {
+                    camera.ProcessKeyboard(LEFT, deltaTime);
+                }
+                else if (keys[SDL_SCANCODE_RIGHT])
+                {
+                    camera.ProcessKeyboard(RIGHT, deltaTime);
+                }
+            }
+
             // This makes dragging windows feel snappy
             io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
             if (should_quit(window, windowEvent)) {
-                running = false;
+                state = MODE_STOP;
             }
         }
 
         // Render scene
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        
-        canvas.draw();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Draw geometry with depth testing
+        glDepthFunc(GL_LESS);
+        if (state == MODE_WORLD) draw_world(cfg, camera, worldShader, map.value());
+
+        // Draw UI without depth testing
+        glDepthFunc(GL_ALWAYS);
+        if (state == MODE_CANVAS) canvas.draw();
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        canvas.draw_ui();
+        if (state == MODE_CANVAS) canvas.draw_ui();
 
         /*if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
