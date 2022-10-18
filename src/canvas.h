@@ -10,7 +10,7 @@
 
 class Canvas {
 public:
-	Canvas(int width, int height);
+	Canvas(int width, int height, unsigned char* pixels);
 	~Canvas();
 
 	Canvas(const Canvas&) = delete;

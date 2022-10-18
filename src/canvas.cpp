@@ -9,24 +9,25 @@ static float SCREENSPACE_QUAD[] = {
     +1.0f,  +1.0f, 0.0f, 1.0f,   1.0f, 1.0f,
 };
 
-// Sets up & zero-initializes a canvas texture.
-static void init_canvas(GLuint framebuffer, GLuint texture, GLenum internalFormat, GLenum format, int width, int height) {
-    // Bind framebuffer, we'll be using it for initialization...
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
-
-    // Setup canvas texture
+static void init_canvas_texture(GLuint texture, GLenum internalFormat, GLenum format, int width, int height, unsigned char* pixels = nullptr) {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
 
+static void fill_canvas_texture(GLuint framebuffer, GLuint texture, vec4 value) {
+    // Bind framebuffer, we'll be using it for initialization...
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+    glBindTexture(GL_TEXTURE_2D, texture);
+   
     // Zero-initialize canvas texture
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    glClearBufferfv(GL_COLOR, 0, clearColor);
+    glClearBufferfv(GL_COLOR, 0, reinterpret_cast<const float*>(&value.x));
 
     // Reset texture & framebuffer
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -102,7 +103,7 @@ void Canvas::StrokeShader::draw_rod(GLuint dest, ivec2 dims, ivec2 startPos, ive
     submit(dest, min, max - min, 1, startPos, endPos, startRadius, endRadius);
 }
 
-Canvas::Canvas(int width, int height)
+Canvas::Canvas(int width, int height, unsigned char* pixels)
     : mDims(width, height),
     mStrokeState(std::nullopt),
     mRadius(20.0f),
@@ -128,9 +129,12 @@ Canvas::Canvas(int width, int height)
     mBufferT = textures[1];
     mStrokeT = textures[2];
     
-    init_canvas(mFramebuffer, mBaseT, GL_RGB8, GL_RGB, width, height);
-    init_canvas(mFramebuffer, mBufferT, GL_RGB8, GL_RGB, width, height);
-    init_canvas(mFramebuffer, mStrokeT, GL_R8, GL_RED, width, height);
+    init_canvas_texture(mBaseT, GL_RGB8, GL_RGB, width, height, pixels);
+    if (!pixels) fill_canvas_texture(mFramebuffer, mBaseT, vec4::zero());
+    init_canvas_texture(mBufferT, GL_RGB8, GL_RGB, width, height);
+    fill_canvas_texture(mFramebuffer, mBufferT, vec4::zero());
+    init_canvas_texture( mStrokeT, GL_R8, GL_RED, width, height);
+    fill_canvas_texture(mFramebuffer, mStrokeT, vec4::zero());
 
     // TODO: Refactor this with a more general mesh class
     glGenVertexArrays(1, &mVAO);

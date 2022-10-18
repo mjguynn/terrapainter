@@ -66,7 +66,108 @@ bool parse_cmdline(int argc, char* argv[], const std::span<CommandArg>& args) {
     return true;
 }
 
-void save_canvas(Canvas& canvas) {
+class Config {
+    int mWindowX;
+    int mWindowY;
+    int mViewportWidth;
+    int mViewportHeight;
+    stbi_uc* mTextureData;
+    int mScreenWidth;
+    int mScreenHeight;
+
+    // Try to make all of the window visible
+    void adjust_coords() {
+        mWindowX -= std::max(0, mWindowX + mViewportWidth - mScreenWidth);
+        mWindowY -= std::max(0, mWindowY + mViewportHeight - mScreenHeight);
+    }
+public:
+    // REQUIRES SDL to be init.
+    Config(int defX, int defY, int defW, int defH, int screenW, int screenH, int argc, char* argv[])
+        : mWindowX(defX),
+        mWindowY(defY),
+        mViewportWidth(defW),
+        mViewportHeight(defH),
+        mTextureData(nullptr),
+        mScreenWidth(screenW),
+        mScreenHeight(screenH)
+    {
+        const char* canvasInput = nullptr;
+        std::array<CommandArg, 5> args = {
+            CommandArg { "-w", "--width", true, [&](const char* w) {mViewportWidth = std::stoi(w); }},
+            CommandArg { "-h", "--height", true, [&](const char* h) {mViewportHeight = std::stoi(h); }},
+            CommandArg { "-x", "--xpos", true, [&](const char* x) {mWindowX = std::stoi(x); }},
+            CommandArg { "-y", "--ypos", true, [&](const char* y) {mWindowY = std::stoi(y); }},
+            CommandArg { "-i", "--input", true, [&](const char* ci) {canvasInput = ci; } }
+        };
+
+        if (!parse_cmdline(argc, argv, args)) std::exit(-1);
+        if (canvasInput) set_from_image(canvasInput);
+        adjust_coords();
+    }
+    ~Config() noexcept {
+        if (mTextureData) stbi_image_free(mTextureData);
+    }
+    void set_from_image(const char* path) {
+        if (mTextureData) stbi_image_free(mTextureData);
+        if (!path) return;
+        mTextureData = stbi_load(path, &mViewportWidth, &mViewportHeight, nullptr, 3);
+        if (!mTextureData) {
+            fprintf(stderr, "[error] error loading heightmap: \"%s\"\n", path);
+            fprintf(stderr, "[details] %s\n", stbi_failure_reason());
+        } else {
+            fprintf(stderr, "[info] loaded heightmap \"%s\"\n", path);
+        }
+        adjust_coords();
+    }
+    void set_position(int x, int y) {
+        mWindowX = x;
+        mWindowY = y;
+    }
+
+    int gl_width() const { return mViewportWidth;}
+    int gl_height() const { return mViewportHeight;}
+    int window_x() const { return mWindowX; }
+    int window_y() const { return mWindowY; }
+    int window_width() const { return mViewportWidth; }
+    int window_height() const {
+        if (mViewportWidth == mScreenWidth && mViewportHeight == mScreenHeight) {
+            // Clearly, the user is *trying* to make a fullscreen window.
+            // Since we're debugging we want the app to be fast to start.
+            // But Windows goes "oh fullscreen app clearly it's a Video Game
+            // let me put it in Exclusive Fullscreen Mode which makes your
+            // screen lock up for like 5 seconds and then 5 seconds more
+            // every time you Alt-Tab™ surely that's a good idea"
+            // ... to get around this we just fudge the height a bit
+            return mViewportHeight + 1;
+        }
+        else {
+            return mViewportHeight;
+        }
+    }
+
+    // Possibly nullptr
+    unsigned char* texture_data() const { return mTextureData;  }
+};
+
+void ui_load_canvas(SDL_Window* window, Config& cfg, Canvas& canvas) {
+    nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
+    NFD::UniquePathU8 path = nullptr;
+    auto res = NFD::OpenDialog(path, filters, 1);
+    if (res == NFD_ERROR) {
+        fprintf(stderr, "[error] internal error (load dialog)");
+    } else if (res == NFD_OKAY) {
+        int x, y;
+        SDL_GetWindowPosition(window, &x, &y);
+        cfg.set_position(x, y);
+        cfg.set_from_image(path.get());
+        glViewport(cfg.window_x(), cfg.window_y(), cfg.gl_width(), cfg.gl_height());
+        canvas.~Canvas();
+        new(&canvas) Canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
+        SDL_SetWindowSize(window, cfg.window_width(), cfg.window_height());
+        SDL_SetWindowPosition(window, cfg.window_x(), cfg.window_y());
+    }
+}
+void ui_save_canvas(Canvas& canvas) {
     auto [width, height] = canvas.dimensions();
 
     fprintf(stderr, "[info] dumping texture...");
@@ -85,8 +186,7 @@ void save_canvas(Canvas& canvas) {
 
     if (res == NFD_ERROR) {
         fprintf(stderr, "[error] internal error (save dialog)\n");
-    }
-    else if (res == NFD_OKAY) {
+    } else if (res == NFD_OKAY) {
         stbi_write_png(path.get(), width, height, 3, pixels.data(), width * sizeof(RGBu8));
         fprintf(stderr, "[info] image saved to \"%s\"\n", path.get());
     }
@@ -94,28 +194,16 @@ void save_canvas(Canvas& canvas) {
 
 int main(int argc, char *argv[])
 {
-    int windowX = 100;
-    int windowY = 100;
-    int viewportWidth = 800;
-    int viewportHeight = 600;
-
-    std::vector<CommandArg> args = {
-        CommandArg { "-w", "--width", true, [&](const char* w) {viewportWidth = std::stoi(w);}},
-        CommandArg { "-h", "--height", true, [&](const char* h) {viewportHeight = std::stoi(h);}},
-        CommandArg { "-x", "--xpos", true, [&](const char* x) {windowX = std::stoi(x); }},
-        CommandArg { "-y", "--ypos", true, [&](const char* y) {windowY = std::stoi(y); }},
-    };
-
-    if (!parse_cmdline(argc, argv, args)) {
-        std::exit(-1);
-    }
-
     // Initialize SDL
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "1");
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
     {
         error("Failed to initialize SDL: %s\n", SDL_GetError());
     }
+
+    SDL_DisplayMode displayMode;
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    Config cfg(100, 100, 800, 600, displayMode.w, displayMode.h, argc, argv);
 
     // Set version
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -127,27 +215,12 @@ int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    SDL_DisplayMode displayMode;
-    SDL_GetCurrentDisplayMode(0, &displayMode);
-    auto screenWidth = displayMode.w;
-    auto screenHeight = displayMode.h;
-    int fakeViewportHeight = viewportHeight;
-    if (viewportWidth == screenWidth && viewportHeight == screenHeight) {
-        // Clearly, the user is *trying* to make a fullscreen window.
-        // Since we're debugging we want the app to be fast to start.
-        // But Windows goes "oh fullscreen app clearly it's a Video Game
-        // let me put it in Exclusive Fullscreen Mode which makes your
-        // screen lock up for like 5 seconds and then 5 seconds more
-        // every time you Alt-Tab™ surely that's a good idea"
-        // ... to get around this we just fudge the height a bit
-        fakeViewportHeight +=1;
-    }
     SDL_Window *window = SDL_CreateWindow(
         "Terrapainter", 
-        windowX, 
-        windowY, 
-        viewportWidth, 
-        fakeViewportHeight,
+        cfg.window_x(),
+        cfg.window_y(),
+        cfg.window_width(),
+        cfg.window_height(),
         SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
@@ -183,14 +256,14 @@ int main(int argc, char *argv[])
     stbi_flip_vertically_on_write(1);
 
     // Set viewport
-    glViewport(0, 0, viewportWidth, viewportHeight);
+    glViewport(0, 0, cfg.gl_width(), cfg.gl_height());
     // Enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     bool running = true;
 
-    Canvas painter(viewportWidth, viewportHeight);
+    Canvas painter(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
 
     // Run the event loop
     SDL_Event windowEvent;
@@ -207,10 +280,10 @@ int main(int argc, char *argv[])
                     g_shaderMgr.refresh();
                 }
                 else if (ctrl && pressed == SDLK_o) {
-                    TODO();
+                    ui_load_canvas(window, cfg, painter);
                 }
                 else if (ctrl && pressed == SDLK_s) {
-                    save_canvas(painter);
+                    ui_save_canvas(painter);
                 }
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
@@ -260,5 +333,7 @@ int main(int argc, char *argv[])
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    fprintf(stderr, "[info] clean shutdown\n");
     return 0;
 }
