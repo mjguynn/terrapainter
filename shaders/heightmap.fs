@@ -1,8 +1,12 @@
 #version 330 core
 out vec4 FragColor;
 
-in float Height; // from -16 to 48
+in float Height; // from -16 to 80
 in vec3 Normal;
+in vec3 FragPos; // in world coordinates
+
+uniform vec3 LightDir;
+uniform vec3 viewPos;
 
 vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	float t = (curh - minh) / (maxh - minh);
@@ -11,8 +15,7 @@ vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	return mix(c1, c2, mix(v1, v2, t));
 }
 
-void main()
-{
+vec3 getColorByHeight(float Height) {
 	vec3 color;
 	vec3 ppeak = vec3(213.0, 213.0, 213.0) / 255;
 	vec3 peak = vec3(168.0,198.0,249.0) / 255;
@@ -39,5 +42,36 @@ void main()
 	} else {
 		color = c_smoothstep(dwater, water, Height, -16, -4);
 	}
+	return color;
+}
+
+void main()
+{
+	vec3 LightColor = vec3(1.0, 1.0, 1.0);
+
+	vec3 color = getColorByHeight(Height);
+
+	// ambiance
+	float ambientStrength = 0.05;
+	vec3 ambientColor = ambientStrength * LightColor;
+
+	// diffuse
+	vec3 norm = normalize(Normal);
+	vec3 lightDir = normalize(LightDir);
+	float diff = max(dot(norm, -lightDir), 0.0);
+	vec3 diffuseColor = diff * LightColor;
+
+	// specular
+	float specularStrength = 0.1;
+	if (Height <= 0 || Height >= 65) {
+		specularStrength = 0.5;
+	}
+	vec3 viewDir = normalize(viewPos - FragPos);
+	vec3 reflectDir = reflect(lightDir, norm);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specularColor = specularStrength * spec * LightColor;
+
+	color = (ambientColor + diffuseColor + specularColor) * color;	
+
 	FragColor = vec4(color, 1.0);
 }

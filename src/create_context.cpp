@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
   // ------------------ Normal (start)-------------------------
 
-  // Every 3 consecutive element defines a face.
+  // facedata[i] is the vertex index for face i // 3
   std::vector<unsigned int> facedata;
   // loading each face in
   for (int i = 0; i < height - 1; i++)
@@ -153,12 +153,12 @@ int main(int argc, char *argv[])
       facedata.push_back(i * width + j + 1);
       facedata.push_back((i + 1) * width + j);
       facedata.push_back(i * width + j + 1);
-      facedata.push_back((i + 1) * width + j);
       facedata.push_back((i + 1) * width + j + 1);
+      facedata.push_back((i + 1) * width + j);
     }
   }
 
-  // normal of every vertice
+  // normal[i] is the vec3 normal of vertices[i]
   std::vector<vec3> normaldata;
   for (int i = 0; i < vertices.size(); i++)
   {
@@ -173,17 +173,23 @@ int main(int argc, char *argv[])
 
     vec3 side1 = v2 - v1;
     vec3 side2 = v3 - v1;
-    vec3 normal = cross(side2, side1);
+    vec3 normal = cross(side1, side2);
 
     normaldata[facedata.at(i)] += normal;
     normaldata[facedata.at(i + 1)] += normal;
     normaldata[facedata.at(i + 2)] += normal;
   }
 
+
   for (int i = 0; i < normaldata.size(); i += 1)
   {
     normaldata[i] = normaldata[i].normalize();
     vertices[i].Normal = normaldata[i];
+  }
+  
+  std::vector<vec3> n100(normaldata.begin()+ 400000, normaldata.begin() + 400020);
+  for (vec3 v: n100) {
+  std::cout << v << std::endl;
   }
 
   std::vector<unsigned> indices;
@@ -262,21 +268,10 @@ int main(int argc, char *argv[])
     glm::mat4 model = glm::mat4(1.0f);
     shader.setMat4("model", model);
 
+    shader.setVec3("LightDir", glm::vec3(0.0f, -5.0, 0.0f));
+    shader.setVec3("viewPos", camera.Position);
+
     map->DrawStrips(numTrisPerStrip, numStrips);
-
-    // // render boxes
-    // glBindVertexArray(VAO);
-    // for (unsigned int i = 0; i < 10; i++)
-    // {
-    //   // calculate the model matrix for each object and pass it to shader before drawing
-    //   glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-    //   model = glm::translate(model, cubePositions[i]);
-    //   float angle = 20.0f * i;
-    //   model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-    //   shader.setMat4("model", model);
-
-    //   glDrawArrays(GL_TRIANGLES, 0, 36);
-    // }
 
     // handle events
     while (SDL_PollEvent(&windowEvent))
