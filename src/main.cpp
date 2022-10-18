@@ -66,6 +66,32 @@ bool parse_cmdline(int argc, char* argv[], const std::span<CommandArg>& args) {
     return true;
 }
 
+void save_canvas(Painter& canvas) {
+    auto [width, height] = canvas.dimensions();
+
+    fprintf(stderr, "[info] dumping texture...");
+    auto pixels = canvas.dump_texture();
+    fprintf(stderr, " complete\n");
+
+    nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
+    NFD::UniquePathU8 path = nullptr;
+    auto res = NFD::SaveDialog(
+        path,
+        filters,
+        1,
+        nullptr,
+        "output.png"
+    );
+
+    if (res == NFD_ERROR) {
+        fprintf(stderr, "[error] internal error (save dialog)\n");
+    }
+    else if (res == NFD_OKAY) {
+        stbi_write_png(path.get(), width, height, 3, pixels.data(), width * sizeof(RGBu8));
+        fprintf(stderr, "[info] image saved to \"%s\"\n", path.get());
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int windowX = 100;
@@ -180,26 +206,11 @@ int main(int argc, char *argv[])
                 if (pressed == SDLK_F5) {
                     g_shaderMgr.refresh();
                 }
+                else if (ctrl && pressed == SDLK_o) {
+                    TODO();
+                }
                 else if (ctrl && pressed == SDLK_s) {
-                    fprintf(stderr, "[info] dumping texture...");
-                    auto pixels = painter.dump_texture();
-                    fprintf(stderr, " complete\n");
-
-                    nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
-                    NFD::UniquePathU8 path = nullptr;
-                    auto res = NFD::SaveDialog(
-                        path, 
-                        filters, 
-                        1, 
-                        nullptr, 
-                        "output.png"
-                    );
-
-                    if (res == NFD_ERROR) {
-                        fprintf(stderr, "[error] internal error (save dialog)");
-                    } else if (res == NFD_OKAY) {
-                        stbi_write_png(path.get(), viewportWidth, viewportHeight, 3, pixels.data(), viewportWidth * sizeof(RGBu8));
-                    }
+                    save_canvas(painter);
                 }
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);

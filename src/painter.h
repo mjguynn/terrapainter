@@ -18,7 +18,11 @@ public:
 	Painter& operator= (const Painter&) = delete;
 
 	void process_event(SDL_Event& event, ImGuiIO& io);
-	
+
+	ivec2 dimensions() const {
+		return mDims;
+	}
+
 	// Retrieve the current texture from the GPU.
 	// This is an expensive operation.
 	std::vector<RGBu8> dump_texture() const;
