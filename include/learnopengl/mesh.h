@@ -30,11 +30,11 @@ public:
     this->mNumStrips = numStrips;
     setupMesh();
   }
-  ~Mesh() noexcept {
+  /*~Mesh() noexcept {
       glDeleteVertexArrays(1, &VAO);
       glDeleteBuffers(1, &VBO);
       glDeleteBuffers(1, &EBO);
-  }
+  }*/
   void Draw(GLenum mode)
   {
     // TODO
