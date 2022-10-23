@@ -886,7 +886,7 @@ TEST_CASE("Matrix inverse", "[linalg]") {
 		REQUIRE(aeq(r3.inverse(), r3_inv, 1e6f));
 	}
 }
-TEST_CASE("Convenience constructors", "[linalg]") {
+TEST_CASE("Matrix convenience constructors", "[linalg]") {
 	SECTION("Uniform scale") {
 		mat3 us = mat3::scale(7);
 		REQUIRE(us == mat3::ident() * 7);
@@ -897,4 +897,19 @@ TEST_CASE("Convenience constructors", "[linalg]") {
 		mat2 ds = mat2::diag(3, -1);
 		REQUIRE(ds == mat2{ 3, 0, 0, -1 });
 	}
+}
+TEST_CASE("Matrix homogenize", "[linalg]") {
+	mat3 random = {
+		6.2, 0, -17,
+		1, 2, 3,
+		4, 8, 12
+	};
+	mat4 random_h = {
+		6.2, 0, -17, 0,
+		1, 2, 3, 0,
+		4, 8, 12, 0,
+		0, 0, 0, 1
+	};
+	REQUIRE(random.hmg() == random_h);
+
 }

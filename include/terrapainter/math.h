@@ -429,6 +429,16 @@ namespace math {
 			return mat;
 		}
 
+		// Homogenize a matrix
+		constexpr MMatrix<T, M+1, N+1> hmg() const requires(M == N) {
+			auto mat = MMatrix<T, M + 1, N + 1>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				mat.set_row(i, (*this).row(i).extend<N+1>(0));
+			}
+			mat.set_row(M, MVector<T, N>::zero().extend<N+1>(1));
+			return mat;
+		}
+
 		constexpr bool operator==(const MMatrix&) const = default;
 		constexpr bool operator!=(const MMatrix&) const = default;
 
