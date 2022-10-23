@@ -260,6 +260,21 @@ namespace math {
 			}
 			return sliced;
 		}
+
+		template<size_t D, std::convertible_to<T> S>
+			requires(D > C)
+		constexpr MVector<T, D> extend(S fill) const {
+			auto converted = static_cast<T>(fill);
+			MVector<T, D> extended;
+			for (size_t i = 0; i < C; ++i) extended[i] = (*this)[i];
+			for (size_t i = C; i < D; ++i) extended[i] = fill;
+			return extended;
+		}
+
+		// Homogenizes the current vector
+		constexpr MVector<T, C + 1> hmg() const {
+			return extend<C + 1>(static_cast<T>(1));
+		}
 	};
 
 	template<Numeric T, size_t C>

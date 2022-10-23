@@ -298,6 +298,12 @@ TEST_CASE("Vector min/max", "[linalg]") {
 		REQUIRE(vmax(normal_b, crazy_a) == vec4{ INFINITY, 12, -65, 1 });
 	}
 }
+TEST_CASE("Homogenized vectors", "[linalg]") {
+	vec2 v2 = { 5.0, -1.0 };
+	REQUIRE(v2.hmg() == vec3{ 5.0, -1.0, 1.0 });
+	vec4 v4 = { 0.0, 0.0, 1.5, -360.0 };
+	REQUIRE(v4.hmg() == math::MVector<float, 5> {0.0, 0.0, 1.5, -360.0, 1.0});
+}
 TEST_CASE("Matrix constructors, row/column accessors", "[linalg]") {
 	auto validate = [](const mat3x4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
