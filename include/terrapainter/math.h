@@ -370,11 +370,22 @@ namespace math {
 			return MMatrix();
 		}
 
-		consteval static MMatrix identity() requires (N==M) {
+		consteval static MMatrix ident() requires (N==M) {
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
 				mat.mStorage[i][i] = static_cast<T>(1);
 			}
+			return mat;
+		}
+
+		// Uniform scale
+		template<typename... Args>
+			requires(N == M && sizeof...(Args) == M && std::conjunction_v<std::is_convertible<T, Args>...>)
+		consteval static MMatrix diag(const Args&... args) {
+			auto mat = MMatrix::zero();
+			size_t i = 0;
+			// C++ makes me so sad all the time
+			(..., (mat.mStorage[i][i] = static_cast<T>(args), ++i));
 			return mat;
 		}
 
@@ -439,8 +450,8 @@ namespace math {
 				for (size_t i = 0; i < M; i++) mStorage[i] *= inv;
 			}
 			else {
-				auto scalar = static_cast<T>(scalar);
-				for (size_t i = 0; i < M; i++) mStorage[i] /= scalar;
+				auto converted = static_cast<T>(scalar);
+				for (size_t i = 0; i < M; i++) mStorage[i] /= converted;
 			}
 			return *this;
 		}
@@ -473,8 +484,7 @@ namespace math {
 
 	private:
 		template<bool Reduce>
-			requires(std::is_floating_point_v<T>) // TEMP TEMP TEMP
-		constexpr T gauss_eliminate() {
+		constexpr T gauss_eliminate() requires(std::is_floating_point_v<T>) {
 			T determinant = static_cast<T>(1);
 			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
@@ -566,9 +576,7 @@ namespace math {
 			return copy;
 		}
 
-		template<typename _ = void> 
-			requires(N == M)
-		constexpr T determinant() const {
+		constexpr T determinant() const requires(N == M) {
 			if constexpr (N == 2) {
 				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
 			}
@@ -603,12 +611,6 @@ namespace math {
 			}
 			return inv;
 		}
-		
-
-		// We DON'T do rotate, scale, transform matrices here
-		// rotate: only makes sense for square & different in each dim
-		// scale: only makes sense for square matrices
-		// transform: should be in MMatrixH subclass
 	};
 
 	template<Numeric T, size_t M, size_t N, std::convertible_to<T> S>
