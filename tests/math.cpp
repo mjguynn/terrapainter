@@ -881,6 +881,10 @@ TEST_CASE("Matrix inverse", "[linalg]") {
 	}
 }
 TEST_CASE("Convenience constructors", "[linalg]") {
+	SECTION("Uniform scale") {
+		mat3 us = mat3::scale(7);
+		REQUIRE(us == mat3::ident() * 7);
+	}
 	SECTION("Diagonal") {
 		mat2 us = mat2::diag(2, 2);
 		REQUIRE(us == mat2{ 2, 0, 0, 2 });

@@ -371,14 +371,21 @@ namespace math {
 		}
 
 		consteval static MMatrix ident() requires (N==M) {
+			return MMatrix::scale(1);
+		}
+
+		// Uniform scale
+		template<std::convertible_to<T> S>
+			requires(N == M)
+		consteval static MMatrix scale(S scalar){
+			auto converted = static_cast<T>(scalar);
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
-				mat.mStorage[i][i] = static_cast<T>(1);
+				mat.mStorage[i][i] = converted;
 			}
 			return mat;
 		}
 
-		// Uniform scale
 		template<typename... Args>
 			requires(N == M && sizeof...(Args) == M && std::conjunction_v<std::is_convertible<T, Args>...>)
 		consteval static MMatrix diag(const Args&... args) {
