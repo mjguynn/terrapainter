@@ -79,6 +79,8 @@ class Config {
     void adjust_coords() {
         mWindowX -= std::max(0, mWindowX + mViewportWidth - mScreenWidth);
         mWindowY -= std::max(0, mWindowY + mViewportHeight - mScreenHeight);
+        mWindowX = std::max(0, mWindowX);
+        mWindowY = std::max(0, mWindowY);
     }
 
     bool is_fullscreen() const {
@@ -318,21 +320,6 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
         canvas.draw_ui();
 
-        /*if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("New")) {
-                    TODO();
-                }
-                if (ImGui::MenuItem("Load")) {
-                    ui_load_canvas(window, cfg, canvas);
-                }
-                if (ImGui::MenuItem("Save")) {
-                    ui_save_canvas(canvas);
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }*/
         ImGui::ShowMetricsWindow();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
