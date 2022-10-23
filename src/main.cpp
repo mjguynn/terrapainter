@@ -205,7 +205,7 @@ void ui_save_canvas(Canvas& canvas) {
     }
 }
 
-Mesh canvas_to_map(const Canvas& canvas) {
+Mesh* canvas_to_map(const Canvas& canvas) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     auto [width, height] = canvas.dimensions();
@@ -299,13 +299,12 @@ Mesh canvas_to_map(const Canvas& canvas) {
     const int numStrips = (height - 1) / rez;
     const int numTrisPerStrip = (width / rez) * 2 - 2;
     fprintf(stderr, "[info] loaded %llu indices\n", indices.size());
-
-    return Mesh(vertices, indices, numTrisPerStrip, numStrips);
-    
     fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
     fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
+
+    return new Mesh(vertices, indices, numTrisPerStrip, numStrips);
 }
-void draw_world(const Config& cfg, Camera& camera, Shader& shader, Mesh& map) {
+void draw_world(const Config& cfg, Camera& camera, Shader& shader, Mesh* map) {
     shader.use();
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)cfg.gl_width() / (float)cfg.gl_height(), 0.1f, 100000.0f);
     shader.setMat4("projection", projection);
@@ -321,7 +320,7 @@ void draw_world(const Config& cfg, Camera& camera, Shader& shader, Mesh& map) {
     shader.setVec3("LightDir", glm::vec3(0.0f, -5.0, 0.0f));
     shader.setVec3("viewPos", camera.Position);
 
-    map.DrawStrips();
+    map->DrawStrips();
 }
 enum ModalState {
     MODE_CANVAS,
@@ -409,7 +408,7 @@ int main(int argc, char *argv[])
     // ------------------- (END) -----------------
 
     Canvas canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
-    std::optional<Mesh> map = std::nullopt;
+    Mesh* map = nullptr;
     Shader worldShader("shaders/heightmap.vs", "shaders/heightmap.fs");
 
     // Run the event loop
@@ -443,7 +442,8 @@ int main(int argc, char *argv[])
                     } else if (state == MODE_WORLD) {
                         // switch to canvas
                         state = MODE_CANVAS;
-                        map = std::nullopt;
+                        delete map;
+                        map = nullptr;
                         SDL_SetRelativeMouseMode(SDL_FALSE);
                     }
                 }
@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
 
         // Draw geometry with depth testing
         glDepthFunc(GL_LESS);
-        if (state == MODE_WORLD) draw_world(cfg, camera, worldShader, map.value());
+        if (state == MODE_WORLD) draw_world(cfg, camera, worldShader, map);
 
         // Draw UI without depth testing
         glDepthFunc(GL_ALWAYS);
