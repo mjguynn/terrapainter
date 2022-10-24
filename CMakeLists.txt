@@ -56,9 +56,12 @@ endif()
 # Terrapainter lib contains everything that should be easily testable
 # so no OpenGL or SDL2 in there
 set(terrapainter_lib_SOURCES 
-	"${CMAKE_SOURCE_DIR}/src/util.cpp"
+	"${CMAKE_SOURCE_DIR}/src/entity.cpp"
+	"${CMAKE_SOURCE_DIR}/src/camera.cpp"
 )
 set(terrapainter_lib_HEADERS
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/camera.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/entity.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/math.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/pixel.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/util.h"
@@ -128,6 +131,7 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.cpp"
 )
 set(terrapainter_HEADERS
+	
 	"${CMAKE_SOURCE_DIR}/src/canvas.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"
 	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.h"
