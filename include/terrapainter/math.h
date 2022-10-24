@@ -412,12 +412,46 @@ namespace math {
 		}
 
 		// Homogenous translation
-		template<typename HACK = MVector<T, N-1>> // terrible SFINAE hack
-		constexpr static MMatrix translate_hmg(const HACK& translation) requires (N == M && N > 2) {
+		// The ugly template bound invokes SFINAE to avoid compilation failures
+		// when instantiating a mat2 (since we don't have 1D vectors)
+		template<size_t C = N-1>  
+			requires (N == M && N > 2 && C == N - 1)
+		constexpr static MMatrix translate_hmg(const MVector<T, C>& translation) {
 			auto mat = MMatrix::ident();
-			mat.set_col(N - 1, translation.template extend<N>(1));
+			mat.set_col(C, translation.template extend<N>(1));
 			return mat;
 		}
+
+		// 2D euler rotation, in radians
+		constexpr static MMatrix euler(T angle) 
+			requires (N == M && N == 2 && std::is_floating_point_v<T>) 
+		{
+			T c = std::cos(angle);
+			T s = std::sin(angle);
+			return MMatrix{ c, -s, s, c };
+		}
+
+		// 3D euler rotation, in radians
+		// Order: Roll, then pitch, then yaw
+		// aka rotated = YAW @ PITCH @ ROLL @ point
+		// Yaw is around the Z-axis, pitch is around the Y-axis, roll is around the X-axis.
+		constexpr static MMatrix euler(T pitch, T yaw, T roll)
+			requires (N == M && N == 3 && std::is_floating_point_v<T>)
+		{
+			// I painfully derived this on paper
+			T sP = std::sin(pitch);
+			T cP = std::cos(pitch);
+			T sY = std::sin(yaw);
+			T cY = std::cos(yaw);
+			T sR = std::sin(roll);
+			T cR = std::cos(roll);
+			return MMatrix<T, M, N> {
+				cP * cY, (-sY * cR - sP * cY * sR), (sY * sR - sP * cY * cR),
+				cP * sY, (cY * cR - sP * sY * sR), (-cY * sR - sP * sY * cR),
+				sP, cP * sR, cP * cR
+			};
+		}
+
 		template<typename... Args>
 			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<T,N>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
