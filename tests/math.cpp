@@ -897,6 +897,15 @@ TEST_CASE("Matrix convenience constructors", "[linalg]") {
 		mat2 ds = mat2::diag(3, -1);
 		REQUIRE(ds == mat2{ 3, 0, 0, -1 });
 	}
+	SECTION("Homogenous translation") {
+		mat3 ht2 = mat3::translate_hmg({ 5.0, -1.0 });
+		mat3 expected_ht2 = mat3{
+			1.0, 0.0, 5.0,
+			0.0, 1.0, -1.0,
+			0.0, 0.0, 1.0
+		};
+		REQUIRE(ht2 == expected_ht2);
+	}
 }
 TEST_CASE("Matrix homogenize", "[linalg]") {
 	mat3 random = {

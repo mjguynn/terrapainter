@@ -273,7 +273,7 @@ namespace math {
 
 		// Homogenizes the current vector
 		constexpr MVector<T, C + 1> hmg() const {
-			return extend<C + 1>(static_cast<T>(1));
+			return this->template extend<C + 1>(static_cast<T>(1));
 		}
 	};
 
@@ -392,7 +392,7 @@ namespace math {
 		// Uniform scale
 		template<std::convertible_to<T> S>
 			requires(N == M)
-		consteval static MMatrix scale(S scalar){
+		constexpr static MMatrix scale(S scalar){
 			auto converted = static_cast<T>(scalar);
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
@@ -403,7 +403,7 @@ namespace math {
 
 		template<typename... Args>
 			requires(N == M && sizeof...(Args) == M && std::conjunction_v<std::is_convertible<T, Args>...>)
-		consteval static MMatrix diag(const Args&... args) {
+		constexpr static MMatrix diag(const Args&... args) {
 			auto mat = MMatrix::zero();
 			size_t i = 0;
 			// C++ makes me so sad all the time
@@ -411,6 +411,13 @@ namespace math {
 			return mat;
 		}
 
+		// Homogenous translation
+		template<typename HACK = MVector<T, N-1>> // terrible SFINAE hack
+		constexpr static MMatrix translate_hmg(const HACK& translation) requires (N == M && N > 2) {
+			auto mat = MMatrix::ident();
+			mat.set_col(N - 1, translation.template extend<N>(1));
+			return mat;
+		}
 		template<typename... Args>
 			requires(sizeof...(Args) == M && std::conjunction_v<std::is_same<MVector<T,N>, Args>...>)
 		constexpr static MMatrix from_rows(const Args&... rows) {
@@ -433,9 +440,9 @@ namespace math {
 		constexpr MMatrix<T, M+1, N+1> hmg() const requires(M == N) {
 			auto mat = MMatrix<T, M + 1, N + 1>::zero();
 			for (size_t i = 0; i < M; ++i) {
-				mat.set_row(i, (*this).row(i).extend<N+1>(0));
+				mat.set_row(i, (*this).row(i).template extend<N+1>(0));
 			}
-			mat.set_row(M, MVector<T, N>::zero().extend<N+1>(1));
+			mat.set_row(M, MVector<T, N>::zero().template extend<N+1>(1));
 			return mat;
 		}
 
