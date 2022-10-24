@@ -260,6 +260,21 @@ namespace math {
 			}
 			return sliced;
 		}
+
+		template<size_t D, std::convertible_to<T> S>
+			requires(D > C)
+		constexpr MVector<T, D> extend(S fill) const {
+			auto converted = static_cast<T>(fill);
+			MVector<T, D> extended;
+			for (size_t i = 0; i < C; ++i) extended[i] = (*this)[i];
+			for (size_t i = C; i < D; ++i) extended[i] = fill;
+			return extended;
+		}
+
+		// Homogenizes the current vector
+		constexpr MVector<T, C + 1> hmg() const {
+			return this->template extend<C + 1>(static_cast<T>(1));
+		}
 	};
 
 	template<Numeric T, size_t C>
@@ -370,12 +385,71 @@ namespace math {
 			return MMatrix();
 		}
 
-		consteval static MMatrix identity() requires (N==M) {
+		consteval static MMatrix ident() requires (N==M) {
+			return MMatrix::scale(1);
+		}
+
+		// Uniform scale
+		template<std::convertible_to<T> S>
+			requires(N == M)
+		constexpr static MMatrix scale(S scalar){
+			auto converted = static_cast<T>(scalar);
 			auto mat = MMatrix::zero();
 			for (size_t i = 0; i < N; i++) {
-				mat.mStorage[i][i] = static_cast<T>(1);
+				mat.mStorage[i][i] = converted;
 			}
 			return mat;
+		}
+
+		template<typename... Args>
+			requires(N == M && sizeof...(Args) == M && std::conjunction_v<std::is_convertible<T, Args>...>)
+		constexpr static MMatrix diag(const Args&... args) {
+			auto mat = MMatrix::zero();
+			size_t i = 0;
+			// C++ makes me so sad all the time
+			(..., (mat.mStorage[i][i] = static_cast<T>(args), ++i));
+			return mat;
+		}
+
+		// Homogenous translation
+		// The ugly template bound invokes SFINAE to avoid compilation failures
+		// when instantiating a mat2 (since we don't have 1D vectors)
+		template<size_t C = N-1>  
+			requires (N == M && N > 2 && C == N - 1)
+		constexpr static MMatrix translate_hmg(const MVector<T, C>& translation) {
+			auto mat = MMatrix::ident();
+			mat.set_col(C, translation.template extend<N>(1));
+			return mat;
+		}
+
+		// 2D euler rotation, in radians
+		constexpr static MMatrix euler(T angle) 
+			requires (N == M && N == 2 && std::is_floating_point_v<T>) 
+		{
+			T c = std::cos(angle);
+			T s = std::sin(angle);
+			return MMatrix{ c, -s, s, c };
+		}
+
+		// 3D euler rotation, in radians
+		// Order: Roll, then pitch, then yaw
+		// aka rotated = YAW @ PITCH @ ROLL @ point
+		// Yaw is around the Z-axis, pitch is around the Y-axis, roll is around the X-axis.
+		constexpr static MMatrix euler(T pitch, T yaw, T roll)
+			requires (N == M && N == 3 && std::is_floating_point_v<T>)
+		{
+			// I painfully derived this on paper
+			T sP = std::sin(pitch);
+			T cP = std::cos(pitch);
+			T sY = std::sin(yaw);
+			T cY = std::cos(yaw);
+			T sR = std::sin(roll);
+			T cR = std::cos(roll);
+			return MMatrix<T, M, N> {
+				cP * cY, (-sY * cR - sP * cY * sR), (sY * sR - sP * cY * cR),
+				cP * sY, (cY * cR - sP * sY * sR), (-cY * sR - sP * sY * cR),
+				sP, cP * sR, cP * cR
+			};
 		}
 
 		template<typename... Args>
@@ -393,6 +467,16 @@ namespace math {
 			auto mat = MMatrix::zero();
 			size_t j = 0;
 			(..., mat.set_col(j++, cols));
+			return mat;
+		}
+
+		// Homogenize a matrix
+		constexpr MMatrix<T, M+1, N+1> hmg() const requires(M == N) {
+			auto mat = MMatrix<T, M + 1, N + 1>::zero();
+			for (size_t i = 0; i < M; ++i) {
+				mat.set_row(i, (*this).row(i).template extend<N+1>(0));
+			}
+			mat.set_row(M, MVector<T, N>::zero().template extend<N+1>(1));
 			return mat;
 		}
 
@@ -439,8 +523,8 @@ namespace math {
 				for (size_t i = 0; i < M; i++) mStorage[i] *= inv;
 			}
 			else {
-				auto scalar = static_cast<T>(scalar);
-				for (size_t i = 0; i < M; i++) mStorage[i] /= scalar;
+				auto converted = static_cast<T>(scalar);
+				for (size_t i = 0; i < M; i++) mStorage[i] /= converted;
 			}
 			return *this;
 		}
@@ -473,8 +557,7 @@ namespace math {
 
 	private:
 		template<bool Reduce>
-			requires(std::is_floating_point_v<T>) // TEMP TEMP TEMP
-		constexpr T gauss_eliminate() {
+		constexpr T gauss_eliminate() requires(std::is_floating_point_v<T>) {
 			T determinant = static_cast<T>(1);
 			for (size_t i = 0, j = 0; i < M && j < N; ++i, ++j) {
 				// Scan through remaining rows, find the one with the max value
@@ -566,9 +649,7 @@ namespace math {
 			return copy;
 		}
 
-		template<typename _ = void> 
-			requires(N == M)
-		constexpr T determinant() const {
+		constexpr T determinant() const requires(N == M) {
 			if constexpr (N == 2) {
 				return mStorage[0].x * mStorage[1].y - mStorage[0].y * mStorage[1].x;
 			}
@@ -603,12 +684,6 @@ namespace math {
 			}
 			return inv;
 		}
-		
-
-		// We DON'T do rotate, scale, transform matrices here
-		// rotate: only makes sense for square & different in each dim
-		// scale: only makes sense for square matrices
-		// transform: should be in MMatrixH subclass
 	};
 
 	template<Numeric T, size_t M, size_t N, std::convertible_to<T> S>

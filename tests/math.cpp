@@ -298,6 +298,12 @@ TEST_CASE("Vector min/max", "[linalg]") {
 		REQUIRE(vmax(normal_b, crazy_a) == vec4{ INFINITY, 12, -65, 1 });
 	}
 }
+TEST_CASE("Homogenized vectors", "[linalg]") {
+	vec2 v2 = { 5.0, -1.0 };
+	REQUIRE(v2.hmg() == vec3{ 5.0, -1.0, 1.0 });
+	vec4 v4 = { 0.0, 0.0, 1.5, -360.0 };
+	REQUIRE(v4.hmg() == math::MVector<float, 5> {0.0, 0.0, 1.5, -360.0, 1.0});
+}
 TEST_CASE("Matrix constructors, row/column accessors", "[linalg]") {
 	auto validate = [](const mat3x4& m) {
 		REQUIRE(m.row(0) == vec4{ 1.0, 0.0, 0.0, 0.0 });
@@ -317,7 +323,7 @@ TEST_CASE("Matrix constructors, row/column accessors", "[linalg]") {
 			0, 0, 1, 0,
 			0, 0, 0, 1
 		};
-		REQUIRE(i == mat4::identity());
+		REQUIRE(i == mat4::ident());
 	}
 	SECTION("Raw specification") {
 		mat3x4 m = {
@@ -429,7 +435,7 @@ TEST_CASE("Matrix addition/subtraction", "[linalg]") {
 }
 TEST_CASE("Matrix multiply", "[linalg]") {
 	SECTION("Identity & dimensions") {
-		REQUIRE(mat2::identity() * mat2::identity() == mat2::identity());
+		REQUIRE(mat2::ident() * mat2::ident() == mat2::ident());
 		REQUIRE(mat2x3::zero() * (mat2x3::zero().transpose()) == mat2::zero());
 	}
 	SECTION("Random square matrices") {
@@ -438,8 +444,8 @@ TEST_CASE("Matrix multiply", "[linalg]") {
 			-22.5,	-23,	-6,
 			-100,	1,		2
 		};
-		REQUIRE(a * mat3::identity() == a);
-		REQUIRE(mat3::identity() * a == a);
+		REQUIRE(a * mat3::ident() == a);
+		REQUIRE(mat3::ident() * a == a);
 
 		mat3 b = {
 			-32, 64, 8,
@@ -491,7 +497,7 @@ TEST_CASE("Matrix-vector multiply", "[linalg]") {
 }
 TEST_CASE("Matrix row-echelon form", "[linalg]") {
 	SECTION("Basic cases") {
-		mat3 ident = mat3::identity();
+		mat3 ident = mat3::ident();
 		REQUIRE(ident.row_echelon() == ident);
 
 		mat2x3 normal = {
@@ -519,41 +525,41 @@ TEST_CASE("Matrix row-echelon form", "[linalg]") {
 		REQUIRE(right_corner.row_echelon() == right_corner);
 	}
 	SECTION("Row swaps, no scaling") {
-		// identity = permute_123
+		// ident = permute_123
 		mat3 permute_231 = {
 			0, 1, 0,
 			0, 0, 1,
 			1, 0, 0
 		};
-		REQUIRE(permute_231.row_echelon() == mat3::identity());
+		REQUIRE(permute_231.row_echelon() == mat3::ident());
 
 		mat3 permute_312 = {
 			0, 0, 1,
 			1, 0, 0,
 			0, 1, 0
 		};
-		REQUIRE(permute_312.row_echelon() == mat3::identity());
+		REQUIRE(permute_312.row_echelon() == mat3::ident());
 
 		mat3 permute_321 = {
 			0, 0, 1,
 			0, 1, 0,
 			1, 0, 0
 		};
-		REQUIRE(permute_321.row_echelon() == mat3::identity());
+		REQUIRE(permute_321.row_echelon() == mat3::ident());
 
 		mat3 permute_213 = {
 			0, 1, 0,
 			1, 0, 0,
 			0, 0, 1
 		};
-		REQUIRE(permute_213.row_echelon() == mat3::identity());
+		REQUIRE(permute_213.row_echelon() == mat3::ident());
 
 		mat3 permute_132 = {
 			1, 0, 0,
 			0, 0, 1,
 			0, 1, 0
 		};
-		REQUIRE(permute_213.row_echelon() == mat3::identity());
+		REQUIRE(permute_213.row_echelon() == mat3::ident());
 
 		mat2x3 shifted_permute = {
 			0, 0, 1,
@@ -626,8 +632,8 @@ TEST_CASE("Matrix row-echelon form", "[linalg]") {
 }
 TEST_CASE("Matrix determinant", "[linalg]") {
 	SECTION("Basic") {
-		REQUIRE(mat2::identity().determinant() == 1);
-		REQUIRE(mat3::identity().determinant() == 1);
+		REQUIRE(mat2::ident().determinant() == 1);
+		REQUIRE(mat3::ident().determinant() == 1);
 		
 		mat3 permuted = {
 			0, 1, 0,
@@ -676,21 +682,21 @@ TEST_CASE("Matrix determinant", "[linalg]") {
 
 TEST_CASE("Matrix reduced row echelon form", "[linalg]") {
 	SECTION("Basic") {
-		REQUIRE(mat2::identity().reduced_row_echelon() == mat2::identity());
-		REQUIRE(mat3::identity().reduced_row_echelon() == mat3::identity());
+		REQUIRE(mat2::ident().reduced_row_echelon() == mat2::ident());
+		REQUIRE(mat3::ident().reduced_row_echelon() == mat3::ident());
 
 		mat2 m2_permute = {
 			0, 1,
 			1, 0
 		};
-		REQUIRE(m2_permute.reduced_row_echelon() == mat2::identity());
+		REQUIRE(m2_permute.reduced_row_echelon() == mat2::ident());
 		
 		mat3 m3_permute = {
 			0, 1, 0,
 			1, 0, 0,
 			0, 0, 1
 		};
-		REQUIRE(m3_permute.reduced_row_echelon() == mat3::identity());
+		REQUIRE(m3_permute.reduced_row_echelon() == mat3::ident());
 	}
 	SECTION("Tall") {
 		math::MMatrix<float, 3, 2> indep = {
@@ -844,9 +850,9 @@ TEST_CASE("Matrix reduced row echelon form", "[linalg]") {
 
 TEST_CASE("Matrix inverse", "[linalg]") {
 	SECTION("Basic") {
-		REQUIRE(mat2::identity().inverse() == mat2::identity());
-		REQUIRE(mat3::identity().inverse() == mat3::identity());
-		REQUIRE(mat4::identity().inverse() == mat4::identity());
+		REQUIRE(mat2::ident().inverse() == mat2::ident());
+		REQUIRE(mat3::ident().inverse() == mat3::ident());
+		REQUIRE(mat4::ident().inverse() == mat4::ident());
 
 		mat3 permute = {
 			0, 1, 0,
@@ -879,4 +885,52 @@ TEST_CASE("Matrix inverse", "[linalg]") {
 		};
 		REQUIRE(aeq(r3.inverse(), r3_inv, 1e6f));
 	}
+}
+TEST_CASE("Matrix convenience constructors", "[linalg]") {
+	SECTION("Uniform scale") {
+		mat3 us = mat3::scale(7);
+		REQUIRE(us == mat3::ident() * 7);
+	}
+	SECTION("Diagonal") {
+		mat2 us = mat2::diag(2, 2);
+		REQUIRE(us == mat2{ 2, 0, 0, 2 });
+		mat2 ds = mat2::diag(3, -1);
+		REQUIRE(ds == mat2{ 3, 0, 0, -1 });
+	}
+	SECTION("Homogenous translation") {
+		mat3 ht2 = mat3::translate_hmg({ 5.0, -1.0 });
+		mat3 expected_ht2 = mat3{
+			1.0, 0.0, 5.0,
+			0.0, 1.0, -1.0,
+			0.0, 0.0, 1.0
+		};
+		REQUIRE(ht2 == expected_ht2);
+	}
+}
+TEST_CASE("Matrix homogenize", "[linalg]") {
+	mat3 random = {
+		6.2, 0, -17,
+		1, 2, 3,
+		4, 8, 12
+	};
+	mat4 random_h = {
+		6.2, 0, -17, 0,
+		1, 2, 3, 0,
+		4, 8, 12, 0,
+		0, 0, 0, 1
+	};
+	REQUIRE(random.hmg() == random_h);
+
+}
+TEST_CASE("Matrix rotation", "[linalg]") {
+	mat2 pi_over_6 = {
+		0.8660254038, -0.5,
+		0.5, 0.8660254038
+	};
+	REQUIRE(mat2::euler(3.14159265358979323846 / 6) == pi_over_6);
+
+	// pitch = 1, yaw = -2, roll = 3
+	// TODO: Write an actual test case for 3D
+	// I *GUARANTEE* you there's a bug lurking somewhere
+	REQUIRE(aeq(mat3::euler(1, -2, 3).determinant(), 1.0f));
 }
