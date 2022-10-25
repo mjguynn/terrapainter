@@ -23,7 +23,9 @@ std::unique_ptr<Entity> Entity::remove_child(Entity* child) {
 		if (mChildren[i].get() != child) continue;
 		std::unique_ptr<Entity> stolen = std::move(mChildren[i]);
 		stolen->mParent = nullptr;
+		// Do what Rust calls a "swap remove" for O(1) remove
 		std::swap(mChildren[i], mChildren.back());
+		mChildren.pop_back();
 		return stolen;
 	}
 	return nullptr;

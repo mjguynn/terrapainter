@@ -3,17 +3,12 @@
 #include <vector>
 #include "terrapainter/math.h"
 
-// Potential idea for future:
-// One-parent/many-dependent relationship, where a dependency is either:
-// 1. child: you own the dependency and delete it when you're deleted
-//			 child's dependency is relative to you, you are the childs parent
-// 2. mutual: neither owns the other, separate transforms
-//			  whenever one is modified they broadcast a signal to mutuals
-// I need to think this out and it might actually be a horrible no good
-// very bad idea for cache locality and general code maintenance reasons
-// (spaghetti code)
-// ...but I feel like in any system of sufficient complexity you inevitably
-// have a dependency between the queen of England and the hounds of hell
+// TODO:
+// This system is pretty simple because our app is pretty simple,
+// but it's not very good for performance reasons.
+// 
+// In the future it would be good to do an ECS/data oriented model
+// with components.
 
 class Entity {
 private:
@@ -38,6 +33,13 @@ private:
 	std::vector<std::unique_ptr<Entity>> mChildren;
 
 private:
+	// Other entities may hold pointers to this entity,
+	// so let's not allow moving it or copying it
+	Entity(const Entity&) = delete;
+	Entity& operator= (const Entity&) = delete;
+	Entity(Entity&&) = delete;
+	Entity& operator= (Entity&&) = delete;
+
 	// Logically const, but actually re-bakes the transform
 	// This is recursive right now
 	void bake_world_transform() const;
@@ -86,5 +88,4 @@ public:
 	// The entity must not be currently parented.
 	// (if it was, how did you get the unique pointer?)
 	void add_child(std::unique_ptr<Entity> child);
-
 };
