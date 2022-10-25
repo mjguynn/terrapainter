@@ -15,7 +15,12 @@ void Entity::bake_world_transform() const {
 	mat4 r = mat3::euler(mAngles.x, mAngles.y, mAngles.z).hmg();
 	mat4 t = mat4::translate_hmg(mPosition);
 	mat4 localTransform = t * r * s;
-	mBakedWorldTransform = mParent->world_transform() * localTransform;
+	if (mParent) {
+		mBakedWorldTransform = mParent->world_transform() * localTransform;
+	}
+	else {
+		mBakedWorldTransform = localTransform;
+	}
 	mBakedWorldTransformDirty = false;
 }
 std::unique_ptr<Entity> Entity::remove_child(Entity* child) {

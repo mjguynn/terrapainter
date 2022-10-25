@@ -149,7 +149,8 @@ namespace math {
 			return MVector::splat(0);
 		}
 
-		
+		constexpr T* data() { return reinterpret_cast<T*>(this); }
+		constexpr const T* data() const { return reinterpret_cast<const T*>(this); }
 
 		/// Per-element bracket initialization syntax.
 		template<typename ...Args>

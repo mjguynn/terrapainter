@@ -89,3 +89,8 @@ public:
 	// (if it was, how did you get the unique pointer?)
 	void add_child(std::unique_ptr<Entity> child);
 };
+
+class World : public Entity {
+public:
+	World() : Entity(vec3::zero(), vec3::zero(), vec3::splat(1)) {}
+};
