@@ -331,7 +331,7 @@ void draw_world(const Config& cfg, Camera* camera, HeightmapShader& shader, Mesh
     mat4 projection = camera->projection();
     mat4 view = camera->world_transform().inverse();
     mat4 model = mat4::ident();
-    vec3 lightDir = { 0.0f, 0.0f, 5.0f };
+    vec3 lightDir = { 0.0f, 0.0f, -5.0f };
     shader.use(projection, view, model, lightDir, camera->position());
     map->DrawStrips();
 }

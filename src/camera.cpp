@@ -27,7 +27,7 @@ mat4 Camera::projection() const{
 	return mat4 {
 		0, -oo_tan_half_fov, 0, 0,
 		0, 0, aspect*oo_tan_half_fov, 0,
-		(mRange.x + mRange.y)*oo_farz_sub_nearz, 0, 0, -2*mRange.x*mRange.y*oo_farz_sub_nearz,
+		-(mRange.x + mRange.y)*oo_farz_sub_nearz, 0, 0, 2*mRange.x*mRange.y*oo_farz_sub_nearz,
 		1, 0, 0, 0
 	};
 }
