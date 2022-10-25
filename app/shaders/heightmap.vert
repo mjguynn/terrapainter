@@ -13,7 +13,7 @@ uniform mat4 projection;
 
 void main()
 {
-	Height = aPos.y;
+	Height = aPos.z;
 	Normal = mat3(transpose(inverse(model))) * aNormal;
 	FragPos = vec3(model * vec4(aPos, 1.0));
 

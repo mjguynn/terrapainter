@@ -435,7 +435,8 @@ namespace math {
 		// 3D euler rotation, in radians
 		// Order: Roll, then pitch, then yaw
 		// aka rotated = YAW @ PITCH @ ROLL @ point
-		// Yaw is around the Z-axis, pitch is around the Y-axis, roll is around the X-axis.
+		// Yaw is around the Z-axis, pitch is around the X-axis, roll is around the Y-axis.
+		// ^^ This is following Blender's convention
 		constexpr static MMatrix euler(T pitch, T yaw, T roll)
 			requires (N == M && N == 3 && std::is_floating_point_v<T>)
 		{
@@ -447,9 +448,9 @@ namespace math {
 			T sR = std::sin(roll);
 			T cR = std::cos(roll);
 			return MMatrix<T, M, N> {
-				cP * cY, (-sY * cR - sP * cY * sR), (sY * sR - sP * cY * cR),
-				cP * sY, (cY * cR - sP * sY * sR), (-cY * sR - sP * sY * cR),
-				sP, cP * sR, cP * cR
+				(cY*cR + sY*sP*sR),	(-sY*cP),	(-cY*sR + sY*sP*cR),
+				(sY*cR - cY*sP*sR), (cY*cP),	(-sY*sR - cY*sP*cR),
+				(cP*sR),			(sP),		(cP*cR)
 			};
 		}
 

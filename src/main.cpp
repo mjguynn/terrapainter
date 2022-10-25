@@ -16,6 +16,7 @@
 #include "terrapainter/math.h"
 #include "terrapainter/camera.h"
 #include "canvas.h"
+#include "controllers.h"
 
 bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     if (windowEvent.type == SDL_QUIT) {
@@ -213,7 +214,7 @@ Mesh* canvas_to_map(const Canvas& canvas) {
     auto pixels = canvas.dump_texture();
 
     std::vector<Vertex> vertices;
-    float yScale = 96.0f / 256.0f, yShift = 16.0f;
+    float zScale = 96.0f / 256.0f, zShift = 16.0f;
     int rez = 1;
     unsigned bytePerPixel = 3;
     for (int i = 0; i < height; i++)
@@ -221,11 +222,11 @@ Mesh* canvas_to_map(const Canvas& canvas) {
         for (int j = 0; j < width; j++)
         {
             unsigned char* pixelOffset = (unsigned char*)pixels.data() + (j + width * i) * bytePerPixel;
-            unsigned char y = pixelOffset[0];
+            unsigned char z = pixelOffset[0];
 
             vertices.push_back(
                 Vertex{
-                    .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)
+                    .Position = vec3(-height / 2.0f + height * i / (float)height, -width / 2.0f + width * j / (float)width, (int)z * zScale - zShift)
                 }
             );
         }
@@ -319,9 +320,9 @@ public:
     }
     void use(const mat4& projection, const mat4& view, const mat4& model, vec3 lightDir, vec3 viewPos) {
         glUseProgram(mProgram);
-        glUniformMatrix4fv(mProjectionLocation, 1, GL_FALSE, projection.data());
-        glUniformMatrix4fv(mViewLocation, 1, GL_FALSE, view.data());
-        glUniformMatrix4fv(mModelLocation, 1, GL_FALSE, model.data());
+        glUniformMatrix4fv(mProjectionLocation, 1, GL_TRUE, projection.data());
+        glUniformMatrix4fv(mViewLocation, 1, GL_TRUE, view.data());
+        glUniformMatrix4fv(mModelLocation, 1, GL_TRUE, model.data());
         glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
         glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
     }
@@ -331,7 +332,7 @@ void draw_world(const Config& cfg, Camera* camera, HeightmapShader& shader, Mesh
     mat4 projection = camera->projection();
     mat4 view = camera->world_transform().inverse();
     mat4 model = mat4::ident();
-    vec3 lightDir = { 0.0f, -5.0, 0.0f };
+    vec3 lightDir = { 0.0f, 0.0f, 5.0f };
     shader.use(projection, view, model, lightDir, camera->position());
     map->DrawStrips();
 }
@@ -344,7 +345,7 @@ enum ModalState {
 Camera* add_camera(const Config& cfg, World& world) {
     auto entity = std::make_unique<Camera>(
         vec3{ 0.0f, 0.0f, 400.0f }, // position
-        vec3::zero(), // rotation
+        vec3 { M_PI / 2, 0, 0 }, // rotation
         float(M_PI) / 2, // horizontal FOV -- 90 degrees
         ivec2{ cfg.gl_width(), cfg.gl_height() }, // screen dimensions
         vec2{ 0.1f, 100000.0f } // nearZ, farZ
@@ -354,48 +355,16 @@ Camera* add_camera(const Config& cfg, World& world) {
     return camera;
 }
 
-void update_camera(Camera* camera, SDL_Event& event, float deltaTime) {
-    const Uint8* keys = SDL_GetKeyboardState(nullptr);
-    vec3 angles = camera->euler_angles();
-    vec3 position = camera->position();
-    if (event.type == SDL_MOUSEMOTION)
-    {
-        const float SENSITIVITY = 0.1f;
-        // The camera is 
-        angles.x = std::clamp(angles.x + SENSITIVITY * event.motion.yrel, 0.0f, float(M_PI));
-        angles.y += SENSITIVITY * event.motion.xrel;
-        camera->set_euler_angles(angles);
-    }
-
-    if (keys[SDL_SCANCODE_W])
-    {
-        position += vec3(0, 0, 1);
-    }
-    /*else if (keys[SDL_SCANCODE_DOWN])
-    {
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    }
-    else if (keys[SDL_SCANCODE_LEFT])
-    {
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    }
-    else if (keys[SDL_SCANCODE_RIGHT])
-    {
-        camera.ProcessKeyboard(RIGHT, deltaTime);
-    }*/
-    camera->set_position(position);
-}
-
 void ui_debug_camera(Camera* camera, bool* showDebugCamera = nullptr) {
     if (ImGui::Begin("Camera Controls", showDebugCamera)) {
         vec3 position = camera->position();
         ImGui::DragFloat3("Position", position.data());
         camera->set_position(position);
-        vec3 angles = camera->euler_angles();
-        ImGui::DragFloat("Pitch", &angles.x);
-        ImGui::DragFloat("Yaw", &angles.y);
-        ImGui::DragFloat("Roll", &angles.z);
-        camera->set_euler_angles(angles);
+        vec3 angles = camera->euler_angles() * (180 / M_PI);
+        ImGui::DragFloat("Pitch", &angles.x, 1);
+        ImGui::DragFloat("Yaw", &angles.y, 1);
+        ImGui::DragFloat("Roll", &angles.z, 1);
+        camera->set_euler_angles(angles * (M_PI / 180));
         float fov = camera->fov() * (180 / M_PI);
         ImGui::DragFloat("FoV (horizontal)", &fov,1.0f,  60.0f, 120.0f, "%.1f°");
         camera->set_fov(fov * (M_PI / 180));
@@ -481,6 +450,7 @@ int main(int argc, char *argv[])
     World world;
 
     Camera* camera = add_camera(cfg, world);
+    NoclipController cameraController(camera, 0.01, 50.0);
     bool showDebugCamera = false;
 
     float deltaTime = 0.0f; // time between current frame and last frame
@@ -536,7 +506,7 @@ int main(int argc, char *argv[])
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
 
             if (state == MODE_CANVAS) canvas.process_event(windowEvent, io);
-            if (state == MODE_WORLD && !showDebugCamera) update_camera(camera, windowEvent, deltaTime);
+            if (state == MODE_WORLD && !showDebugCamera) cameraController.process_event(windowEvent);
 
             if (should_quit(window, windowEvent)) {
                 state = MODE_STOP;
@@ -544,6 +514,9 @@ int main(int argc, char *argv[])
 
             // This makes dragging windows feel snappy
             io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
+        }
+        if (state == MODE_WORLD) {
+            cameraController.process_frame(deltaTime);
         }
         // Render scene
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
