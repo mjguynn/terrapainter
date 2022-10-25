@@ -483,6 +483,13 @@ namespace math {
 		constexpr bool operator==(const MMatrix&) const = default;
 		constexpr bool operator!=(const MMatrix&) const = default;
 
+		constexpr const T* data() const {
+			// mStorage.data() is valid, of course
+			// that gives us a pointer to a vector
+			// we then reinterpret that as a pointer to its first member,
+			// which is explicitly valid
+			return reinterpret_cast<const T*>(mStorage.data());
+		}
 		#define MAT_DERIVE_BINOP(sym, in) \
 		constexpr MMatrix operator sym (in other) const { \
 			 auto copy = *this; copy sym##= other; return copy; \

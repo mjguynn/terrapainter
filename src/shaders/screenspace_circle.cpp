@@ -4,12 +4,8 @@
 
 ScreenspaceCircleShader::ScreenspaceCircleShader(int viewWidth, int viewHeight)
 	: mProgram(g_shaderMgr.graphics("screenspace_circle")), 
-	mCenterLocation(), // Temp value 
-	mScreenSizeLocation(), // Temp value
-	mRadiusLocation(), // Temp value
-	mThicknessLocation(), // Temp value
-	mViewWidth(viewWidth), // Temp value (on_size_changed)
-	mViewHeight(viewHeight) // Temp value (on_size_changed)
+	mViewWidth(viewWidth),
+	mViewHeight(viewHeight)
 {
 	glUseProgram(mProgram);
 	mCenterLocation = glGetUniformLocation(mProgram, "u_center");

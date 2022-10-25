@@ -11,7 +11,6 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 #include "nfd.hpp"
-#include "learnopengl/shader_m.h"
 #include "learnopengl/camera.h"
 #include "learnopengl/mesh.h"
 #include "terrapainter/util.h"
@@ -280,11 +279,6 @@ Mesh* canvas_to_map(const Canvas& canvas) {
         vertices[i].Normal = normaldata[i];
     }
 
-    std::vector<vec3> n100(normaldata.begin() + 400000, normaldata.begin() + 400020);
-    for (vec3 v : n100) {
-        std::cout << v << std::endl;
-    }
-
     std::vector<unsigned> indices;
     for (unsigned i = 0; i < height - 1; i += rez)
     {
@@ -306,22 +300,39 @@ Mesh* canvas_to_map(const Canvas& canvas) {
 
     return new Mesh(vertices, indices, numTrisPerStrip, numStrips);
 }
-void draw_world(const Config& cfg, Camera& camera, Shader& shader, Mesh* map) {
-    shader.use();
+
+// TODO TEMP TEMP TEMP
+class HeightmapShader {
+    GLuint mProgram;
+    GLuint mProjectionLocation;
+    GLuint mViewLocation;
+    GLuint mModelLocation;
+    GLuint mLightDirLocation;
+    GLuint mViewPosLocation;
+public:
+    HeightmapShader() : mProgram(g_shaderMgr.graphics("heightmap")) {
+        mProjectionLocation = glGetUniformLocation(mProgram, "projection");
+        mViewLocation = glGetUniformLocation(mProgram, "view");
+        mModelLocation = glGetUniformLocation(mProgram, "model");
+        mLightDirLocation = glGetUniformLocation(mProgram, "LightDir");
+        mViewPosLocation = glGetUniformLocation(mProgram, "viewPos");
+    }
+    void use(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, glm::vec3 lightDir, glm::vec3 viewPos) {
+        glUseProgram(mProgram);
+        glUniformMatrix4fv(mProjectionLocation, 1, GL_FALSE, &projection[0][0]);
+        glUniformMatrix4fv(mViewLocation, 1, GL_FALSE, &view[0][0]);
+        glUniformMatrix4fv(mModelLocation, 1, GL_FALSE, &model[0][0]);
+        glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
+        glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
+    }
+};
+void draw_world(const Config& cfg, Camera& camera, HeightmapShader& shader, Mesh* map) {
+    
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)cfg.gl_width() / (float)cfg.gl_height(), 0.1f, 100000.0f);
-    shader.setMat4("projection", projection);
-
-    // Camera View
     glm::mat4 view = camera.GetViewMatrix();
-    shader.setMat4("view", view);
-
-    // World Transformation
     glm::mat4 model = glm::mat4(1.0f);
-    shader.setMat4("model", model);
-
-    shader.setVec3("LightDir", glm::vec3(0.0f, -5.0, 0.0f));
-    shader.setVec3("viewPos", camera.Position);
-
+    glm::vec3 lightDir = glm::vec3(0.0f, -5.0, 0.0f);
+    shader.use(projection, view, model, lightDir, camera.Position);
     map->DrawStrips();
 }
 enum ModalState {
@@ -411,7 +422,7 @@ int main(int argc, char *argv[])
 
     Canvas canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
     Mesh* map = nullptr;
-    Shader worldShader("shaders/heightmap.vs", "shaders/heightmap.fs");
+    HeightmapShader heightmap_shader;
 
     // Run the event loop
     SDL_Event windowEvent;
@@ -493,7 +504,7 @@ int main(int argc, char *argv[])
 
         // Draw geometry with depth testing
         glDepthFunc(GL_LESS);
-        if (state == MODE_WORLD) draw_world(cfg, camera, worldShader, map);
+        if (state == MODE_WORLD) draw_world(cfg, camera, heightmap_shader, map);
 
         // Draw UI without depth testing
         glDepthFunc(GL_ALWAYS);
