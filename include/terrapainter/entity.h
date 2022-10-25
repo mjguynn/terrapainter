@@ -14,7 +14,7 @@ class Entity {
 private:
 	// Position aka translation
 	vec3 mPosition;
-	// Euler angles
+	// XYZ angles (aka: rotation around X axis, Y axis, Z axis)
 	vec3 mAngles;
 	// Axis scale
 	vec3 mScale;
@@ -64,8 +64,9 @@ public:
 		mBakedWorldTransformDirty = true;
 	}
 
-	vec3 euler_angles() const { return mAngles; };
-	void set_euler_angles(vec3 angles) { 
+	// XYZ angles
+	vec3 angles() const { return mAngles; };
+	void set_angles(vec3 angles) { 
 		mAngles = angles; 
 		mBakedWorldTransformDirty = true;
 	};

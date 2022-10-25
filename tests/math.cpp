@@ -927,10 +927,9 @@ TEST_CASE("Matrix rotation", "[linalg]") {
 		0.8660254038, -0.5,
 		0.5, 0.8660254038
 	};
-	REQUIRE(mat2::euler(3.14159265358979323846 / 6) == pi_over_6);
+	REQUIRE(mat2::rotate(3.14159265358979323846 / 6) == pi_over_6);
 
-	// pitch = 1, yaw = -2, roll = 3
 	// TODO: Write an actual test case for 3D
 	// I *GUARANTEE* you there's a bug lurking somewhere
-	REQUIRE(aeq(mat3::euler(1, -2, 3).determinant(), 1.0f));
+	REQUIRE(aeq(mat3::rotate_xyz(1, -2, 3).determinant(), 1.0f));
 }

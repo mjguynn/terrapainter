@@ -424,7 +424,7 @@ namespace math {
 		}
 
 		// 2D euler rotation, in radians
-		constexpr static MMatrix euler(T angle) 
+		constexpr static MMatrix rotate(T angle) 
 			requires (N == M && N == 2 && std::is_floating_point_v<T>) 
 		{
 			T c = std::cos(angle);
@@ -432,25 +432,24 @@ namespace math {
 			return MMatrix{ c, -s, s, c };
 		}
 
-		// 3D euler rotation, in radians
-		// Order: Roll, then pitch, then yaw
-		// aka rotated = YAW @ PITCH @ ROLL @ point
-		// Yaw is around the Z-axis, pitch is around the X-axis, roll is around the Y-axis.
-		// ^^ This is following Blender's convention
-		constexpr static MMatrix euler(T pitch, T yaw, T roll)
+		// Rotates around X axis, then Y axis, then Z axis
+		// (this is Blender's default way of handling rotations)
+		constexpr static MMatrix rotate_xyz(T rotX, T rotY, T rotZ)
 			requires (N == M && N == 3 && std::is_floating_point_v<T>)
 		{
 			// I painfully derived this on paper
-			T sP = std::sin(pitch);
-			T cP = std::cos(pitch);
-			T sY = std::sin(yaw);
-			T cY = std::cos(yaw);
-			T sR = std::sin(roll);
-			T cR = std::cos(roll);
-			return MMatrix<T, M, N> {
-				(cY*cR + sY*sP*sR),	(-sY*cP),	(-cY*sR + sY*sP*cR),
-				(sY*cR - cY*sP*sR), (cY*cP),	(-sY*sR - cY*sP*cR),
-				(cP*sR),			(sP),		(cP*cR)
+			T sX = std::sin(rotX);
+			T cX = std::cos(rotX);
+			T sY = std::sin(rotY);
+			T cY = std::cos(rotY);
+			T sZ = std::sin(rotZ);
+			T cZ = std::cos(rotZ);
+
+			// Note we are doing X, then Y, then Z, so the matrix is ZYX
+			return MMatrix<T, 3, 3> {
+				(cY*cZ), (-sX*sY*cZ - cX*sZ), (-cX*sY*cZ + sX*sZ),
+				(cY*sZ), (-sX*sY*sZ + cX*cZ), (-cX*sY*sZ - sX*cZ),
+				(sY),	 (sX*cY),			  (cX*cY)
 			};
 		}
 

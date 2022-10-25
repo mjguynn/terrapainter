@@ -8,14 +8,15 @@ NoclipController::NoclipController(Entity* entity, float mouseSensitivity, float
 {}
 bool NoclipController::process_event(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
-        vec3 angles = mEntity->euler_angles();
-        const float SENSITIVITY = 0.01f;
-        // Why not clamp to [0,PI]?
-        // Because if so, at the extrema view and up become colinear,
-        // so the cross product fails and we have no way of knowing what's sideways
-        angles.x = std::clamp(angles.x - mMouseSensitivity * event.motion.yrel, 0.1f, float(M_PI) - 0.1f);
-        angles.y -= mMouseSensitivity * event.motion.xrel;
-        mEntity->set_euler_angles(angles);
+        vec3 angles = mEntity->angles();
+        // If we exactly clamped to PI/2, when we looked straight up or down
+        // our view angle would become colinear, so the cross product would
+        // fail and we wouldn't be able to move sideways.
+        // I think there are workarounds, but why bother?
+        float limit = float(M_PI / 2.0 - 0.0625);
+        angles.y = std::clamp(angles.y - mMouseSensitivity * event.motion.yrel, -limit, limit);
+        angles.z -= mMouseSensitivity * event.motion.xrel;
+        mEntity->set_angles(angles);
         return true;
     }
     return false;
@@ -25,15 +26,17 @@ void NoclipController::process_frame(float deltaTime) {
     float delta = mMovementSpeed * deltaTime;
     if (keys[SDL_SCANCODE_LSHIFT]) delta *= mShiftScale;
 
-    // Get movement vectors, we only care about pitch and yaw
-    vec3 angles = mEntity->euler_angles();
-    float sP = std::sin(angles.x);
-    float cP = std::cos(angles.x);
+    // Get movement vectors
+    // We can think of the entity's "default orientation" as pointing towards (1, 0, 0)
+    // so that's what we need to rotate. We avoid using a matrix since its overkill...
+    vec3 angles = mEntity->angles();
     float sY = std::sin(angles.y);
     float cY = std::cos(angles.y);
-    vec3 forward = vec3 { -sY*sP, cY*sP, -cP};
-    vec3 up = vec3(0, 0, 1);
-    vec3 right = cross(forward, vec3(0, 0, 1)).normalize();
+    float sZ = std::sin(angles.z);
+    float cZ = std::cos(angles.z);
+    vec3 forward = vec3 { cY*cZ, cY*sZ, sY };
+    const vec3 up = vec3(0, 0, 1);
+    vec3 right = cross(forward, up).normalize();
 
     vec3 position = mEntity->position();
     if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]) {

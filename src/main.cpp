@@ -226,7 +226,7 @@ Mesh* canvas_to_map(const Canvas& canvas) {
 
             vertices.push_back(
                 Vertex{
-                    .Position = vec3(-height / 2.0f + height * i / (float)height, -width / 2.0f + width * j / (float)width, (int)z * zScale - zShift)
+                    .Position = vec3(-width / 2.0f + width * j / (float)width, -height / 2.0f + height * i / (float)height, (int)z * zScale - zShift)
                 }
             );
         }
@@ -328,7 +328,6 @@ public:
     }
 };
 void draw_world(const Config& cfg, Camera* camera, HeightmapShader& shader, Mesh* map) {
-    
     mat4 projection = camera->projection();
     mat4 view = camera->world_transform().inverse();
     mat4 model = mat4::ident();
@@ -345,7 +344,7 @@ enum ModalState {
 Camera* add_camera(const Config& cfg, World& world) {
     auto entity = std::make_unique<Camera>(
         vec3{ 0.0f, 0.0f, 400.0f }, // position
-        vec3 { M_PI / 2, 0, 0 }, // rotation
+        vec3 { 0, -M_PI / 2, M_PI / 2 }, // rotation
         float(M_PI) / 2, // horizontal FOV -- 90 degrees
         ivec2{ cfg.gl_width(), cfg.gl_height() }, // screen dimensions
         vec2{ 0.1f, 100000.0f } // nearZ, farZ
@@ -357,17 +356,21 @@ Camera* add_camera(const Config& cfg, World& world) {
 
 void ui_debug_camera(Camera* camera, bool* showDebugCamera = nullptr) {
     if (ImGui::Begin("Camera Controls", showDebugCamera)) {
+
         vec3 position = camera->position();
         ImGui::DragFloat3("Position", position.data());
         camera->set_position(position);
-        vec3 angles = camera->euler_angles() * (180 / M_PI);
-        ImGui::DragFloat("Pitch", &angles.x, 1);
-        ImGui::DragFloat("Yaw", &angles.y, 1);
-        ImGui::DragFloat("Roll", &angles.z, 1);
-        camera->set_euler_angles(angles * (M_PI / 180));
+
+        vec3 angles = camera->angles() * (180 / M_PI);
+        ImGui::DragFloat("Angle (X)", &angles.x, 1);
+        ImGui::DragFloat("Angle (Y)", &angles.y, 1);
+        ImGui::DragFloat("Angle (Z)", &angles.z, 1);
+        camera->set_angles(angles * (M_PI / 180));
+
         float fov = camera->fov() * (180 / M_PI);
         ImGui::DragFloat("FoV (horizontal)", &fov,1.0f,  60.0f, 120.0f, "%.1f°");
         camera->set_fov(fov * (M_PI / 180));
+
         vec2 range = camera->range();
         ImGui::DragFloat2("NearZ/Farz", range.data());
         camera->set_range(range);

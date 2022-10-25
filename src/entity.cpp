@@ -12,7 +12,7 @@ Entity::Entity(vec3 position, vec3 euler_angles, vec3 scale) :
 {}
 void Entity::bake_world_transform() const {
 	mat4 s = mat4::diag(mScale.x, mScale.y, mScale.z, 1);
-	mat4 r = mat3::euler(mAngles.x, mAngles.y, mAngles.z).hmg();
+	mat4 r = mat3::rotate_xyz(mAngles.x, mAngles.y, mAngles.z).hmg();
 	mat4 t = mat4::translate_hmg(mPosition);
 	mat4 localTransform = t * r * s;
 	if (mParent) {
