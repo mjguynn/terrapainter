@@ -305,34 +305,30 @@ Mesh* canvas_to_map(const Canvas& canvas) {
 // TODO TEMP TEMP TEMP
 class HeightmapShader {
     GLuint mProgram;
-    GLuint mProjectionLocation;
-    GLuint mViewLocation;
-    GLuint mModelLocation;
+    GLuint mWorldToProjectionLocation;
+    GLuint mModelToWorldLocation;
     GLuint mLightDirLocation;
     GLuint mViewPosLocation;
 public:
     HeightmapShader() : mProgram(g_shaderMgr.graphics("heightmap")) {
-        mProjectionLocation = glGetUniformLocation(mProgram, "projection");
-        mViewLocation = glGetUniformLocation(mProgram, "view");
-        mModelLocation = glGetUniformLocation(mProgram, "model");
+        mWorldToProjectionLocation = glGetUniformLocation(mProgram, "u_worldToProjection");
+        mModelToWorldLocation = glGetUniformLocation(mProgram, "u_modelToWorld");
         mLightDirLocation = glGetUniformLocation(mProgram, "LightDir");
         mViewPosLocation = glGetUniformLocation(mProgram, "viewPos");
     }
-    void use(const mat4& projection, const mat4& view, const mat4& model, vec3 lightDir, vec3 viewPos) {
+    void use(const mat4& worldToProjection, const mat4& modelToWorld, vec3 lightDir, vec3 viewPos) {
         glUseProgram(mProgram);
-        glUniformMatrix4fv(mProjectionLocation, 1, GL_TRUE, projection.data());
-        glUniformMatrix4fv(mViewLocation, 1, GL_TRUE, view.data());
-        glUniformMatrix4fv(mModelLocation, 1, GL_TRUE, model.data());
+        glUniformMatrix4fv(mWorldToProjectionLocation, 1, GL_TRUE, worldToProjection.data());
+        glUniformMatrix4fv(mModelToWorldLocation, 1, GL_TRUE, modelToWorld.data());
         glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
         glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
     }
 };
 void draw_world(const Config& cfg, Camera* camera, HeightmapShader& shader, Mesh* map) {
-    mat4 projection = camera->projection();
-    mat4 view = camera->world_transform().inverse();
+    mat4 viewProj = camera->projection() * camera->world_transform().inverse();
     mat4 model = mat4::ident();
     vec3 lightDir = { 0.0f, 0.0f, -5.0f };
-    shader.use(projection, view, model, lightDir, camera->position());
+    shader.use(viewProj, model, lightDir, camera->position());
     map->DrawStrips();
 }
 enum ModalState {
@@ -545,10 +541,6 @@ int main(int argc, char *argv[])
 
         // swap buffers
         SDL_GL_SwapWindow(window);
-
-        // sync on previous commands -- 
-        // this hurts FPS a bit but should provide better latency
-        glFinish();
     }
 
     // Shutdown file dialog

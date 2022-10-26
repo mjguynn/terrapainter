@@ -1,9 +1,10 @@
 #version 430 core
 out vec4 FragColor;
 
-in float Height; // from -16 to 80
-in vec3 Normal;
-in vec3 FragPos; // in world coordinates
+// Note that the GPU essentially linearly interpolates attributes
+// when sending them to fragments. So this might not be a unit normal!
+in vec3 v_normalDir;
+in vec3 v_fragPos; // in world space
 
 uniform vec3 LightDir;
 uniform vec3 viewPos;
@@ -49,24 +50,24 @@ void main()
 {
 	vec3 LightColor = vec3(1.0, 1.0, 1.0);
 
-	vec3 color = getColorByHeight(Height);
+	vec3 color = getColorByHeight(v_fragPos.z);
 
 	// ambiance
 	float ambientStrength = 0.05;
 	vec3 ambientColor = ambientStrength * LightColor;
 
 	// diffuse
-	vec3 norm = normalize(Normal);
+	vec3 norm = normalize(v_normalDir);
 	vec3 lightDir = normalize(LightDir);
 	float diff = max(dot(norm, -lightDir), 0.0);
 	vec3 diffuseColor = diff * LightColor;
 
 	// specular
 	float specularStrength = 0.1;
-	if (Height <= 0 || Height >= 65) {
+	if (v_fragPos.z <= 0 || v_fragPos.z >= 65) {
 		specularStrength = 0.5;
 	}
-	vec3 viewDir = normalize(viewPos - FragPos);
+	vec3 viewDir = normalize(viewPos - v_fragPos);
 	vec3 reflectDir = reflect(lightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	vec3 specularColor = specularStrength * spec * LightColor;

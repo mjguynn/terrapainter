@@ -2,20 +2,17 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 
-out float Height;
-out vec3 Normal;
-out vec3 FragPos;
+out vec3 v_normalDir;
+out vec3 v_fragPos;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection; 
-
+uniform mat4 u_worldToProjection;
+uniform mat4 u_modelToWorld;
 
 void main()
 {
-	Height = aPos.z;
-	Normal = mat3(transpose(inverse(model))) * aNormal;
-	FragPos = vec3(model * vec4(aPos, 1.0));
-
-	gl_Position = projection * view * model * vec4(aPos, 1.0f);
+	vec4 normalDir = u_modelToWorld * vec4(aNormal, 0);
+	v_normalDir = normalDir.xyz;
+	vec4 worldPos = u_modelToWorld * vec4(aPos, 1);
+	v_fragPos = worldPos.xyz;
+	gl_Position = u_worldToProjection * worldPos;
 }
