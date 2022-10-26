@@ -22,7 +22,7 @@ mat4 Camera::projection() const{
 	// I've "inlined" this all into the returned matrix.
 
 	float oo_farz_sub_nearz = 1.0f / (mRange.x - mRange.y);
-	float oo_tan_half_fov = 1.0f / std::tanf(mFov / 2);
+	float oo_tan_half_fov = 1.0f / std::tan(mFov / 2);
 	float aspect = float(mDims.x) / float(mDims.y);
 	return mat4 {
 		0, -oo_tan_half_fov, 0, 0,

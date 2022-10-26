@@ -358,9 +358,7 @@ void ui_debug_camera(Camera* camera, bool* showDebugCamera = nullptr) {
         camera->set_position(position);
 
         vec3 angles = camera->angles() * (180 / M_PI);
-        ImGui::DragFloat("Angle (X)", &angles.x, 1);
-        ImGui::DragFloat("Angle (Y)", &angles.y, 1);
-        ImGui::DragFloat("Angle (Z)", &angles.z, 1);
+        ImGui::DragFloat3("Angles", angles.data());
         camera->set_angles(angles * (M_PI / 180));
 
         float fov = camera->fov() * (180 / M_PI);
