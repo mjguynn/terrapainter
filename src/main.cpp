@@ -374,6 +374,19 @@ void ui_debug_camera(Camera* camera, bool* showDebugCamera = nullptr) {
     ImGui::End();
 }
 
+
+// These let Terrapainter use the dedicated GPU in dual-GPU systems
+// such as gaming laptops. Disabled by default because
+//  1. Using the iGPU is actually a bit snapper right now, for some reason
+//  2. Using the dGPU drains battery life and we don't need the extra perf anyways
+#define TP_ENABLE_DGPU 0
+#if TP_ENABLE_DGPU
+extern "C" {
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     // Initialize SDL
@@ -444,6 +457,8 @@ int main(int argc, char *argv[])
     // Enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    fprintf(stderr, "[info] renderer: %s\n", glGetString(GL_RENDERER));
 
     ModalState state = MODE_CANVAS;
     World world;

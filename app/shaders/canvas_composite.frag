@@ -1,4 +1,4 @@
-#version 330
+#version 450
 
 // Simple alpha mix of colors
 const int TP_CANVAS_BLEND_MIX = 0;
