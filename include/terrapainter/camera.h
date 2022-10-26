@@ -9,7 +9,6 @@
 // camera, trackball-momentum camera, etc...
 class Camera : public Entity {
 	// The horizontal FOV, in radians.
-	// If this is 0, the camera is operating in orthographic mode.
 	float mFov;
 	// The pixel dimensions of the camera sensor.
 	ivec2 mDims;
