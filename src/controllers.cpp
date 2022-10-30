@@ -9,11 +9,7 @@ NoclipController::NoclipController(Entity* entity, float mouseSensitivity, float
 bool NoclipController::process_event(const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
         vec3 angles = mEntity->angles();
-        // If we exactly clamped to PI/2, when we looked straight up or down
-        // our view angle would become colinear, so the cross product would
-        // fail and we wouldn't be able to move sideways.
-        // I think there are workarounds, but why bother?
-        float limit = float(M_PI / 2.0 - 0.0625);
+        float limit = float(M_PI / 2.0);
         angles.y = std::clamp(angles.y - mMouseSensitivity * event.motion.yrel, -limit, limit);
         angles.z -= mMouseSensitivity * event.motion.xrel;
         mEntity->set_angles(angles);
@@ -35,8 +31,11 @@ void NoclipController::process_frame(float deltaTime) {
     float sZ = std::sin(angles.z);
     float cZ = std::cos(angles.z);
     vec3 forward = vec3 { cY*cZ, cY*sZ, sY };
-    const vec3 up = vec3(0, 0, 1);
-    vec3 right = cross(forward, up).normalize();
+
+    // We also calculate the right vector directly from angles
+    // This permits the user to look straight down or up
+    // TODO: This doesn't account for roll right now
+    vec3 right = vec3{ sZ, -cZ, 0 };
 
     vec3 position = mEntity->position();
     if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]) {
@@ -50,12 +49,6 @@ void NoclipController::process_frame(float deltaTime) {
     }
     if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT]) {
         position -= delta * right;
-    }
-    if (keys[SDL_SCANCODE_SPACE]) {
-        position += delta * up;
-    }
-    if (keys[SDL_SCANCODE_LCTRL]) {
-        position -= delta * up;
     }
     mEntity->set_position(position);
 }
