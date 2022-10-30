@@ -500,7 +500,7 @@ int main(int argc, char *argv[])
                     showDebugCamera = !showDebugCamera;
                     SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
                 }
-                else if (pressed == SDLK_TAB) {
+                else if (pressed == SDLK_SPACE) {
                     // TODO: Refactor this!
                     if (state == MODE_CANVAS) {
                         // switch to world
