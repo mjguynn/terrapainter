@@ -66,30 +66,37 @@
 #include "tool.h"
 
 class Canvas {
-	// The dimensions of the entire canvas component
-	// (the whole UI element, including the background)
-	ivec2 mDims;
+public:
+	using ToolIndex = size_t;
+private:
+	// The dimensions of the canvas viewport
+	ivec2 mViewportSize;
 
 	// The set of all registered tools
 	std::vector<std::unique_ptr<ICanvasTool>> mTools;
 	// The index of the current tool within mTools
-	size_t mCurTool;
+	ToolIndex mCurTool;
 
-	// The position of the bottom left of the canvas
-	// Pixel coordinates because we don't want nasty interpolation
-	// if we can avoid it...
-	ivec2 mCanvasPos;
+	// The position of the *center* of the canvas
+	vec2 mCanvasPos;
 	// The scale of the canvas
+	// This is an absolute scale, it doesn't change with mDims
 	float mCanvasScale;
 
-	// The dimensions of the canvas texture
-	ivec2 mCanvasTextureDims;
+	// The dimensions of the canvas texture(s)
+	ivec2 mCanvasSize;
 	// Handle to the current canvas texture
 	// If zero, then there isn't any canvas texture loaded
 	GLuint mCanvasTexture;
+	// Handle to the canvas swap texture
+	// This is used as the "write target" while compositing
+	// a non-final stroke, once the stroke is finalized this becomes
+	// the main canvas texture and the canvas texture is cleared
+	// If zero, then there isn't any canvas swap texture loaded
+	GLuint mCanvasSwapTexture;
 
 public:
-	Canvas();
+	Canvas(ivec2 size);
 	~Canvas() noexcept;
 
 	Canvas(const Canvas&) = delete;
@@ -98,13 +105,14 @@ public:
 	Canvas(Canvas&&) noexcept;
 	Canvas& operator=(Canvas&&) noexcept;
 
+	ivec2 viewport_size() const;
+	void set_viewport_size(ivec2 size);
+
 	// TODO: Should load/save/etc be implemented in here,
 	// or should we copy the old canvas & stick it outside?
 	// I think we should stick it outside, separation of
 	// concerns right?
 	// In any case we need a way to dump the pixel data
-
-	using ToolIndex = size_t;
 
 	// Registers the given tool and returns its tool index.
 	ToolIndex register_tool(std::unique_ptr<ICanvasTool> tool);
@@ -112,5 +120,5 @@ public:
 	// Sets the current tool. This acts as if the user
 	// manually switched tools (so it will commit strokes,
 	// do any other side effects, etc)
-	void set_current_tool(size_t toolIndex);
+	void set_current_tool(ToolIndex toolIndex);
 };
