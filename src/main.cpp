@@ -402,6 +402,7 @@ int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_ROBUST_ACCESS_FLAG);
 
     // Create window
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -499,7 +500,7 @@ int main(int argc, char *argv[])
                     showDebugCamera = !showDebugCamera;
                     SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
                 }
-                else if (pressed == SDLK_TAB) {
+                else if (pressed == SDLK_SPACE) {
                     // TODO: Refactor this!
                     if (state == MODE_CANVAS) {
                         // switch to world
@@ -530,6 +531,9 @@ int main(int argc, char *argv[])
         if (state == MODE_WORLD) {
             cameraController.process_frame(deltaTime);
         }
+        // minimize latency: don't process more info until the GPU is done with the previous frame
+        glFinish();
+
         // Render scene
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
