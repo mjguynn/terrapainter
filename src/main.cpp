@@ -531,8 +531,6 @@ int main(int argc, char *argv[])
         if (state == MODE_WORLD) {
             cameraController.process_frame(deltaTime);
         }
-        // minimize latency: don't process more info until the GPU is done with the previous frame
-        glFinish();
 
         // Render scene
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -555,6 +553,11 @@ int main(int argc, char *argv[])
         ImGui::ShowMetricsWindow();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // Forcibly await all instructions to minimize frame latency
+        GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, 16 * 1004); // 16ms wait
+        glDeleteSync(sync);
 
         // swap buffers
         SDL_GL_SwapWindow(window);
