@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
     // Set version
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_ROBUST_ACCESS_FLAG);
 
     // Create window
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window, context);
     // imgui_impl_opengl3 supports OpenGL 3.0+, it's just poorly named
-    ImGui_ImplOpenGL3_Init("#version 430");
+    ImGui_ImplOpenGL3_Init("#version 440");
 
     ImGuiStyle &style = ImGui::GetStyle();
     ImGuiIO &io = ImGui::GetIO();

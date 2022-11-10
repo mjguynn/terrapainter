@@ -1,3 +1,6 @@
+/**
+ * SPDX-License-Identifier: (WTFPL OR CC0-1.0) AND Apache-2.0
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +39,7 @@ int GLAD_GL_VERSION_4_0 = 0;
 int GLAD_GL_VERSION_4_1 = 0;
 int GLAD_GL_VERSION_4_2 = 0;
 int GLAD_GL_VERSION_4_3 = 0;
+int GLAD_GL_VERSION_4_4 = 0;
 
 
 
@@ -50,17 +54,23 @@ PFNGLBINDATTRIBLOCATIONPROC glad_glBindAttribLocation = NULL;
 PFNGLBINDBUFFERPROC glad_glBindBuffer = NULL;
 PFNGLBINDBUFFERBASEPROC glad_glBindBufferBase = NULL;
 PFNGLBINDBUFFERRANGEPROC glad_glBindBufferRange = NULL;
+PFNGLBINDBUFFERSBASEPROC glad_glBindBuffersBase = NULL;
+PFNGLBINDBUFFERSRANGEPROC glad_glBindBuffersRange = NULL;
 PFNGLBINDFRAGDATALOCATIONPROC glad_glBindFragDataLocation = NULL;
 PFNGLBINDFRAGDATALOCATIONINDEXEDPROC glad_glBindFragDataLocationIndexed = NULL;
 PFNGLBINDFRAMEBUFFERPROC glad_glBindFramebuffer = NULL;
 PFNGLBINDIMAGETEXTUREPROC glad_glBindImageTexture = NULL;
+PFNGLBINDIMAGETEXTURESPROC glad_glBindImageTextures = NULL;
 PFNGLBINDPROGRAMPIPELINEPROC glad_glBindProgramPipeline = NULL;
 PFNGLBINDRENDERBUFFERPROC glad_glBindRenderbuffer = NULL;
 PFNGLBINDSAMPLERPROC glad_glBindSampler = NULL;
+PFNGLBINDSAMPLERSPROC glad_glBindSamplers = NULL;
 PFNGLBINDTEXTUREPROC glad_glBindTexture = NULL;
+PFNGLBINDTEXTURESPROC glad_glBindTextures = NULL;
 PFNGLBINDTRANSFORMFEEDBACKPROC glad_glBindTransformFeedback = NULL;
 PFNGLBINDVERTEXARRAYPROC glad_glBindVertexArray = NULL;
 PFNGLBINDVERTEXBUFFERPROC glad_glBindVertexBuffer = NULL;
+PFNGLBINDVERTEXBUFFERSPROC glad_glBindVertexBuffers = NULL;
 PFNGLBLENDCOLORPROC glad_glBlendColor = NULL;
 PFNGLBLENDEQUATIONPROC glad_glBlendEquation = NULL;
 PFNGLBLENDEQUATIONSEPARATEPROC glad_glBlendEquationSeparate = NULL;
@@ -72,6 +82,7 @@ PFNGLBLENDFUNCSEPARATEIPROC glad_glBlendFuncSeparatei = NULL;
 PFNGLBLENDFUNCIPROC glad_glBlendFunci = NULL;
 PFNGLBLITFRAMEBUFFERPROC glad_glBlitFramebuffer = NULL;
 PFNGLBUFFERDATAPROC glad_glBufferData = NULL;
+PFNGLBUFFERSTORAGEPROC glad_glBufferStorage = NULL;
 PFNGLBUFFERSUBDATAPROC glad_glBufferSubData = NULL;
 PFNGLCHECKFRAMEBUFFERSTATUSPROC glad_glCheckFramebufferStatus = NULL;
 PFNGLCLAMPCOLORPROC glad_glClampColor = NULL;
@@ -86,6 +97,8 @@ PFNGLCLEARCOLORPROC glad_glClearColor = NULL;
 PFNGLCLEARDEPTHPROC glad_glClearDepth = NULL;
 PFNGLCLEARDEPTHFPROC glad_glClearDepthf = NULL;
 PFNGLCLEARSTENCILPROC glad_glClearStencil = NULL;
+PFNGLCLEARTEXIMAGEPROC glad_glClearTexImage = NULL;
+PFNGLCLEARTEXSUBIMAGEPROC glad_glClearTexSubImage = NULL;
 PFNGLCLIENTWAITSYNCPROC glad_glClientWaitSync = NULL;
 PFNGLCOLORMASKPROC glad_glColorMask = NULL;
 PFNGLCOLORMASKIPROC glad_glColorMaski = NULL;
@@ -1161,6 +1174,18 @@ static void glad_gl_load_GL_VERSION_4_3( GLADuserptrloadfunc load, void* userptr
     glad_glVertexAttribLFormat = (PFNGLVERTEXATTRIBLFORMATPROC) load(userptr, "glVertexAttribLFormat");
     glad_glVertexBindingDivisor = (PFNGLVERTEXBINDINGDIVISORPROC) load(userptr, "glVertexBindingDivisor");
 }
+static void glad_gl_load_GL_VERSION_4_4( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_GL_VERSION_4_4) return;
+    glad_glBindBuffersBase = (PFNGLBINDBUFFERSBASEPROC) load(userptr, "glBindBuffersBase");
+    glad_glBindBuffersRange = (PFNGLBINDBUFFERSRANGEPROC) load(userptr, "glBindBuffersRange");
+    glad_glBindImageTextures = (PFNGLBINDIMAGETEXTURESPROC) load(userptr, "glBindImageTextures");
+    glad_glBindSamplers = (PFNGLBINDSAMPLERSPROC) load(userptr, "glBindSamplers");
+    glad_glBindTextures = (PFNGLBINDTEXTURESPROC) load(userptr, "glBindTextures");
+    glad_glBindVertexBuffers = (PFNGLBINDVERTEXBUFFERSPROC) load(userptr, "glBindVertexBuffers");
+    glad_glBufferStorage = (PFNGLBUFFERSTORAGEPROC) load(userptr, "glBufferStorage");
+    glad_glClearTexImage = (PFNGLCLEARTEXIMAGEPROC) load(userptr, "glClearTexImage");
+    glad_glClearTexSubImage = (PFNGLCLEARTEXSUBIMAGEPROC) load(userptr, "glClearTexSubImage");
+}
 
 
 
@@ -1174,9 +1199,9 @@ static int glad_gl_get_extensions( int version, const char **out_exts, unsigned 
 #if GLAD_GL_IS_SOME_NEW_VERSION
     if(GLAD_VERSION_MAJOR(version) < 3) {
 #else
-    (void) version;
-    (void) out_num_exts_i;
-    (void) out_exts_i;
+    GLAD_UNUSED(version);
+    GLAD_UNUSED(out_num_exts_i);
+    GLAD_UNUSED(out_exts_i);
 #endif
         if (glad_glGetString == NULL) {
             return 0;
@@ -1268,7 +1293,7 @@ static int glad_gl_find_extensions_gl( int version) {
     char **exts_i = NULL;
     if (!glad_gl_get_extensions(version, &exts, &num_exts_i, &exts_i)) return 0;
 
-    (void) glad_gl_has_extension;
+    GLAD_UNUSED(glad_gl_has_extension);
 
     glad_gl_free_extensions(exts_i, num_exts_i);
 
@@ -1315,6 +1340,7 @@ static int glad_gl_find_core_gl(void) {
     GLAD_GL_VERSION_4_1 = (major == 4 && minor >= 1) || major > 4;
     GLAD_GL_VERSION_4_2 = (major == 4 && minor >= 2) || major > 4;
     GLAD_GL_VERSION_4_3 = (major == 4 && minor >= 3) || major > 4;
+    GLAD_GL_VERSION_4_4 = (major == 4 && minor >= 4) || major > 4;
 
     return GLAD_MAKE_VERSION(major, minor);
 }
@@ -1343,6 +1369,7 @@ int gladLoadGLUserPtr( GLADuserptrloadfunc load, void *userptr) {
     glad_gl_load_GL_VERSION_4_1(load, userptr);
     glad_gl_load_GL_VERSION_4_2(load, userptr);
     glad_gl_load_GL_VERSION_4_3(load, userptr);
+    glad_gl_load_GL_VERSION_4_4(load, userptr);
 
     if (!glad_gl_find_extensions_gl(version)) return 0;
 
