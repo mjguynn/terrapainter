@@ -126,15 +126,13 @@ target_link_libraries(stb PUBLIC terrapainter_shared)
 # Terrapainter binary links to terrapainter lib and has everything else
 set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/main.cpp"
-	"${CMAKE_SOURCE_DIR}/src/canvas.cpp"
 	"${CMAKE_SOURCE_DIR}/src/canvas/canvas.cpp"
+	"${CMAKE_SOURCE_DIR}/src/canvas/paint.cpp"
 	"${CMAKE_SOURCE_DIR}/src/controllers.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.cpp"
 )
 set(terrapainter_HEADERS
-	
-	"${CMAKE_SOURCE_DIR}/src/canvas.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas/canvas.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas/tool.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"

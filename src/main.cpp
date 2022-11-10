@@ -2,6 +2,7 @@
 #include <functional>
 #include <span>
 #include <vector>
+#include <string>
 #include "glad/gl.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl.h"
@@ -15,8 +16,9 @@
 #include "terrapainter/util.h"
 #include "terrapainter/math.h"
 #include "terrapainter/camera.h"
-#include "canvas.h"
+#include "canvas/canvas.h"
 #include "controllers.h"
+#include "shadermgr.h"
 
 bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
     if (windowEvent.type == SDL_QUIT) {
@@ -164,6 +166,7 @@ public:
     unsigned char* texture_data() const { return mTextureData;  }
 };
 
+#if 0 
 void ui_load_canvas(SDL_Window* window, Config& cfg, Canvas& canvas) {
     nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
     NFD::UniquePathU8 path = nullptr;
@@ -301,6 +304,7 @@ Mesh* canvas_to_map(const Canvas& canvas) {
 
     return new Mesh(vertices, indices, numTrisPerStrip, numStrips);
 }
+#endif
 
 // TODO TEMP TEMP TEMP
 class HeightmapShader {
@@ -469,7 +473,6 @@ int main(int argc, char *argv[])
     float deltaTime = 0.0f; // time between current frame and last frame
     float lastFrame = 0.0f;
 
-    Canvas canvas(cfg.gl_width(), cfg.gl_height(), cfg.texture_data());
     Mesh* map = nullptr;
     HeightmapShader heightmap_shader;
 
@@ -491,11 +494,11 @@ int main(int argc, char *argv[])
                 if (pressed == SDLK_F5) {
                     g_shaderMgr.refresh();
                 } else if (ctrl && pressed == SDLK_o) {
-                    ui_load_canvas(window, cfg, canvas);
+                    // ui_load_canvas(window, cfg, canvas);
                     // screen dimensions may have changed...
                     camera->set_dims(ivec2{ cfg.gl_width(), cfg.gl_height() });
                 } else if (ctrl && pressed == SDLK_s) {
-                    ui_save_canvas(canvas);
+                    // ui_save_canvas(canvas);
                 } else if (ctrl && pressed == SDLK_d && state == MODE_WORLD) {
                     showDebugCamera = !showDebugCamera;
                     SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
@@ -505,7 +508,7 @@ int main(int argc, char *argv[])
                     if (state == MODE_CANVAS) {
                         // switch to world
                         state = MODE_WORLD;
-                        map = canvas_to_map(canvas);
+                        // map = canvas_to_map(canvas);
                         SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
                     } else if (state == MODE_WORLD) {
                         // switch to canvas
@@ -518,7 +521,7 @@ int main(int argc, char *argv[])
             }
             ImGui_ImplSDL2_ProcessEvent(&windowEvent);
 
-            if (state == MODE_CANVAS) canvas.process_event(windowEvent, io);
+            // if (state == MODE_CANVAS) canvas.process_event(windowEvent, io);
             if (state == MODE_WORLD && !showDebugCamera) cameraController.process_event(windowEvent);
 
             if (should_quit(window, windowEvent)) {
@@ -542,13 +545,13 @@ int main(int argc, char *argv[])
 
         // Draw UI without depth testing
         glDepthFunc(GL_ALWAYS);
-        if (state == MODE_CANVAS) canvas.draw();
+        // if (state == MODE_CANVAS) canvas.draw();
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        if (state == MODE_CANVAS) canvas.draw_ui();
+        // if (state == MODE_CANVAS) canvas.draw_ui();
         if (state == MODE_WORLD && showDebugCamera) ui_debug_camera(camera, &showDebugCamera);
         ImGui::ShowMetricsWindow();
         ImGui::Render();

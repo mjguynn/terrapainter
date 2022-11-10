@@ -1,4 +1,5 @@
-﻿// Canvas2 Checklist: (aka Pure Condensed Scope Creep)
+﻿#pragma once
+// Canvas2 Checklist: (aka Pure Condensed Scope Creep)
 //	𐌢 Cleanup existing code... use less backbuffers, unnecessary syncs, etc
 //  𐌢 Abstract from SDL, maybe? 
 //		|-> Is this a good idea?
@@ -61,6 +62,7 @@
 
 #include <memory>
 #include <vector>
+#include <span>
 #include "terrapainter/math.h"
 #include "terrapainter/pixel.h"
 #include "tool.h"
@@ -84,35 +86,32 @@ private:
 	float mCanvasScale;
 
 	// The dimensions of the canvas texture(s)
+	// Invariant: This is kept in sync with mCanvasTexture
 	ivec2 mCanvasSize;
 	// Handle to the current canvas texture
-	// If zero, then there isn't any canvas texture loaded
 	GLuint mCanvasTexture;
 	// Handle to the canvas swap texture
 	// This is used as the "write target" while compositing
 	// a non-final stroke, once the stroke is finalized this becomes
 	// the main canvas texture and the canvas texture is cleared
-	// If zero, then there isn't any canvas swap texture loaded
 	GLuint mCanvasSwapTexture;
 
 public:
-	Canvas(ivec2 size);
+	Canvas(ivec2 viewportSize);
 	~Canvas() noexcept;
 
 	Canvas(const Canvas&) = delete;
 	Canvas& operator=(const Canvas&) = delete;
 
-	Canvas(Canvas&&) noexcept;
-	Canvas& operator=(Canvas&&) noexcept;
+	Canvas(Canvas&&) = delete;
+	Canvas& operator=(Canvas&&) = delete;
 
-	ivec2 viewport_size() const;
-	void set_viewport_size(ivec2 size);
+	ivec2 get_canvas_size() const;
+	std::vector<RGBu8> get_canvas() const;
+	void set_canvas(ivec2 canvasSize, std::span<RGBu8> pixels);
 
-	// TODO: Should load/save/etc be implemented in here,
-	// or should we copy the old canvas & stick it outside?
-	// I think we should stick it outside, separation of
-	// concerns right?
-	// In any case we need a way to dump the pixel data
+	ivec2 get_viewport_size() const;
+	void set_viewport_size(ivec2 viewportSize);
 
 	// Registers the given tool and returns its tool index.
 	ToolIndex register_tool(std::unique_ptr<ICanvasTool> tool);
