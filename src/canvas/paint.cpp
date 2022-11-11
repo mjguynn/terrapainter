@@ -1,7 +1,7 @@
 #include "tool.h"
 #include "../shadermgr.h"
 
-class PaintTool : ICanvasTool {
+class PaintTool : public virtual ICanvasTool {
 	// The dimensions of the current canvas.
 	ivec2 mCanvasSize;
 

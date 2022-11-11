@@ -47,10 +47,12 @@ private:
 	void bake_world_transform() const;
 
 protected:
-	Entity(vec3 position, vec3 euler_angles, vec3 scale);
+	Entity(vec3 position, vec3 angles, vec3 scale);
 
 public:
-	virtual ~Entity();
+	virtual ~Entity() noexcept;
+	// TODO: Feels weird to put this here. Kind of a hack.
+	virtual void draw(const mat4& viewProj, vec3 viewPos) const {}
 
 	// Returns the matrix mapping a scene node to the world.
 	// Each scene node has some associated transform, even
@@ -80,7 +82,10 @@ public:
 	}
 
 	Entity const* parent() const { return mParent; }
-	auto children() const { return mChildren.begin(); }
+
+	// This is the wrong type, it should be a newtyped iterator
+	// But iterators in C++ are painful.
+	const std::vector<std::unique_ptr<Entity>>& children() const { return mChildren; }
 
 	// Removes `id` from the child list, updating its parent pointer,
 	// and returns an owning pointer to the child.
@@ -91,9 +96,4 @@ public:
 	// The entity must not be currently parented.
 	// (if it was, how did you get the unique pointer?)
 	void add_child(std::unique_ptr<Entity> child);
-};
-
-class World : public Entity {
-public:
-	World() : Entity(vec3::zero(), vec3::zero(), vec3::splat(1)) {}
 };

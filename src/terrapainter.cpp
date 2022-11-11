@@ -1,3 +1,5 @@
+#include <array>
+
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_sdl.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
@@ -5,28 +7,9 @@
 #include <stb/stb_image_write.h>
 #include <nfd.hpp>
 
-#include "learnopengl/mesh.h"
 #include "canvas/canvas.h"
-#include "terrapainter/camera.h"
+#include "world.h"
 #include "shadermgr.h"
-#include "controllers.h"
-#include "terrapainter.h"
-
-
-static bool should_quit(SDL_Window* main_window, SDL_Event& windowEvent) {
-    if (windowEvent.type == SDL_QUIT) {
-        return true;
-    }
-    else if (windowEvent.type == SDL_WINDOWEVENT) {
-        uint32_t main_window_id = SDL_GetWindowID(main_window);
-        SDL_WindowEvent& we = windowEvent.window;
-        return we.event == SDL_WINDOWEVENT_CLOSE
-            && we.windowID == main_window_id;
-    }
-    else {
-        return false;
-    }
-}
 
 static void load_canvas(Canvas& canvas) {
     nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
@@ -72,270 +55,111 @@ static void save_canvas(Canvas& canvas) {
     }
 }
 
+enum class AppState : size_t {
+    Canvas = 0,
+    World = 1,
 
-// TODO TEMP TEMP TEMP
-class HeightmapShader {
-    GLuint mProgram;
-    GLuint mWorldToProjectionLocation;
-    GLuint mModelToWorldLocation;
-    GLuint mLightDirLocation;
-    GLuint mViewPosLocation;
-public:
-    HeightmapShader() : mProgram(g_shaderMgr.graphics("heightmap")) {
-        mWorldToProjectionLocation = glGetUniformLocation(mProgram, "u_worldToProjection");
-        mModelToWorldLocation = glGetUniformLocation(mProgram, "u_modelToWorld");
-        mLightDirLocation = glGetUniformLocation(mProgram, "LightDir");
-        mViewPosLocation = glGetUniformLocation(mProgram, "viewPos");
-    }
-    void use(const mat4& worldToProjection, const mat4& modelToWorld, vec3 lightDir, vec3 viewPos) {
-        glUseProgram(mProgram);
-        glUniformMatrix4fv(mWorldToProjectionLocation, 1, GL_TRUE, worldToProjection.data());
-        glUniformMatrix4fv(mModelToWorldLocation, 1, GL_TRUE, modelToWorld.data());
-        glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
-        glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
-    }
-};
-static void draw_world(Camera* camera, HeightmapShader& shader, Mesh* map) {
-    mat4 viewProj = camera->projection() * camera->world_transform().inverse();
-    mat4 model = mat4::ident();
-    vec3 lightDir = { 0.0f, 0.0f, -5.0f };
-    shader.use(viewProj, model, lightDir, camera->position());
-    map->DrawStrips();
-}
-enum ModalState {
-    MODE_CANVAS,
-    MODE_WORLD,
-    MODE_STOP,
+    // Doesn't correspond to any concrete app
+    Shutdown
 };
 
-static Camera* add_camera(World& world) {
-    auto entity = std::make_unique<Camera>(
-        vec3{ 0.0f, 0.0f, 400.0f }, // position
-        vec3{ 0, -M_PI / 2, M_PI / 2 }, // rotation
-        float(M_PI) / 2, // horizontal FOV -- 90 degrees
-        ivec2{ 800, 600 }, // screen dimensions: TODO TODO TODO fix this
-        vec2{ 0.1f, 100000.0f } // nearZ, farZ
-    );
-    Camera* camera = entity.get();
-    world.add_child(std::move(entity));
-    return camera;
+constexpr size_t NUM_STATES = size_t(AppState::Shutdown);
+
+static void process_window_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+    // Strictly speaking we should also check the window ID, but we only have one window right now.
+    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+        appState = AppState::Shutdown;
+    }
 }
 
-static void debug_camera(Camera* camera, bool* showDebugCamera = nullptr) {
-    if (ImGui::Begin("Camera Controls", showDebugCamera)) {
-
-        vec3 position = camera->position();
-        ImGui::DragFloat3("Position", position.data());
-        camera->set_position(position);
-
-        vec3 angles = camera->angles() * (180 / M_PI);
-        ImGui::DragFloat3("Angles", angles.data());
-        camera->set_angles(angles * (M_PI / 180));
-
-        float fov = camera->fov() * (180 / M_PI);
-        ImGui::DragFloat("FoV (horizontal)", &fov, 1.0f, 60.0f, 120.0f, "%.1f°");
-        camera->set_fov(fov * (M_PI / 180));
-
-        vec2 range = camera->range();
-        ImGui::DragFloat2("NearZ/Farz", range.data());
-        camera->set_range(range);
+static void process_keyboard_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+    const Uint8* keys = SDL_GetKeyboardState(nullptr);
+    SDL_Keycode pressed = event.key.keysym.sym;
+    if (event.type == SDL_KEYDOWN && pressed == SDLK_F5) {
+        g_shaderMgr.refresh();
     }
-    ImGui::End();
+    else if (event.type == SDL_KEYDOWN && pressed == SDLK_SPACE) {
+        // Cycle through apps
+        apps.at(size_t(appState))->deactivate();
+        appState = static_cast<AppState>((size_t(appState) + 1) % NUM_STATES);
+        apps.at(size_t(appState))->activate();
+    }
+    else {
+        apps[size_t(appState)]->process_event(event);
+    }
 }
 
-#if 0 
-Mesh* canvas_to_map(const Canvas& canvas) {
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    auto [width, height] = canvas.dimensions();
-    auto pixels = canvas.dump_texture();
-
-    std::vector<Vertex> vertices;
-    float zScale = 96.0f / 256.0f, zShift = 16.0f;
-    int rez = 1;
-    unsigned bytePerPixel = 3;
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            unsigned char* pixelOffset = (unsigned char*)pixels.data() + (j + width * i) * bytePerPixel;
-            unsigned char z = pixelOffset[0];
-
-            vertices.push_back(
-                Vertex{
-                    .Position = vec3(-width / 2.0f + width * j / (float)width, -height / 2.0f + height * i / (float)height, (int)z * zScale - zShift)
-                }
-            );
-        }
-    }
-    fprintf(stderr, "[info] generated %llu vertices \n", vertices.size() / 3);
-
-    // ------------------ Normal (start)-------------------------
-
-    // facedata[i] is the vertex index for face i // 3
-    std::vector<unsigned int> facedata;
-    // loading each face in
-    for (int i = 0; i < height - 1; i++)
-    {
-        for (int j = 0; j < width - 1; j++)
-        {
-            facedata.push_back(i * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-        }
-    }
-
-    // normal[i] is the vec3 normal of vertices[i]
-    std::vector<vec3> normaldata;
-    for (int i = 0; i < vertices.size(); i++)
-    {
-        normaldata.push_back(vec3(0));
-    }
-
-    for (int i = 0; i < facedata.size(); i += 3)
-    {
-        vec3 v1 = vertices.at(facedata.at(i)).Position;
-        vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
-        vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
-
-        vec3 side1 = v2 - v1;
-        vec3 side2 = v3 - v1;
-        vec3 normal = cross(side1, side2);
-
-        normaldata[facedata.at(i)] += normal;
-        normaldata[facedata.at(i + 1)] += normal;
-        normaldata[facedata.at(i + 2)] += normal;
-    }
-
-
-    for (int i = 0; i < normaldata.size(); i += 1)
-    {
-        normaldata[i] = normaldata[i].normalize();
-        vertices[i].Normal = normaldata[i];
-    }
-
-    std::vector<unsigned> indices;
-    for (unsigned i = 0; i < height - 1; i += rez)
-    {
-        for (unsigned j = 0; j < width; j += rez)
-        {
-            for (unsigned k = 0; k < 2; k++)
-            {
-                indices.push_back(j + width * (i + k * rez));
-            }
-        }
-    }
-    // ------------------- Normal(End) -----------------
-
-    const int numStrips = (height - 1) / rez;
-    const int numTrisPerStrip = (width / rez) * 2 - 2;
-    fprintf(stderr, "[info] loaded %llu indices\n", indices.size());
-    fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
-    fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
-
-    return new Mesh(vertices, indices, numTrisPerStrip, numStrips);
+static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+    apps.at(size_t(appState))->process_event(event);
 }
-#endif
 
 void run_terrapainter(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
-    ModalState state = MODE_CANVAS;
-    World world;
-
-    Camera* camera = add_camera(world);
-    NoclipController cameraController(camera, 0.01, 50.0);
-    bool showDebugCamera = false;
+    Canvas canvas({ 800, 600 }); // TODO: Fix canvas size!
+    World world({ 800, 600 }, canvas);
+    
+    std::array<IApp*, NUM_STATES> apps = {
+        &canvas, // AppState::Canvas
+        &world // AppState::World
+    };
+    AppState appState = AppState::Canvas;
+    apps.at(size_t(appState))->activate();
 
     float deltaTime = 0.0f; // time between current frame and last frame
     float lastFrame = 0.0f;
 
-    Canvas canvas({ 800, 600 });
-    Mesh* map = nullptr;
-    HeightmapShader heightmap_shader;
-
     // Run the event loop
-    SDL_Event windowEvent;
-    while (state != MODE_STOP)
-    {
+    SDL_Event event;
+    while (true) {
         float currentFrame = static_cast<float>(SDL_GetTicks64()) * 0.001f;
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // handle events
-        while (SDL_PollEvent(&windowEvent))
-        {
-            const Uint8* keys = SDL_GetKeyboardState(nullptr);
-            if (windowEvent.type == SDL_KEYDOWN) {
-                auto pressed = windowEvent.key.keysym.sym;
-                auto ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
-                if (pressed == SDLK_F5) {
-                    g_shaderMgr.refresh();
-                }
-                else if (ctrl && pressed == SDLK_o) {
-                    load_canvas(canvas);
-                }
-                else if (ctrl && pressed == SDLK_s) {
-                    save_canvas(canvas);
-                }
-                else if (ctrl && pressed == SDLK_d && state == MODE_WORLD) {
-                    showDebugCamera = !showDebugCamera;
-                    SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
-                }
-                else if (pressed == SDLK_SPACE) {
-                    // TODO: Refactor this!
-                    if (state == MODE_CANVAS) {
-                        // switch to world
-                        state = MODE_WORLD;
-                        // map = canvas_to_map(canvas);
-                        SDL_SetRelativeMouseMode((SDL_bool)!showDebugCamera);
+        // ~~~~~~~ The Holy Message Pump ~~~~~~~~
+        // Mostly we just dispatch to the current app, but we add a few global inputs
+        // (like F5 for shader refresh) and do some filtering to play nice with Imgui
+        while (SDL_PollEvent(&event) && appState != AppState::Shutdown) {
+            // Always send events to SDL
+            ImGui_ImplSDL2_ProcessEvent(&event);
+            switch (event.type) {
+                case SDL_QUIT:
+                    appState = AppState::Shutdown;
+                    continue;
+                case SDL_WINDOWEVENT:
+                    process_window_event(apps, appState, event);
+                    continue;
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                    if (!io.WantCaptureKeyboard) {
+                        process_keyboard_event(apps, appState, event);
                     }
-                    else if (state == MODE_WORLD) {
-                        // switch to canvas
-                        state = MODE_CANVAS;
-                        // delete map;
-                        map = nullptr;
-                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                    continue;
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                case SDL_MOUSEMOTION:
+                case SDL_MOUSEWHEEL:
+                    if (!io.WantCaptureMouse) {
+                        process_mouse_event(apps, appState, event);
                     }
-                }
+                    continue;
             }
-            ImGui_ImplSDL2_ProcessEvent(&windowEvent);
-
-            // if (state == MODE_CANVAS) canvas.process_event(windowEvent, io);
-            if (state == MODE_WORLD && !showDebugCamera) cameraController.process_event(windowEvent);
-
-            if (should_quit(window, windowEvent)) {
-                state = MODE_STOP;
-            }
-
-            // This makes dragging windows feel snappy
-            io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
         }
-        if (state == MODE_WORLD) {
-            cameraController.process_frame(deltaTime);
-        }
+        // Something in the update loop might have told us to shutdown...
+        if (appState == AppState::Shutdown) break;
 
-        // Render scene
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        // This makes dragging windows feel snappy
+        io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
 
-        // Draw geometry with depth testing
-        glDepthFunc(GL_LESS);
-        if (state == MODE_WORLD) draw_world(camera, heightmap_shader, map);
-
-        // Draw UI without depth testing
-        glDepthFunc(GL_ALWAYS);
-        // if (state == MODE_CANVAS) canvas.draw();
+        IApp* app = apps.at(size_t(appState));
+        app->process_frame(deltaTime);
+        app->render();
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        // if (state == MODE_CANVAS) canvas.draw_ui();
-        if (state == MODE_WORLD && showDebugCamera) debug_camera(camera, &showDebugCamera);
+        app->run_ui();
         ImGui::ShowMetricsWindow();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

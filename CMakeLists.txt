@@ -127,6 +127,8 @@ target_link_libraries(stb PUBLIC terrapainter_shared)
 set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/main.cpp"
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.cpp"
+	"${CMAKE_SOURCE_DIR}/src/world.cpp"
+	"${CMAKE_SOURCE_DIR}/src/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/canvas/canvas.cpp"
 	"${CMAKE_SOURCE_DIR}/src/canvas/paint.cpp"
 	"${CMAKE_SOURCE_DIR}/src/controllers.cpp"
@@ -135,6 +137,8 @@ set(terrapainter_SOURCES
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.h"
+	"${CMAKE_SOURCE_DIR}/src/world.h"
+	"${CMAKE_SOURCE_DIR}/src/terrain.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas/canvas.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas/tool.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"

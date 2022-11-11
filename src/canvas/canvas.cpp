@@ -54,9 +54,6 @@ void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 	}
 	mCanvasSize = canvasSize;
 }
-ivec2 Canvas::get_viewport_size() const {
-	return mViewportSize;
-}
 void Canvas::set_viewport_size(ivec2 size) {
 	assert(size.x > 0 && size.y > 0);
 	mViewportSize = size;
@@ -68,4 +65,20 @@ Canvas::ToolIndex Canvas::register_tool(std::unique_ptr<ICanvasTool> tool) {
 void Canvas::set_current_tool(ToolIndex toolIndex) {
 	assert(toolIndex < mTools.size());
 	mCurTool = toolIndex;
+}
+void Canvas::activate() {
+	glDepthFunc(GL_ALWAYS);
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+}
+void Canvas::deactivate() {}
+void Canvas::process_event(const SDL_Event& event) {
+	// TODO
+}
+void Canvas::process_frame(float deltaTime) {}
+void Canvas::render() const {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	// TODO
+}
+void Canvas::run_ui() {
+	// TODO
 }

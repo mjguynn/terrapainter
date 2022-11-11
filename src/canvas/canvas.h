@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 // Canvas2 Checklist: (aka Pure Condensed Scope Creep)
 //	𐌢 Cleanup existing code... use less backbuffers, unnecessary syncs, etc
 //  𐌢 Abstract from SDL, maybe? 
@@ -62,12 +63,11 @@
 
 #include <memory>
 #include <vector>
-#include <span>
 #include "terrapainter/math.h"
-#include "terrapainter/pixel.h"
+#include "../terrapainter.h"
 #include "tool.h"
 
-class Canvas {
+class Canvas : public virtual IApp {
 public:
 	using ToolIndex = size_t;
 private:
@@ -98,7 +98,7 @@ private:
 
 public:
 	Canvas(ivec2 viewportSize);
-	~Canvas() noexcept;
+	~Canvas() noexcept override;
 
 	Canvas(const Canvas&) = delete;
 	Canvas& operator=(const Canvas&) = delete;
@@ -112,7 +112,6 @@ public:
 	// Sets the pixels comprising the canvas (RGBA)
 	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
 
-	ivec2 get_viewport_size() const;
 	void set_viewport_size(ivec2 viewportSize);
 
 	// Registers the given tool and returns its tool index.
@@ -122,4 +121,12 @@ public:
 	// manually switched tools (so it will commit strokes,
 	// do any other side effects, etc)
 	void set_current_tool(ToolIndex toolIndex);
+
+	// IApp implementation
+	void activate() override;
+	void deactivate() override;
+	void process_event(const SDL_Event& event) override;
+	void process_frame(float deltaTime) override;
+	void render() const override;
+	void run_ui() override;
 };

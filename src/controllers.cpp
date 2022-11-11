@@ -1,23 +1,22 @@
 #include "controllers.h"
 
-NoclipController::NoclipController(Entity* entity, float mouseSensitivity, float movementSpeed, float shiftScale)
-    : mEntity(entity), 
-    mMouseSensitivity(mouseSensitivity), 
+NoclipController::NoclipController(float mouseSensitivity, float movementSpeed, float shiftScale)
+    : mMouseSensitivity(mouseSensitivity), 
     mMovementSpeed(movementSpeed), 
     mShiftScale(shiftScale)
 {}
-bool NoclipController::process_event(const SDL_Event& event) {
+bool NoclipController::process_event(Entity* entity, const SDL_Event& event) {
     if (event.type == SDL_MOUSEMOTION) {
-        vec3 angles = mEntity->angles();
+        vec3 angles = entity->angles();
         float limit = float(M_PI / 2.0);
         angles.y = std::clamp(angles.y - mMouseSensitivity * event.motion.yrel, -limit, limit);
         angles.z -= mMouseSensitivity * event.motion.xrel;
-        mEntity->set_angles(angles);
+        entity->set_angles(angles);
         return true;
     }
     return false;
 }
-void NoclipController::process_frame(float deltaTime) {
+void NoclipController::process_frame(Entity* entity, float deltaTime) {
     static const Uint8* keys = SDL_GetKeyboardState(nullptr);
     float delta = mMovementSpeed * deltaTime;
     if (keys[SDL_SCANCODE_LSHIFT]) delta *= mShiftScale;
@@ -25,7 +24,7 @@ void NoclipController::process_frame(float deltaTime) {
     // Get movement vectors
     // We can think of the entity's "default orientation" as pointing towards (1, 0, 0)
     // so that's what we need to rotate. We avoid using a matrix since its overkill...
-    vec3 angles = mEntity->angles();
+    vec3 angles = entity->angles();
     float sY = std::sin(angles.y);
     float cY = std::cos(angles.y);
     float sZ = std::sin(angles.z);
@@ -37,7 +36,7 @@ void NoclipController::process_frame(float deltaTime) {
     // TODO: This doesn't account for roll right now
     vec3 right = vec3{ sZ, -cZ, 0 };
 
-    vec3 position = mEntity->position();
+    vec3 position = entity->position();
     if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]) {
         position += delta * forward;
     }
@@ -50,5 +49,5 @@ void NoclipController::process_frame(float deltaTime) {
     if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT]) {
         position -= delta * right;
     }
-    mEntity->set_position(position);
+    entity->set_position(position);
 }
