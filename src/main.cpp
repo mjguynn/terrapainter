@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         200,
         800,
         600,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     // Create OpenGL context

@@ -1,9 +1,9 @@
 #include "terrapainter/camera.h"
 
-Camera::Camera(vec3 position, vec3 euler_angles, float fov, ivec2 dims, vec2 range) :
+Camera::Camera(vec3 position, vec3 euler_angles, float fov, ivec2 sensorSize, vec2 range) :
 	Entity::Entity(position, euler_angles, vec3::splat(1.0f)),
 	mFov(fov),
-	mDims(dims),
+	mSensorSize(sensorSize),
 	mRange(range)
 {}
 mat4 Camera::projection() const{
@@ -23,7 +23,7 @@ mat4 Camera::projection() const{
 
 	float oo_farz_sub_nearz = 1.0f / (mRange.x - mRange.y);
 	float oo_tan_half_fov = 1.0f / std::tan(mFov / 2);
-	float aspect = float(mDims.x) / float(mDims.y);
+	float aspect = float(mSensorSize.x) / float(mSensorSize.y);
 	return mat4 {
 		0, -oo_tan_half_fov, 0, 0,
 		0, 0, aspect*oo_tan_half_fov, 0,

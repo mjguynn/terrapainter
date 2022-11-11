@@ -35,7 +35,7 @@ class World : public Entity, public virtual IApp {
 	void run_camera_control_ui();
 
 public:
-	World(ivec2 viewportSize, Canvas& source);
+	World(Canvas& source);
 	~World() noexcept override;
 
 	// IApp implementation
@@ -45,6 +45,6 @@ public:
 	void deactivate() override;
 	void process_event(const SDL_Event& event) override;
 	void process_frame(float deltaTime) override;
-	void render() const override;
+	void render(ivec2 viewportSize) const override;
 	void run_ui() override;
 };

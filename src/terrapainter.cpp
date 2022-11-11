@@ -49,8 +49,8 @@ static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppSt
 void terrapainter::run(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
-    Canvas canvas({ 800, 600 }); // TODO: Fix canvas size!
-    World world({ 800, 600 }, canvas);
+    Canvas canvas;
+    World world(canvas);
     
     std::array<IApp*, NUM_STATES> apps = {
         &canvas, // AppState::Canvas
@@ -61,6 +61,9 @@ void terrapainter::run(SDL_Window* window) {
 
     float deltaTime = 0.0f; // time between current frame and last frame
     float lastFrame = 0.0f;
+
+    ivec2 windowSize;
+    SDL_GetWindowSizeInPixels(window, &windowSize.x, &windowSize.y);
 
     // Run the event loop
     SDL_Event event;
@@ -80,7 +83,9 @@ void terrapainter::run(SDL_Window* window) {
                     appState = AppState::Shutdown;
                     continue;
                 case SDL_WINDOWEVENT:
-                    process_window_event(apps, appState, event);
+                    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        appState = AppState::Shutdown;
+                    }
                     continue;
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
@@ -104,9 +109,17 @@ void terrapainter::run(SDL_Window* window) {
         // This makes dragging windows feel snappy
         io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
 
+        // Test for window resizes...
+        ivec2 newWindowSize;
+        SDL_GetWindowSizeInPixels(window, &newWindowSize.x, &newWindowSize.y);
+        if (newWindowSize != windowSize) {
+            glViewport(0, 0, newWindowSize.x, newWindowSize.y);
+            windowSize = newWindowSize;
+        }
+
         IApp* app = apps.at(size_t(appState));
         app->process_frame(deltaTime);
-        app->render();
+        app->render(windowSize);
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();

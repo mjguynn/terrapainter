@@ -71,16 +71,14 @@ class Canvas : public virtual IApp {
 public:
 	using ToolIndex = size_t;
 private:
-	// The dimensions of the canvas viewport
-	ivec2 mViewportSize;
-
 	// The set of all registered tools
 	std::vector<std::unique_ptr<ICanvasTool>> mTools;
 	// The index of the current tool within mTools
 	ToolIndex mCurTool;
 
-	// The position of the *center* of the canvas
-	vec2 mCanvasPos;
+	// The pixel offset relative to the *center* of the canvas,
+	// post-scale.
+	ivec2 mCanvasOffset;
 	// The scale of the canvas
 	// This is an absolute scale, it doesn't change with mDims
 	float mCanvasScale;
@@ -97,7 +95,7 @@ private:
 	GLuint mCanvasSwapTexture;
 
 public:
-	Canvas(ivec2 viewportSize);
+	Canvas();
 	~Canvas() noexcept override;
 
 	Canvas(const Canvas&) = delete;
@@ -112,8 +110,6 @@ public:
 	std::vector<uint8_t> get_canvas() const;
 	// Sets the pixels comprising the canvas (RGBA)
 	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
-
-	void set_viewport_size(ivec2 viewportSize);
 
 	void prompt_open();
 	void prompt_save() const;
@@ -131,6 +127,6 @@ public:
 	void deactivate() override;
 	void process_event(const SDL_Event& event) override;
 	void process_frame(float deltaTime) override;
-	void render() const override;
+	void render(ivec2 viewportSize) const override;
 	void run_ui() override;
 };

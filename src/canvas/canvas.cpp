@@ -12,11 +12,10 @@ static void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWr
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sWrap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tWrap);
 }
-Canvas::Canvas(ivec2 viewportSize) {
-	set_viewport_size(viewportSize);
+Canvas::Canvas() {
 	mTools = std::vector<std::unique_ptr<ICanvasTool>>();
 	mCurTool = 0;
-	mCanvasPos = vec2(viewportSize) / 2.0f;
+	mCanvasOffset = ivec2::zero();
 	mCanvasScale = 1.0f;
 	// We don't know the size or contents of the canvas yet,
 	// but we can still register texture objects for them 
@@ -59,10 +58,6 @@ void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 	}
 	mCanvasSize = canvasSize;
 }
-void Canvas::set_viewport_size(ivec2 size) {
-	assert(size.x > 0 && size.y > 0);
-	mViewportSize = size;
-}
 Canvas::ToolIndex Canvas::register_tool(std::unique_ptr<ICanvasTool> tool) {
 	mTools.emplace_back(std::move(tool));
 	return mTools.size() - 1;
@@ -78,7 +73,6 @@ void Canvas::activate() {
 void Canvas::deactivate() {}
 void Canvas::process_event(const SDL_Event& event) {
 	// TODO
-	
 	if (event.type == SDL_KEYDOWN) {
 		const Uint8* keys = SDL_GetKeyboardState(nullptr);
 		SDL_Keycode pressed = event.key.keysym.sym;
@@ -92,9 +86,9 @@ void Canvas::process_event(const SDL_Event& event) {
 	}
 }
 void Canvas::process_frame(float deltaTime) {}
-void Canvas::render() const {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+void Canvas::render(ivec2 viewportSize) const {
 	// TODO
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 void Canvas::prompt_open() {
 	nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };

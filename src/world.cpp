@@ -1,6 +1,6 @@
 #include "world.h"
 
-World::World(ivec2 viewportSize, Canvas& source) 
+World::World(Canvas& source) 
 	: Entity(vec3::zero(), vec3::zero(), vec3::splat(1)), 
 	mSource(source),
     mCameraController(0.01, 50.0), // TODO: Should I really be hardcoding constants here?
@@ -17,7 +17,7 @@ World::World(ivec2 viewportSize, Canvas& source)
         vec3{ 0.0f, 0.0f, 400.0f }, // position
         vec3{ 0, -M_PI / 2, M_PI / 2 }, // rotation
         float(M_PI) / 2, // horizontal FOV -- 90 degrees
-        viewportSize,
+        ivec2 {0, 0}, // TEMP TEMP TEMP! This will be changed in render()
         vec2{ 0.1f, 100000.0f } // nearZ, farZ
     );
     mActiveCamera = camera.get();
@@ -78,7 +78,10 @@ void World::process_event(const SDL_Event& event) {
             mSource.prompt_save();
         }
     }
-    mCameraController.process_event(mActiveCamera, event);
+    if (!mShowCameraControls) {
+        // Don't send input to the controller when we have the debug UI open
+        mCameraController.process_event(mActiveCamera, event);
+    }
 }
 void World::process_frame(float deltaTime) {
     mCameraController.process_frame(mActiveCamera, deltaTime);
@@ -89,7 +92,8 @@ void render_tree(const Entity* root, const mat4& viewProj, vec3 viewPos) {
         render_tree(child.get(), viewProj, viewPos);
     }
 }
-void World::render() const {
+void World::render(ivec2 viewportSize) const {
+    mActiveCamera->set_sensor_size(viewportSize);
     // Clear color set in activate()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     const mat4 view = mActiveCamera->world_transform().inverse();
