@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "[info] renderer: %s\n", glGetString(GL_RENDERER));
 
-    run_terrapainter(window);
+    terrapainter::run(window);
 
     // Shutdown file dialog
     NFD::Quit();

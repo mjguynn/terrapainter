@@ -27,4 +27,6 @@ inline IApp::~IApp() {}
 // but if we stick them in main, those destructors will run after we've already
 // closed the OpenGL context!
 // ... also it's nice to seperate boilerplate from app logic
-void run_terrapainter(SDL_Window* window);
+namespace terrapainter {
+    void run(SDL_Window* window);
+}

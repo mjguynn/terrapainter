@@ -107,12 +107,16 @@ public:
 	Canvas& operator=(Canvas&&) = delete;
 
 	ivec2 get_canvas_size() const;
+
 	// Returns the pixels comprising the canvas (RGBA)
 	std::vector<uint8_t> get_canvas() const;
 	// Sets the pixels comprising the canvas (RGBA)
 	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
 
 	void set_viewport_size(ivec2 viewportSize);
+
+	void prompt_open();
+	void prompt_save() const;
 
 	// Registers the given tool and returns its tool index.
 	ToolIndex register_tool(std::unique_ptr<ICanvasTool> tool);

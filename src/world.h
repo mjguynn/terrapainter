@@ -14,7 +14,7 @@
 // which is a member of the Explorer class.
 class World : public Entity, public virtual IApp {
 	// The canvas the data is sourced from
-	const Canvas& mSource;
+	Canvas& mSource;
 
 	// The actual terrain
 	Terrain* mTerrain;
@@ -35,7 +35,7 @@ class World : public Entity, public virtual IApp {
 	void run_camera_control_ui();
 
 public:
-	World(ivec2 viewportSize, const Canvas& source);
+	World(ivec2 viewportSize, Canvas& source);
 	~World() noexcept override;
 
 	// IApp implementation

@@ -1,6 +1,6 @@
 #include "world.h"
 
-World::World(ivec2 viewportSize, const Canvas& source) 
+World::World(ivec2 viewportSize, Canvas& source) 
 	: Entity(vec3::zero(), vec3::zero(), vec3::splat(1)), 
 	mSource(source),
     mCameraController(0.01, 50.0), // TODO: Should I really be hardcoding constants here?
@@ -60,13 +60,22 @@ void World::deactivate() {
     SDL_SetRelativeMouseMode(mOldRelativeMouseMode);
 }
 void World::process_event(const SDL_Event& event) {
-    const Uint8* keys = SDL_GetKeyboardState(nullptr);
     if (event.type == SDL_KEYDOWN) {
+        const Uint8* keys = SDL_GetKeyboardState(nullptr);
         SDL_Keycode pressed = event.key.keysym.sym;
         bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
         if (ctrl && pressed == SDLK_d) {
             SDL_SetRelativeMouseMode((SDL_bool)mShowCameraControls);
             mShowCameraControls = !mShowCameraControls;
+        } 
+        else if (ctrl && pressed == SDLK_o) {
+            // HACKY LEAKY ABSTRACTION:
+            // Ensure Ctrl-O and Ctrl-S still work in world mode
+            mSource.prompt_open();
+            mTerrain->generate(mSource);
+        }
+        else if (ctrl && pressed == SDLK_s) {
+            mSource.prompt_save();
         }
     }
     mCameraController.process_event(mActiveCamera, event);

@@ -3,57 +3,10 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_sdl.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
-#include <stb/stb_image.h>
-#include <stb/stb_image_write.h>
-#include <nfd.hpp>
 
 #include "canvas/canvas.h"
 #include "world.h"
 #include "shadermgr.h"
-
-static void load_canvas(Canvas& canvas) {
-    nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
-    NFD::UniquePathU8 path = nullptr;
-    auto res = NFD::OpenDialog(path, filters, 1);
-    if (res == NFD_ERROR) {
-        fprintf(stderr, "[error] internal error (load dialog)");
-    }
-    else if (res == NFD_OKAY) {
-        ivec2 canvasSize;
-        stbi_uc* pixels = stbi_load(path.get(), &canvasSize.x, &canvasSize.y, nullptr, 4);
-        if (pixels) {
-            canvas.set_canvas(canvasSize, pixels);
-        }
-        else {
-            fprintf(stderr, "[error] STBI error: %s", stbi_failure_reason());
-        }
-    }
-}
-static void save_canvas(Canvas& canvas) {
-    auto [width, height] = canvas.get_canvas_size();
-
-    fprintf(stderr, "[info] dumping texture...");
-    auto pixels = canvas.get_canvas();
-    fprintf(stderr, " complete\n");
-
-    nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
-    NFD::UniquePathU8 path = nullptr;
-    auto res = NFD::SaveDialog(
-        path,
-        filters,
-        1,
-        nullptr,
-        "output.png"
-    );
-
-    if (res == NFD_ERROR) {
-        fprintf(stderr, "[error] internal error (save dialog)\n");
-    }
-    else if (res == NFD_OKAY) {
-        stbi_write_png(path.get(), width, height, 4, pixels.data(), width * 4);
-        fprintf(stderr, "[info] image saved to \"%s\"\n", path.get());
-    }
-}
 
 enum class AppState : size_t {
     Canvas = 0,
@@ -93,7 +46,7 @@ static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppSt
     apps.at(size_t(appState))->process_event(event);
 }
 
-void run_terrapainter(SDL_Window* window) {
+void terrapainter::run(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
     Canvas canvas({ 800, 600 }); // TODO: Fix canvas size!

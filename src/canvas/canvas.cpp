@@ -1,4 +1,9 @@
+#include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
+#include <nfd.hpp>
+
 #include "canvas.h"
+
 // TODO: Move this to a common header or something, it's pretty useful
 static void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWrap, GLenum tWrap) {
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -73,12 +78,88 @@ void Canvas::activate() {
 void Canvas::deactivate() {}
 void Canvas::process_event(const SDL_Event& event) {
 	// TODO
+	
+	if (event.type == SDL_KEYDOWN) {
+		const Uint8* keys = SDL_GetKeyboardState(nullptr);
+		SDL_Keycode pressed = event.key.keysym.sym;
+		bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
+		if (ctrl && pressed == SDLK_o) {
+			prompt_open();
+		}
+		else if (ctrl && pressed == SDLK_s) {
+			prompt_save();
+		}
+	}
 }
 void Canvas::process_frame(float deltaTime) {}
 void Canvas::render() const {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	// TODO
 }
+void Canvas::prompt_open() {
+	nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
+	NFD::UniquePathU8 path = nullptr;
+	auto res = NFD::OpenDialog(path, filters, 1);
+	if (res == NFD_ERROR) {
+		fprintf(stderr, "[error] internal error (load dialog)");
+	}
+	else if (res == NFD_OKAY) {
+		ivec2 canvasSize;
+		stbi_uc* pixels = stbi_load(
+			path.get(), 
+			&canvasSize.x, 
+			&canvasSize.y,
+			nullptr,
+			4);
+
+		if (pixels) {
+			set_canvas(canvasSize, pixels);
+		}
+		else {
+			fprintf(stderr, "[error] STBI error: %s", stbi_failure_reason());
+		}
+	}
+}
+void Canvas::prompt_save() const {
+	fprintf(stderr, "[info] dumping texture...");
+	auto pixels = get_canvas();
+	fprintf(stderr, " complete\n");
+
+	nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
+	NFD::UniquePathU8 path = nullptr;
+	auto res = NFD::SaveDialog(
+		path,
+		filters,
+		1,
+		nullptr,
+		"output.png");
+
+	if (res == NFD_ERROR) {
+		fprintf(stderr, "[error] internal error (save dialog)\n");
+	}
+	else if (res == NFD_OKAY) {
+		stbi_write_png(
+			path.get(), 
+			mCanvasSize.x, 
+			mCanvasSize.y, 
+			4, 
+			pixels.data(), 
+			mCanvasSize.x * 4);
+		fprintf(stderr, "[info] image saved to \"%s\"\n", path.get());
+	}
+}
 void Canvas::run_ui() {
 	// TODO
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("Open", "O", nullptr)) {
+				prompt_open();
+			}
+			if (ImGui::MenuItem("Save", "S", nullptr)) {
+				prompt_save();
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
 }
