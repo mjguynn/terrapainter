@@ -2,7 +2,7 @@
 
 #include "terrapainter/entity.h"
 #include "learnopengl/mesh.h"
-#include "canvas/canvas.h"
+#include "canvas.h"
 
 class Terrain : public Entity {
 private:

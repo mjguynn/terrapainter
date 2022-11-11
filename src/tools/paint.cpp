@@ -1,4 +1,4 @@
-#include "tool.h"
+#include "../canvas.h"
 #include "../shadermgr.h"
 
 class PaintTool : public virtual ICanvasTool {

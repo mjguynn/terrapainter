@@ -4,7 +4,7 @@
 #include "terrapainter/entity.h"
 #include "controllers.h"
 #include "terrapainter.h"
-#include "canvas/canvas.h"
+#include "canvas.h"
 #include "terrain.h"
 
 // This is kind of a misnomer, as its conflating the "world" (in a scene 

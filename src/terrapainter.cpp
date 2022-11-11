@@ -4,7 +4,8 @@
 #include <imgui/backends/imgui_impl_sdl.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
-#include "canvas/canvas.h"
+#include "canvas.h"
+
 #include "world.h"
 #include "shadermgr.h"
 
@@ -62,9 +63,9 @@ void terrapainter::run(SDL_Window* window) {
     float deltaTime = 0.0f; // time between current frame and last frame
     float lastFrame = 0.0f;
 
-    ivec2 windowSize;
-    SDL_GetWindowSizeInPixels(window, &windowSize.x, &windowSize.y);
-    glViewport(0, 0, windowSize.x, windowSize.y);
+    ivec2 viewportSize;
+    SDL_GetWindowSizeInPixels(window, &viewportSize.x, &viewportSize.y);
+    glViewport(0, 0, viewportSize.x, viewportSize.y);
 
     // Run the event loop
     SDL_Event event;
@@ -102,6 +103,8 @@ void terrapainter::run(SDL_Window* window) {
                         process_mouse_event(apps, appState, event);
                     }
                     continue;
+                default:
+                    continue;
             }
         }
         // Something in the update loop might have told us to shutdown...
@@ -111,16 +114,16 @@ void terrapainter::run(SDL_Window* window) {
         io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
 
         // Test for window resizes...
-        ivec2 newWindowSize;
-        SDL_GetWindowSizeInPixels(window, &newWindowSize.x, &newWindowSize.y);
-        if (newWindowSize != windowSize) {
-            glViewport(0, 0, newWindowSize.x, newWindowSize.y);
-            windowSize = newWindowSize;
+        ivec2 newViewportSize;
+        SDL_GetWindowSizeInPixels(window, &newViewportSize.x, &newViewportSize.y);
+        if (newViewportSize != viewportSize) {
+            glViewport(0, 0, newViewportSize.x, newViewportSize.y);
+            viewportSize = newViewportSize;
         }
 
         IApp* app = apps.at(size_t(appState));
         app->process_frame(deltaTime);
-        app->render(windowSize);
+        app->render(viewportSize);
 
         // Render ImGUI ui
         ImGui_ImplOpenGL3_NewFrame();
