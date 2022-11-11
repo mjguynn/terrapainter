@@ -26,7 +26,8 @@ public:
 	// Draws/updates the IMGUI UI within an existing tool window.
 	virtual void controls() = 0;
 	// Render a fullscreen preview into the active framebuffer.
-	// Prior to calling this, the alpha blending function is (TODO)
+	// Prior to calling this, the alpha blending function is GL_ONE_MINUS_SRC_ALPHA
+	// and should remain that way afterwards
 	// `screenSize` is guaranteed to be positive.
 	virtual void preview(ivec2 screenSize, ivec2 screenMouse) = 0;
 };

@@ -107,8 +107,10 @@ public:
 	Canvas& operator=(Canvas&&) = delete;
 
 	ivec2 get_canvas_size() const;
-	std::vector<RGBu8> get_canvas() const;
-	void set_canvas(ivec2 canvasSize, std::span<RGBu8> pixels);
+	// Returns the pixels comprising the canvas (RGBA)
+	std::vector<uint8_t> get_canvas() const;
+	// Sets the pixels comprising the canvas (RGBA)
+	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
 
 	ivec2 get_viewport_size() const;
 	void set_viewport_size(ivec2 viewportSize);

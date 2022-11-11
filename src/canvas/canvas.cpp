@@ -30,23 +30,23 @@ Canvas::~Canvas() noexcept {
 ivec2 Canvas::get_canvas_size() const {
 	return mCanvasSize;
 }
-std::vector<RGBu8> Canvas::get_canvas() const {
+std::vector<uint8_t> Canvas::get_canvas() const {
 	size_t numPixels = size_t(mCanvasSize.x) * size_t(mCanvasSize.y);
-	std::vector<RGBu8> pixels(numPixels);
+	std::vector<uint8_t> pixels(numPixels);
 	if (numPixels == 0) {
 		return pixels;
 	}
-	pixels.resize(numPixels);
+	pixels.resize(numPixels * 4); // 4 bytes per pixel since RGBA
 	glBindTexture(GL_TEXTURE_2D, mCanvasTexture);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 	return pixels;
 }
-void Canvas::set_canvas(ivec2 canvasSize, std::span<RGBu8> pixels) {
+void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 	// Canvas dimensions should be either 0x0 or positive.
 	if (canvasSize != ivec2::zero()) {
 		assert(canvasSize.x > 0 && canvasSize.y > 0);
 		glBindTexture(GL_TEXTURE_2D, mCanvasTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, canvasSize.x, canvasSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvasSize.x, canvasSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		// Inform tools of the change
 		for (auto& tool : mTools) {
 			tool->clear(canvasSize);
