@@ -64,6 +64,7 @@ void terrapainter::run(SDL_Window* window) {
 
     ivec2 windowSize;
     SDL_GetWindowSizeInPixels(window, &windowSize.x, &windowSize.y);
+    glViewport(0, 0, windowSize.x, windowSize.y);
 
     // Run the event loop
     SDL_Event event;

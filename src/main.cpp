@@ -1,3 +1,7 @@
+#include <functional>
+#include <span>
+#include <string>
+
 #include <glad/gl.h>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_sdl.h>
@@ -35,8 +39,80 @@ void GLAPIENTRY glDebugLogger(
     fprintf(stderr, "%s OpenGL: %s\n", header, message);
 }
 
+struct CommandArg {
+    const char* sName;
+    const char* lName;
+    const char* help;
+    bool takesValue;
+    std::function<void(const char*)> callback;
+};
+
+bool parse_cmdline(int argc, char* argv[], const std::span<CommandArg>& args) {
+    const CommandArg* current = nullptr;
+    for (int i = 1; i < argc; i++) {
+        if (current) {
+            current->callback(argv[i]);
+            current = nullptr;
+            continue;
+        }
+        if (!strcmp("--help", argv[i])) {
+            fprintf(stderr, "Terrapainter (built on " __DATE__")\n");
+            for (const auto& arg : args) {
+                fprintf(stderr, "\t%s, %s\t\t%s\n", arg.sName, arg.lName, arg.help);
+            }
+            std::exit(0);
+        }
+        bool matched = false;
+        for (const auto& arg : args) {
+            if (!strcmp(arg.sName, argv[i]) || !strcmp(arg.lName, argv[i])) {
+                if (!arg.takesValue) arg.callback(nullptr);
+                else current = &arg;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            fprintf(stderr, "Unknown argument %s\n", argv[i]);
+            return false;
+        }
+    }
+    if (current) {
+        fprintf(stderr, "No option given for argument %s\n", argv[argc - 1]);
+        return false;
+    }
+    return true;
+}
+
+ivec2 fix_window_size(ivec2 screenSize, ivec2 windowSize) {
+    if (windowSize == screenSize) {
+        // Clearly, the user is *trying* to make a fullscreen window.
+        // Since we're debugging we want the app to be fast to start.
+        // But Windows goes "oh fullscreen app clearly it's a Video Game
+        // let me put it in Exclusive Fullscreen Mode which makes your
+        // screen lock up for like 5 seconds and then 5 seconds more
+        // every time you Alt-Tab™ surely that's a good idea"
+        // ... to get around this we just fudge the height a bit
+        return { windowSize.x, windowSize.y + 1 };
+    }
+    else {
+        return windowSize;
+    }
+}
+
 int main(int argc, char *argv[])
 {
+    ivec2 windowSize = { 800, 600 };
+    ivec2 windowPos = { 200, 200 };
+    const char* initialInput = nullptr;
+    std::array<CommandArg, 5> args = {
+        CommandArg { "-w", "--width", "Sets the window width", true, [&](const char* w) {windowSize.x = std::stoi(w); }},
+        CommandArg { "-h", "--height", "Sets the window height", true, [&](const char* h) {windowSize.y = std::stoi(h); }},
+        CommandArg { "-x", "--xpos", "Sets the initial window X position", true, [&](const char* x) {windowPos.x = std::stoi(x); }},
+        CommandArg { "-y", "--ypos", "Sets the initial window Y position", true, [&](const char* y) {windowPos.y = std::stoi(y); }},
+        CommandArg { "-i", "--input", "Opens Terrapainter with the specified input", true, [&](const char* i) {initialInput = i; }}
+    };
+    parse_cmdline(argc, argv, args);
+
     // Initialize SDL
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "1");
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
@@ -55,12 +131,17 @@ int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
+    SDL_DisplayMode displayMode;
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+    ivec2 screenSize = { displayMode.w, displayMode.h };
+    windowSize = fix_window_size(screenSize, windowSize);
+
     SDL_Window *window = SDL_CreateWindow(
         "Terrapainter", 
-        200,
-        200,
-        800,
-        600,
+        windowPos.x,
+        windowPos.y,
+        windowSize.x,
+        windowSize.y,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
@@ -100,8 +181,6 @@ int main(int argc, char *argv[])
     // Enable debug/error logging
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(glDebugLogger, 0);
-    // Set viewport
-    glViewport(0, 0, 800, 600);
 
     fprintf(stderr, "[info] renderer: %s\n", glGetString(GL_RENDERER));
 
