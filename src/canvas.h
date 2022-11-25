@@ -113,12 +113,10 @@ private:
 	// The index of the current tool within mTools
 	ToolIndex mCurTool;
 
-	// The pixel offset relative to the *center* of the canvas,
-	// post-scale.
+	// The pixel offset relative to the *center* of the canvas.
 	ivec2 mCanvasOffset;
-	// The scale of the canvas
-	// This is an absolute scale, it doesn't change with mDims
-	float mCanvasScale;
+	// The logarithmic scale of the canvas (log2)
+	float mCanvasScaleLog;
 
 	// The dimensions of the canvas texture(s)
 	// Invariant: This is kept in sync with mCanvasTexture
@@ -145,12 +143,25 @@ private:
 	// True if there are changes which haven't been saved to disk
 	bool mModified;
 
+	enum class InteractState {
+		NONE,
+		PAN,
+		STROKE,
+		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
+	} mInteractState;
+
 	enum class SaveResponse {
 		SAVE,
 		DISCARD,
 		CANCEL
-	};
-	SaveResponse request_save() const;
+	} request_save() const;
+
+	// Splitting up functions for my own sanity
+	void process_keyboard(const SDL_KeyboardEvent& event);
+	void process_mouse_button_down(const SDL_MouseButtonEvent& event);
+	void process_mouse_button_up(const SDL_MouseButtonEvent& event);
+	void process_mouse_motion(const SDL_MouseMotionEvent& event);
+	void process_mouse_wheel(const SDL_MouseWheelEvent& event);
 
 public:
 	Canvas(SDL_Window* window);

@@ -36,7 +36,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mTools = std::vector<std::unique_ptr<ICanvasTool>>();
 	mCurTool = 0;
 	mCanvasOffset = ivec2::zero();
-	mCanvasScale = 1.0f;
+	mCanvasScaleLog = 0.0f;
 	// We don't know the size or contents of the canvas yet,
 	// but we can still register texture objects for them 
 	// and resize/fill them as needed.
@@ -53,11 +53,12 @@ Canvas::Canvas(SDL_Window* window) {
 	configure_quad(mCanvasVAO, mCanvasVBO);
 	mWindow = window;
 	mModified = false;
+	mInteractState = InteractState::NONE;
 }
 Canvas::~Canvas() noexcept {
 	assert(mCanvasTexture);
 	glDeleteTextures(1, &mCanvasTexture);
-	assert(mCanvasSwapTexture);
+	assert(mCanvasDstTexture);
 	glDeleteTextures(1, &mCanvasDstTexture);
 	assert(mCanvasVAO);
 	glDeleteVertexArrays(1, &mCanvasVAO);
@@ -106,18 +107,74 @@ void Canvas::activate() {
 	SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 void Canvas::deactivate() {}
+void Canvas::process_keyboard(const SDL_KeyboardEvent& event) {
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
+	if (ctrl && event.keysym.sym == SDLK_o) {
+		prompt_open();
+	}
+	else if (ctrl && event.keysym.sym == SDLK_s) {
+		prompt_save();
+	}
+}
+void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	int w, h;
+	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
+	ivec2 pos = { event.x, h - event.y };
+	if (mInteractState == InteractState::NONE) {
+		if (event.button == SDL_BUTTON_LEFT && !mTools.empty()) {
+			mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
+			mInteractState = InteractState::STROKE;
+		}
+		else if (event.button == SDL_BUTTON_RIGHT) {
+			mInteractState = InteractState::PAN;
+		}
+	}
+}
+void Canvas::process_mouse_button_up(const SDL_MouseButtonEvent& event) {
+	if ( mInteractState == InteractState::PAN && event.button == SDL_BUTTON_RIGHT) {
+		mInteractState = InteractState::NONE;
+	}
+	else if (mInteractState == InteractState::STROKE && event.button == SDL_BUTTON_LEFT) {
+		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
+		std::swap(mCanvasDstTexture, mCanvasTexture);
+		mInteractState = InteractState::NONE;
+	}
+}
+void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	ivec2 pos = { event.xrel, -event.yrel };
+	if (mInteractState == InteractState::PAN) {
+		mCanvasOffset += 2*pos; // 2x to account for the fact that OpenGL uses [-1, 1] not [0, 1]
+	}
+	else if (mInteractState == InteractState::STROKE) {
+		mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
+	}
+}
+void Canvas::process_mouse_wheel(const SDL_MouseWheelEvent& event) {
+	mCanvasScaleLog += event.preciseY;
+}
 void Canvas::process_event(const SDL_Event& event) {
-	// TODO
+	// TODO: It really sucks to call this each frame
+	int w, h;
+	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
+
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	if (event.type == SDL_KEYDOWN) {
-		const Uint8* keys = SDL_GetKeyboardState(nullptr);
-		SDL_Keycode pressed = event.key.keysym.sym;
-		bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
-		if (ctrl && pressed == SDLK_o) {
-			prompt_open();
-		}
-		else if (ctrl && pressed == SDLK_s) {
-			prompt_save();
-		}
+		process_keyboard(event.key);
+	}
+	else if (event.type == SDL_MOUSEBUTTONDOWN) {
+		process_mouse_button_down(event.button);
+	}
+	else if (event.type == SDL_MOUSEBUTTONUP) {
+		process_mouse_button_up(event.button);
+	}
+	else if (event.type == SDL_MOUSEMOTION) {
+		process_mouse_motion(event.motion);
+	}
+	else if (event.type == SDL_MOUSEWHEEL) {
+		process_mouse_wheel(event.wheel);
 	}
 }
 void Canvas::process_frame(float deltaTime) {}
@@ -133,17 +190,17 @@ void Canvas::render(ivec2 viewportSize) const {
 	ivec2 screenMouse = { x, viewportSize.y - y };
 
 	vec2 relativeOffset = vec2(mCanvasOffset) / vec2(viewportSize);
-	vec2 relativeScale = vec2(mCanvasSize) / float(viewportSize.x) * mCanvasScale;
+	vec2 scale = vec2(mCanvasSize) * pow(2.0f, mCanvasScaleLog);
+	vec2 relativeScale = scale / vec2(viewportSize);
 	mat3 xform = {
 		relativeScale.x, 0.0f, relativeOffset.x,
 		0.0f, relativeScale.y, relativeOffset.y,
 		0.0f, 0.0f, 1.0f
 	};
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glBindVertexArray(mCanvasVAO);
 	glUseProgram(mCanvasProgram);
-	glUniformMatrix3fv(mCanvasProgramTransformLocation, 1, GL_FALSE, xform.data());
+	glUniformMatrix3fv(mCanvasProgramTransformLocation, 1, GL_TRUE, xform.data());
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glUniform1i(mCanvasProgramTextureLocation, 0);
