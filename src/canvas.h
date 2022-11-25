@@ -69,6 +69,11 @@
 #include "terrapainter/math.h"
 #include "terrapainter.h"
 
+struct CanvasRegion {
+	ivec2 min; // Min X & Y coordinates of the region
+	ivec2 max; // Max X & Y coordinates of the region
+};
+
 // Abstract interface for canvas tools
 // (i.e. brush, blur, texture splatter)
 class ICanvasTool {
@@ -76,19 +81,20 @@ public:
 	virtual ~ICanvasTool() noexcept = 0;
 	// Returns the human-readable tool name.
 	virtual const char* name() const = 0;
-	// Clears relevant state to prepare for a fresh canvas texture.
+	// Clears stroke state to prepare for a fresh canvas texture.
 	// canvasSize is guaranteed to be positive.
-	virtual void clear(ivec2 canvasSize) = 0;
+	virtual void clear_stroke(ivec2 canvasSize) = 0;
 	// Creates or continues the current stroke. Strokes are ended by `reset`.
 	// `modifier` indicates whether the modifier key (shift) is being held.
-	virtual void stroke(ivec2 canvasMouse, bool modifier) = 0;
+	virtual void update_stroke(ivec2 canvasMouse, bool modifier) = 0;
 	// TODO: A bit complicated to explain
 	// TODO: Leaking SDL details here is really ugly
-	virtual void configure(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) = 0;
+	virtual void update_param(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) = 0;
 	// Composites the tool's output with the current Canvas content.
-	virtual void composite(GLuint dst, GLuint src) = 0;
+	// Returns a maximal bound on the modified region.
+	virtual CanvasRegion composite(GLuint dst, GLuint src) = 0;
 	// Draws/updates the IMGUI UI within an existing tool window.
-	virtual void controls() = 0;
+	virtual void run_ui() = 0;
 	// Render a fullscreen preview into the active framebuffer.
 	// Prior to calling this, the alpha blending function is GL_ONE_MINUS_SRC_ALPHA
 	// and should remain that way afterwards
@@ -125,8 +131,19 @@ private:
 	// the main canvas texture and the canvas texture is cleared
 	GLuint mCanvasSwapTexture;
 
+	SDL_Window* mWindow;
+	// True if there are changes which haven't been saved to disk
+	bool mModified;
+
+	enum class SaveResponse {
+		SAVE,
+		DISCARD,
+		CANCEL
+	};
+	SaveResponse request_save() const;
+
 public:
-	Canvas();
+	Canvas(SDL_Window* window);
 	~Canvas() noexcept override;
 
 	Canvas(const Canvas&) = delete;
@@ -142,8 +159,8 @@ public:
 	// Sets the pixels comprising the canvas (RGBA)
 	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
 
-	void prompt_open();
-	void prompt_save() const;
+	bool prompt_open();
+	bool prompt_save();
 
 	// Registers the given tool and returns its tool index.
 	ToolIndex register_tool(std::unique_ptr<ICanvasTool> tool);

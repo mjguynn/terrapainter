@@ -6,8 +6,7 @@ World::World(Canvas& source)
 	: Entity(vec3::zero(), vec3::zero(), vec3::splat(1)), 
 	mSource(source),
     mCameraController(0.01, 50.0), // TODO: Should I really be hardcoding constants here?
-    mShowCameraControls(false),
-    mOldRelativeMouseMode(SDL_FALSE) // this will be stomped by activate anyways
+    mShowCameraControls(false)
 {
     auto terrain = std::make_unique<Terrain>(
         vec3::zero(), vec3::zero(), vec3::splat(1.f)
@@ -31,7 +30,8 @@ World::~World() noexcept {
 }
 
 void World::run_camera_control_ui() {
-    if (ImGui::Begin("Camera Controls", &mShowCameraControls)) {
+    bool show = true;
+    if (ImGui::Begin("Camera Controls", &show)) {
         vec3 position = mActiveCamera->position();
         ImGui::DragFloat3("Position", position.data());
         mActiveCamera->set_position(position);
@@ -49,17 +49,20 @@ void World::run_camera_control_ui() {
         mActiveCamera->set_range(range);
     }
     ImGui::End();
+    if (!show) {
+        mShowCameraControls = false;
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
 }
 void World::activate() {
     // Unsure if I should put the inverse of the OpenGL calls in deactivate.
     glDepthFunc(GL_LESS);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    mOldRelativeMouseMode = SDL_GetRelativeMouseMode();
-    SDL_SetRelativeMouseMode((SDL_bool)!mShowCameraControls);
+    SDL_SetRelativeMouseMode(mShowCameraControls ? SDL_FALSE : SDL_TRUE);
     mTerrain->generate(mSource);
 }
 void World::deactivate() {
-    SDL_SetRelativeMouseMode(mOldRelativeMouseMode);
+    // Nothing here, for now...
 }
 void World::process_event(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {

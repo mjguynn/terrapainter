@@ -25,12 +25,8 @@ class World : public Entity, public virtual IApp {
 	// Controls the active camera.
 	NoclipController mCameraController;
 
-	// Whether to show the debug camera window
+	// Whether to show the debug camera window.
 	bool mShowCameraControls;
-
-	// Whatever the relative mouse mode was when we activated the app
-	// Used so we can reset it on app deactivation
-	SDL_bool mOldRelativeMouseMode;
 
 	void run_camera_control_ui();
 

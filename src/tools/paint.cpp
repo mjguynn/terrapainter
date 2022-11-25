@@ -1,4 +1,4 @@
-#include "../canvas.h"
+#include "canvas_tools.h"
 #include "../shadermgr.h"
 
 class PaintTool : public virtual ICanvasTool {
@@ -36,7 +36,6 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		// We can easily set these up.
 		// Since these go through the shader manager, we don't have to
 		// worry about resource cleanup...
 		mStrokeProgram = g_shaderMgr.compute("paint_stroke");
@@ -55,7 +54,7 @@ public:
 	const char* name() const override {
 		return "Paint";
 	}
-	void clear(ivec2 canvasSize) override {
+	void clear_stroke(ivec2 canvasSize) override {
 		assert(canvasSize.x > 0 && canvasSize.y > 0);
 		// We only re-create the texture if the canvas size changed,
 		// otherwise we just clear it...
@@ -67,7 +66,7 @@ public:
 		const float zero = 0.0f;
 		glClearTexImage(mStrokeTexture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
 	}
-	void configure(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) override {
+	void update_param(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) override {
 		if (keyCode == SDLK_r) {
 			// Y axis = brush outer radius
 			float wanted = mBrushParams.z + mouseDelta.y;
@@ -78,3 +77,8 @@ public:
 		}
 	}
 };
+
+std::unique_ptr<ICanvasTool> tools::paint() {
+	// return std::make_unique<PaintTool>();
+	std::abort();
+}

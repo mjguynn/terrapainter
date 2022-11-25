@@ -13,7 +13,7 @@ static void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWr
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sWrap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tWrap);
 }
-Canvas::Canvas() {
+Canvas::Canvas(SDL_Window* window) {
 	mTools = std::vector<std::unique_ptr<ICanvasTool>>();
 	mCurTool = 0;
 	mCanvasOffset = ivec2::zero();
@@ -26,6 +26,8 @@ Canvas::Canvas() {
 	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 	glGenTextures(1, &mCanvasSwapTexture);
 	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	mWindow = window;
+	mModified = false;
 }
 Canvas::~Canvas() noexcept {
 	assert(mCanvasTexture && mCanvasSwapTexture);
@@ -54,10 +56,11 @@ void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvasSize.x, canvasSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		// Inform tools of the change
 		for (auto& tool : mTools) {
-			tool->clear(canvasSize);
+			tool->clear_stroke(canvasSize);
 		}
 	}
 	mCanvasSize = canvasSize;
+	mModified = false;
 }
 Canvas::ToolIndex Canvas::register_tool(std::unique_ptr<ICanvasTool> tool) {
 	mTools.emplace_back(std::move(tool));
@@ -70,6 +73,7 @@ void Canvas::set_current_tool(ToolIndex toolIndex) {
 void Canvas::activate() {
 	glDepthFunc(GL_ALWAYS);
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 void Canvas::deactivate() {}
 void Canvas::process_event(const SDL_Event& event) {
@@ -91,7 +95,46 @@ void Canvas::render(ivec2 viewportSize) const {
 	// TODO
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
-void Canvas::prompt_open() {
+
+Canvas::SaveResponse Canvas::request_save() const {
+	const int CANCEL = 0;
+	const int DISCARD = 1;
+	const int SAVE = 2;
+	SDL_MessageBoxButtonData bData[3] = {
+		{.flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, .buttonid=CANCEL, .text="Cancel"},
+		{.flags = 0, .buttonid=DISCARD, .text="Discard"},
+		{.flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, .buttonid=SAVE, .text="Save"},
+	};
+	SDL_MessageBoxData mData = {
+		.flags = SDL_MESSAGEBOX_INFORMATION,
+		.window = mWindow,
+		.title = "Save",
+		.message = "You have unsaved changes. Would you like to save them?",
+		.numbuttons = 3,
+		.buttons = bData,
+		.colorScheme = NULL
+	};
+	int id = CANCEL;
+	SDL_ShowMessageBox(&mData, &id);
+	switch (id) {
+	case CANCEL:
+		return SaveResponse::CANCEL;
+	case DISCARD:
+		return SaveResponse::DISCARD;
+	case SAVE:
+		return SaveResponse::SAVE;
+	default:
+		std::abort();
+	}
+}
+bool Canvas::prompt_open() {
+	if (mModified) {
+		auto response = request_save();
+		if (response == SaveResponse::CANCEL)
+			return false;
+		if (response == SaveResponse::SAVE && !prompt_save())
+			return false;
+	}
 	nfdu8filteritem_t filters[1] = { { "Images", "png,jpg,tga,bmp,psd,gif" } };
 	NFD::UniquePathU8 path = nullptr;
 	auto res = NFD::OpenDialog(path, filters, 1);
@@ -109,13 +152,15 @@ void Canvas::prompt_open() {
 
 		if (pixels) {
 			set_canvas(canvasSize, pixels);
+			return true;
 		}
 		else {
 			fprintf(stderr, "[error] STBI error: %s", stbi_failure_reason());
 		}
 	}
+	return false;
 }
-void Canvas::prompt_save() const {
+bool Canvas::prompt_save() {
 	fprintf(stderr, "[info] dumping texture...");
 	auto pixels = get_canvas();
 	fprintf(stderr, " complete\n");
@@ -141,7 +186,10 @@ void Canvas::prompt_save() const {
 			pixels.data(), 
 			mCanvasSize.x * 4);
 		fprintf(stderr, "[info] image saved to \"%s\"\n", path.get());
+		mModified = false;
+		return true;
 	}
+	return false;
 }
 void Canvas::run_ui() {
 	// TODO

@@ -5,6 +5,7 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 
 #include "canvas.h"
+#include "tools/canvas_tools.h"
 
 #include "world.h"
 #include "shadermgr.h"
@@ -50,7 +51,8 @@ static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppSt
 void terrapainter::run(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
-    Canvas canvas;
+    Canvas canvas(window);
+    // canvas.register_tool(tools::paint());
     World world(canvas);
     
     std::array<IApp*, NUM_STATES> apps = {
