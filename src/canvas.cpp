@@ -1,4 +1,5 @@
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 #include <nfd.hpp>
@@ -54,6 +55,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mWindow = window;
 	mModified = false;
 	mInteractState = InteractState::NONE;
+	mFilename = "(no file opened)";
 }
 Canvas::~Canvas() noexcept {
 	assert(mCanvasTexture);
@@ -118,10 +120,10 @@ void Canvas::process_keyboard(const SDL_KeyboardEvent& event) {
 	}
 }
 void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
-	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	int w, h;
 	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
 	ivec2 pos = { event.x, h - event.y };
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	if (mInteractState == InteractState::NONE) {
 		if (event.button == SDL_BUTTON_LEFT && !mTools.empty()) {
 			mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
@@ -153,14 +155,17 @@ void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
 	}
 }
 void Canvas::process_mouse_wheel(const SDL_MouseWheelEvent& event) {
-	mCanvasScaleLog += event.preciseY;
-}
-void Canvas::process_event(const SDL_Event& event) {
-	// TODO: It really sucks to call this each frame
 	int w, h;
 	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
-
-	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	// Insane bullshit to let us zoom in on the mouse location instead of the image center
+	float oldScale = powf(2, mCanvasScaleLog);
+	mCanvasScaleLog += event.preciseY;
+	float newScale = powf(2, mCanvasScaleLog);
+	float fac = (newScale / oldScale) - 1.0f;
+	ivec2 zoomPos = { event.mouseX - w / 2, h/2 - event.mouseY };
+	mCanvasOffset += 2*ivec2(fac*vec2(mCanvasOffset) - fac*vec2(zoomPos));
+}
+void Canvas::process_event(const SDL_Event& event) {
 	if (event.type == SDL_KEYDOWN) {
 		process_keyboard(event.key);
 	}
@@ -268,6 +273,7 @@ bool Canvas::prompt_open() {
 
 		if (pixels) {
 			set_canvas(canvasSize, pixels);
+			mFilename = path.get();
 			return true;
 		}
 		else {
@@ -321,4 +327,23 @@ void Canvas::run_ui() {
 		}
 		ImGui::EndMainMenuBar();
 	}
+	int x, y;
+	SDL_GetMouseState(&x, &y);
+	int w, h;
+	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
+	ivec2 relativeMouse = ivec2{ x / 2, h / 2 - y } - mCanvasOffset;
+	// Draw status bar at the bottom of the screen
+	// This is using an internal API :P
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+	float height = ImGui::GetFrameHeight();
+	if (ImGui::BeginViewportSideBar("##StatusBar", NULL, ImGuiDir_Down, height, flags)) {
+		if (ImGui::BeginMenuBar()) {
+			ImGui::Text("%s", mFilename.c_str());
+			ImGui::Text("Dimensions: %ix%i", mCanvasSize.x, mCanvasSize.y);
+			//ImGui::Dummy(vec2{16, 0});
+			//ImGui::Text("Cursor Position (relative): (%i,%i)", relativeMouse.x, relativeMouse.y);
+			ImGui::EndMenuBar();
+		}
+	}
+	ImGui::End();
 }

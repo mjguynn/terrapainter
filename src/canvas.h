@@ -150,6 +150,8 @@ private:
 		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
 	} mInteractState;
 
+	std::string mFilename;
+
 	enum class SaveResponse {
 		SAVE,
 		DISCARD,
