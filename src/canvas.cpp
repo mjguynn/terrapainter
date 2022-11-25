@@ -3,8 +3,27 @@
 #include <stb/stb_image_write.h>
 #include <nfd.hpp>
 
+#include "shadermgr.h"
 #include "canvas.h"
 
+static void configure_quad(GLuint& vao, GLuint& vbo) {
+	static float QUAD_VERTS[] = {
+		// POSITION (XY)		// TEXCOORD
+		-1.0f,	-1.0f, 1.0f,	0.0f, 0.0f,
+		-1.0f,  +1.0f, 1.0f,	0.0f, 1.0f,
+		+1.0f,  -1.0f, 1.0f,	1.0f, 0.0f,
+		+1.0f,  +1.0f, 1.0f,	1.0f, 1.0f,
+	};
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(QUAD_VERTS), QUAD_VERTS, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (const GLvoid*)(0));
+	glEnableVertexAttribArray(0); // POSITION (XY)
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (const GLvoid*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1); // TEXCOORD
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 // TODO: Move this to a common header or something, it's pretty useful
 static void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWrap, GLenum tWrap) {
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -24,15 +43,26 @@ Canvas::Canvas(SDL_Window* window) {
 	mCanvasSize = ivec2::zero();
 	glGenTextures(1, &mCanvasTexture);
 	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-	glGenTextures(1, &mCanvasSwapTexture);
+	glGenTextures(1, &mCanvasDstTexture);
 	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	mCanvasProgram = g_shaderMgr.graphics("canvas");
+	mCanvasProgramTransformLocation = glGetUniformLocation(mCanvasProgram, "u_transform");
+	mCanvasProgramTextureLocation = glGetUniformLocation(mCanvasProgram, "u_texture");
+	glGenVertexArrays(1, &mCanvasVAO);
+	glGenBuffers(1, &mCanvasVBO);
+	configure_quad(mCanvasVAO, mCanvasVBO);
 	mWindow = window;
 	mModified = false;
 }
 Canvas::~Canvas() noexcept {
-	assert(mCanvasTexture && mCanvasSwapTexture);
+	assert(mCanvasTexture);
 	glDeleteTextures(1, &mCanvasTexture);
-	glDeleteTextures(1, &mCanvasSwapTexture);
+	assert(mCanvasSwapTexture);
+	glDeleteTextures(1, &mCanvasDstTexture);
+	assert(mCanvasVAO);
+	glDeleteVertexArrays(1, &mCanvasVAO);
+	assert(mCanvasVBO);
+	glDeleteBuffers(1, &mCanvasVBO);
 }
 ivec2 Canvas::get_canvas_size() const {
 	return mCanvasSize;
@@ -92,8 +122,37 @@ void Canvas::process_event(const SDL_Event& event) {
 }
 void Canvas::process_frame(float deltaTime) {}
 void Canvas::render(ivec2 viewportSize) const {
-	// TODO
+	GLuint image = mCanvasTexture;
+	// Composite current stroke
+	if (!mTools.empty()) {
+		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
+		image = mCanvasDstTexture;
+	}
+	int x, y;
+	SDL_GetMouseState(&x, &y);
+	ivec2 screenMouse = { x, viewportSize.y - y };
+
+	vec2 relativeOffset = vec2(mCanvasOffset) / vec2(viewportSize);
+	vec2 relativeScale = vec2(mCanvasSize) / float(viewportSize.x) * mCanvasScale;
+	mat3 xform = {
+		relativeScale.x, 0.0f, relativeOffset.x,
+		0.0f, relativeScale.y, relativeOffset.y,
+		0.0f, 0.0f, 1.0f
+	};
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glBindVertexArray(mCanvasVAO);
+	glUseProgram(mCanvasProgram);
+	glUniformMatrix3fv(mCanvasProgramTransformLocation, 1, GL_FALSE, xform.data());
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, image);
+	glUniform1i(mCanvasProgramTextureLocation, 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	// mCurTool should always be valid unless we have no tools at all
+	if (!mTools.empty()) {
+		mTools.at(mCurTool)->preview(viewportSize, screenMouse);
+	}
 }
 
 Canvas::SaveResponse Canvas::request_save() const {

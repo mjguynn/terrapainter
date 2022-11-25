@@ -125,11 +125,21 @@ private:
 	ivec2 mCanvasSize;
 	// Handle to the current canvas texture
 	GLuint mCanvasTexture;
-	// Handle to the canvas swap texture
+	// Handle to the canvas destination texture
 	// This is used as the "write target" while compositing
 	// a non-final stroke, once the stroke is finalized this becomes
 	// the main canvas texture and the canvas texture is cleared
-	GLuint mCanvasSwapTexture;
+	GLuint mCanvasDstTexture;
+
+	// Handle to the program used for drawing the canvas onscreen
+	// This is pretty basic, pretty much just a blit
+	GLuint mCanvasProgram;
+	GLint mCanvasProgramTransformLocation;
+	GLint mCanvasProgramTextureLocation;
+
+	// VAO and VBO for the quad used for drawing the canvas
+	GLuint mCanvasVAO;
+	GLuint mCanvasVBO;
 
 	SDL_Window* mWindow;
 	// True if there are changes which haven't been saved to disk
