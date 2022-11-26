@@ -58,7 +58,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mModified = false;
 	mInteractState = InteractState::NONE;
 	mPath = std::filesystem::path();
-	mShowNewDialog = true; // no file has been loaded yet, so let's wait...
+	mShowNewDialog = false; // TODO change this?
 	mNewDialogCanvasSize = ivec2{ 1024, 1024 }; // seems reasonable
 	mDidAStupid = false;
 }
@@ -280,9 +280,7 @@ bool Canvas::prompt_new() {
 		if (response == SaveResponse::SAVE && !prompt_save())
 			return false;
 	}
-	mModified = false;
 	mShowNewDialog = true;
-	mPath = std::filesystem::path();
 	return true;
 }
 bool Canvas::prompt_open() {
@@ -396,7 +394,7 @@ void Canvas::run_status_bar() {
 void Canvas::run_new_dialog() {
 	constexpr size_t MAX_TEXTURE_DIMENSION = 8192;
 	// I originally wanted to use a modal popup, but that would disable the main menu
-	if (ImGui::Begin("New Canvas", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+	if (ImGui::Begin("New Canvas", &mShowNewDialog, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::InputInt("Width", &mNewDialogCanvasSize.x, 16, 256);
 		ImGui::InputInt("Height", &mNewDialogCanvasSize.y, 16, 256);
 		if (mDidAStupid) {
