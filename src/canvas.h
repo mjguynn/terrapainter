@@ -143,6 +143,12 @@ private:
 	SDL_Window* mWindow;
 	// True if there are changes which haven't been saved to disk
 	bool mModified;
+	// Path to the currently opened file. Empty if file didn't come from disk.
+	std::filesystem::path mPath;
+	// Whether the new dialog is open, this is modal so we block out everything else but the main menu
+	bool mShowNewDialog; 
+	ivec2 mNewDialogCanvasSize; // the size used in the new file dialog
+	bool mDidAStupid; // if the user "accidentally" entered an invalid size in the new file dialog
 
 	enum class InteractState {
 		NONE,
@@ -150,8 +156,6 @@ private:
 		STROKE,
 		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
 	} mInteractState;
-
-	std::filesystem::path mPath;
 
 	enum class SaveResponse {
 		SAVE,
@@ -165,6 +169,11 @@ private:
 	void process_mouse_button_up(const SDL_MouseButtonEvent& event);
 	void process_mouse_motion(const SDL_MouseMotionEvent& event);
 	void process_mouse_wheel(const SDL_MouseWheelEvent& event);
+
+	void run_tool_menu();
+	void run_main_menu();
+	void run_status_bar();
+	void run_new_dialog();
 
 public:
 	Canvas(SDL_Window* window);
@@ -183,9 +192,10 @@ public:
 	// Sets the pixels comprising the canvas (RGBA)
 	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
 
+	bool prompt_new();
 	bool prompt_open();
 	bool prompt_save();
-
+	
 	// Registers the given tool and returns its tool index.
 	ToolIndex register_tool(std::unique_ptr<ICanvasTool> tool);
 

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <stb/stb_image.h>
@@ -56,6 +58,9 @@ Canvas::Canvas(SDL_Window* window) {
 	mModified = false;
 	mInteractState = InteractState::NONE;
 	mPath = std::filesystem::path();
+	mShowNewDialog = true; // no file has been loaded yet, so let's wait...
+	mNewDialogCanvasSize = ivec2{ 1024, 1024 }; // seems reasonable
+	mDidAStupid = false;
 }
 Canvas::~Canvas() noexcept {
 	assert(mCanvasTexture);
@@ -94,6 +99,7 @@ void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 	}
 	mCanvasSize = canvasSize;
 	mModified = false;
+	mShowNewDialog = false;
 }
 Canvas::ToolIndex Canvas::register_tool(std::unique_ptr<ICanvasTool> tool) {
 	mTools.emplace_back(std::move(tool));
@@ -112,11 +118,14 @@ void Canvas::deactivate() {}
 void Canvas::process_keyboard(const SDL_KeyboardEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
-	if (ctrl && event.keysym.sym == SDLK_o) {
-		prompt_open();
+	if (ctrl && event.keysym.sym == SDLK_n) {
+		prompt_new();
 	}
 	else if (ctrl && event.keysym.sym == SDLK_s) {
 		prompt_save();
+	}
+	else if (ctrl && event.keysym.sym == SDLK_o) {
+		prompt_open();
 	}
 }
 void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
@@ -216,7 +225,6 @@ void Canvas::render(ivec2 viewportSize) const {
 		mTools.at(mCurTool)->preview(viewportSize, screenMouse);
 	}
 }
-
 Canvas::SaveResponse Canvas::request_save() const {
 	const int CANCEL = 0;
 	const int DISCARD = 1;
@@ -247,6 +255,19 @@ Canvas::SaveResponse Canvas::request_save() const {
 	default:
 		std::abort();
 	}
+}
+bool Canvas::prompt_new() {
+	if (mModified) {
+		auto response = request_save();
+		if (response == SaveResponse::CANCEL)
+			return false;
+		if (response == SaveResponse::SAVE && !prompt_save())
+			return false;
+	}
+	mModified = false;
+	mShowNewDialog = true;
+	mPath = std::filesystem::path();
+	return true;
 }
 bool Canvas::prompt_open() {
 	if (mModified) {
@@ -315,10 +336,15 @@ bool Canvas::prompt_save() {
 	}
 	return false;
 }
-void Canvas::run_ui() {
-	// TODO
+void Canvas::run_tool_menu() {
+
+}
+void Canvas::run_main_menu() {
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("New", "N", nullptr)) {
+				prompt_new();
+			}
 			if (ImGui::MenuItem("Open", "O", nullptr)) {
 				prompt_open();
 			}
@@ -329,6 +355,8 @@ void Canvas::run_ui() {
 		}
 		ImGui::EndMainMenuBar();
 	}
+}
+void Canvas::run_status_bar() {
 	float scale = powf(2.0f, mCanvasScaleLog);
 	int x, y;
 	SDL_GetMouseState(&x, &y);
@@ -351,4 +379,51 @@ void Canvas::run_ui() {
 		}
 	}
 	ImGui::End();
+}
+void Canvas::run_new_dialog() {
+	constexpr size_t MAX_TEXTURE_DIMENSION = 8192;
+	// I originally wanted to use a modal popup, but that would disable the main menu
+	if (ImGui::Begin("New Canvas", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::InputInt("Width", &mNewDialogCanvasSize.x, 16, 256);
+		ImGui::InputInt("Height", &mNewDialogCanvasSize.y, 16, 256);
+		if (mDidAStupid) {
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 31, 31, 255));
+			ImGui::Text("Please enter a valid size.");
+			ImGui::PopStyleColor();
+		}
+		if (ImGui::Button("Create")) {
+			if (
+				mNewDialogCanvasSize.x < 0 ||
+				mNewDialogCanvasSize.x > 8192 ||
+				mNewDialogCanvasSize.y < 0 ||
+				mNewDialogCanvasSize.y > 8192
+			) {
+				mDidAStupid = true;
+			}
+			else {
+				mDidAStupid = false;
+				// I wanted to use calloc but the alpha channel said no :(
+				size_t numPixels = size_t(mNewDialogCanvasSize.x) * size_t(mNewDialogCanvasSize.y);
+				std::vector<uint8_t> pixels(numPixels * 4);
+				for (size_t i = 0; i < numPixels; i++) {
+					size_t ii = 4 * i;
+					pixels[ii] = 0;
+					pixels[ii + 1] = 0;
+					pixels[ii + 2] = 0;
+					pixels[ii + 3] = 255;
+				}
+				set_canvas(mNewDialogCanvasSize, pixels.data());
+			}
+		}
+	}
+	ImGui::End();
+}
+void Canvas::run_ui() {
+	run_main_menu();
+	if (mShowNewDialog) {
+		run_new_dialog();
+	} else {
+		run_tool_menu();
+	}
+	run_status_bar();
 }
