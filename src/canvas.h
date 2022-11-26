@@ -63,6 +63,7 @@
 
 #include <memory>
 #include <vector>
+#include <filesystem>
 
 #include <glad/gl.h>
 
@@ -150,7 +151,7 @@ private:
 		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
 	} mInteractState;
 
-	std::string mFilename;
+	std::filesystem::path mPath;
 
 	enum class SaveResponse {
 		SAVE,

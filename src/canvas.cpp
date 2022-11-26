@@ -55,7 +55,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mWindow = window;
 	mModified = false;
 	mInteractState = InteractState::NONE;
-	mFilename = "(no file opened)";
+	mPath = std::filesystem::path();
 }
 Canvas::~Canvas() noexcept {
 	assert(mCanvasTexture);
@@ -148,7 +148,7 @@ void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	ivec2 pos = { event.xrel, -event.yrel };
 	if (mInteractState == InteractState::PAN) {
-		mCanvasOffset += 2*pos; // 2x to account for the fact that OpenGL uses [-1, 1] not [0, 1]
+		mCanvasOffset += pos;
 	}
 	else if (mInteractState == InteractState::STROKE) {
 		mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
@@ -157,13 +157,13 @@ void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
 void Canvas::process_mouse_wheel(const SDL_MouseWheelEvent& event) {
 	int w, h;
 	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
-	// Insane bullshit to let us zoom in on the mouse location instead of the image center
-	float oldScale = powf(2, mCanvasScaleLog);
+	float oldScale = powf(2.0f, mCanvasScaleLog);
 	mCanvasScaleLog += event.preciseY;
-	float newScale = powf(2, mCanvasScaleLog);
-	float fac = (newScale / oldScale) - 1.0f;
-	ivec2 zoomPos = { event.mouseX - w / 2, h/2 - event.mouseY };
-	mCanvasOffset += 2*ivec2(fac*vec2(mCanvasOffset) - fac*vec2(zoomPos));
+	float newScale = powf(2.0f, mCanvasScaleLog);
+	float fac = (newScale / oldScale) - 1;
+	// cursor pos in window pixels relative to center of the image
+	ivec2 cursorW = ivec2{ event.mouseX - w / 2, h / 2 - event.mouseY } - mCanvasOffset;
+	mCanvasOffset -= ivec2(fac * vec2(cursorW));
 }
 void Canvas::process_event(const SDL_Event& event) {
 	if (event.type == SDL_KEYDOWN) {
@@ -190,13 +190,10 @@ void Canvas::render(ivec2 viewportSize) const {
 		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
 		image = mCanvasDstTexture;
 	}
-	int x, y;
-	SDL_GetMouseState(&x, &y);
-	ivec2 screenMouse = { x, viewportSize.y - y };
-
-	vec2 relativeOffset = vec2(mCanvasOffset) / vec2(viewportSize);
-	vec2 scale = vec2(mCanvasSize) * pow(2.0f, mCanvasScaleLog);
-	vec2 relativeScale = scale / vec2(viewportSize);
+	// 2x to account for the fact that OpenGL uses [-1, 1] not [0, 1]
+	vec2 relativeOffset = 2 * vec2(mCanvasOffset) / vec2(viewportSize);
+	float scale = powf(2.0f, mCanvasScaleLog);
+	vec2 relativeScale = scale * vec2(mCanvasSize) / vec2(viewportSize);
 	mat3 xform = {
 		relativeScale.x, 0.0f, relativeOffset.x,
 		0.0f, relativeScale.y, relativeOffset.y,
@@ -213,6 +210,9 @@ void Canvas::render(ivec2 viewportSize) const {
 
 	// mCurTool should always be valid unless we have no tools at all
 	if (!mTools.empty()) {
+		int x, y;
+		SDL_GetMouseState(&x, &y);
+		ivec2 screenMouse = { x, viewportSize.y - y };
 		mTools.at(mCurTool)->preview(viewportSize, screenMouse);
 	}
 }
@@ -273,7 +273,9 @@ bool Canvas::prompt_open() {
 
 		if (pixels) {
 			set_canvas(canvasSize, pixels);
-			mFilename = path.get();
+			mPath = path.get();
+			auto title = "Terrapainter - " + mPath.filename().string();
+			SDL_SetWindowTitle(mWindow, title.c_str());
 			return true;
 		}
 		else {
@@ -293,8 +295,8 @@ bool Canvas::prompt_save() {
 		path,
 		filters,
 		1,
-		nullptr,
-		"output.png");
+		mPath.empty() ? nullptr : mPath.parent_path().string().c_str(),
+		mPath.empty() ? "output.png" : mPath.filename().string().c_str());
 
 	if (res == NFD_ERROR) {
 		fprintf(stderr, "[error] internal error (save dialog)\n");
@@ -327,21 +329,24 @@ void Canvas::run_ui() {
 		}
 		ImGui::EndMainMenuBar();
 	}
+	float scale = powf(2.0f, mCanvasScaleLog);
 	int x, y;
 	SDL_GetMouseState(&x, &y);
 	int w, h;
 	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
-	ivec2 relativeMouse = ivec2{ x / 2, h / 2 - y } - mCanvasOffset;
-	// Draw status bar at the bottom of the screen
-	// This is using an internal API :P
+	// cursor pos in window pixels relative to center of the image
+	ivec2 cursorW = ivec2{ x - w / 2, h / 2 - y } - mCanvasOffset;
+	// cursor pos in image pixels relative to the bottom left of the image
+	vec2 cursorI = (vec2(cursorW) / scale) + (0.5 * vec2(mCanvasSize));
+	// Draw status bar at the bottom of the screen. using an internal API :P
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
 	float height = ImGui::GetFrameHeight();
 	if (ImGui::BeginViewportSideBar("##StatusBar", NULL, ImGuiDir_Down, height, flags)) {
 		if (ImGui::BeginMenuBar()) {
-			ImGui::Text("%s", mFilename.c_str());
-			ImGui::Text("Dimensions: %ix%i", mCanvasSize.x, mCanvasSize.y);
-			//ImGui::Dummy(vec2{16, 0});
-			//ImGui::Text("Cursor Position (relative): (%i,%i)", relativeMouse.x, relativeMouse.y);
+			ImGui::Text("Dimensions: %ix%i\t", mCanvasSize.x, mCanvasSize.y);
+			ImGui::Text("Zoom: %g%%\t", scale * 100);
+			// ImGui::Text("Offset: %i,%i", mCanvasOffset.x, mCanvasOffset.y);
+			ImGui::Text("Cursor: (%5g,%5g)\t", cursorI.x, cursorI.y);
 			ImGui::EndMenuBar();
 		}
 	}
