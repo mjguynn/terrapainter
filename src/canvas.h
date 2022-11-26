@@ -70,6 +70,9 @@
 #include "terrapainter/math.h"
 #include "terrapainter.h"
 
+// The maximum supported size of the axis of a Canvas texture.
+constexpr size_t MAX_CANVAS_AXIS = 8192;
+
 struct CanvasRegion {
 	ivec2 min; // Min X & Y coordinates of the region
 	ivec2 max; // Max X & Y coordinates of the region
@@ -190,7 +193,10 @@ public:
 	// Returns the pixels comprising the canvas (RGBA)
 	std::vector<uint8_t> get_canvas() const;
 	// Sets the pixels comprising the canvas (RGBA)
-	void set_canvas(ivec2 canvasSize, uint8_t* pixels);
+	// If pixels is nullptr, then it will create a blank texture of the requested size
+	// Source is used to track where this canvas came from
+	// Returns false if the size is invalid
+	bool set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path source = std::filesystem::path());
 
 	bool prompt_new();
 	bool prompt_open();

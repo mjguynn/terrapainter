@@ -52,6 +52,7 @@ void terrapainter::run(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
     Canvas canvas(window);
+    canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
     // canvas.register_tool(tools::paint());
     World world(canvas);
     

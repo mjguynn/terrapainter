@@ -86,12 +86,19 @@ std::vector<uint8_t> Canvas::get_canvas() const {
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 	return pixels;
 }
-void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
-	// Canvas dimensions should be either 0x0 or positive.
+bool Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path source) {
+	if (canvasSize.x < 0 || canvasSize.y < 0)
+		return false;
+	if (canvasSize.x > MAX_CANVAS_AXIS || canvasSize.y > MAX_CANVAS_AXIS)
+		return false;
 	if (canvasSize != ivec2::zero()) {
-		assert(canvasSize.x > 0 && canvasSize.y > 0);
 		glBindTexture(GL_TEXTURE_2D, mCanvasTexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvasSize.x, canvasSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		if(!pixels){
+			// that image just got filled with uninitialized memory, let's fix this.
+			uint8_t clearColor[4] = { 0, 0, 0, 255 };
+			glClearTexImage(mCanvasTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
+		}
 		// Inform tools of the change
 		for (auto& tool : mTools) {
 			tool->clear_stroke(canvasSize);
@@ -100,6 +107,15 @@ void Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels) {
 	mCanvasSize = canvasSize;
 	mModified = false;
 	mShowNewDialog = false;
+	mPath = source;
+	if (mPath.empty()) {
+		SDL_SetWindowTitle(mWindow, "Terrapainter");
+	}
+	else {
+		auto title = "Terrapainter - " + mPath.filename().string();
+		SDL_SetWindowTitle(mWindow, title.c_str());
+	}
+	return true;
 }
 Canvas::ToolIndex Canvas::register_tool(std::unique_ptr<ICanvasTool> tool) {
 	mTools.emplace_back(std::move(tool));
@@ -293,10 +309,7 @@ bool Canvas::prompt_open() {
 			4);
 
 		if (pixels) {
-			set_canvas(canvasSize, pixels);
-			mPath = path.get();
-			auto title = "Terrapainter - " + mPath.filename().string();
-			SDL_SetWindowTitle(mWindow, title.c_str());
+			set_canvas(canvasSize, pixels, path.get());
 			return true;
 		}
 		else {
@@ -402,17 +415,8 @@ void Canvas::run_new_dialog() {
 			}
 			else {
 				mDidAStupid = false;
-				// I wanted to use calloc but the alpha channel said no :(
-				size_t numPixels = size_t(mNewDialogCanvasSize.x) * size_t(mNewDialogCanvasSize.y);
-				std::vector<uint8_t> pixels(numPixels * 4);
-				for (size_t i = 0; i < numPixels; i++) {
-					size_t ii = 4 * i;
-					pixels[ii] = 0;
-					pixels[ii + 1] = 0;
-					pixels[ii + 2] = 0;
-					pixels[ii + 3] = 255;
-				}
-				set_canvas(mNewDialogCanvasSize, pixels.data());
+				// This automatically hides the new dialog
+				set_canvas(mNewDialogCanvasSize, nullptr);
 			}
 		}
 	}
