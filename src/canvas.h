@@ -1,17 +1,17 @@
 ﻿#pragma once
 
 // Canvas2 Checklist: (aka Pure Condensed Scope Creep)
-//	𐌢 Cleanup existing code... use less backbuffers, unnecessary syncs, etc
-//  𐌢 Abstract from SDL, maybe? 
+//	✔️ Cleanup existing code... use less backbuffers, unnecessary syncs, etc
+//  ✔️ Abstract from SDL, maybe? 
 //		|-> Is this a good idea?
 //  𐌢 Quadratic stroke interpolation (lookahead one frame)
 //		|-> Involves solving a quadratic equation on the GPU, should be ok
 //		|-> Is adding an extra frame of lag unacceptable?
 //		|-> (Could always switch to software cursor or hide cursor while drawing)
-//  𐌢 Separate from image size
-//		|-> Use scrollwheel to zoom in/out, shift-mclick to pan
+//  ✔️ Separate from image size
+//		|-> Use scrollwheel to zoom in/out, right click & drag to pan
 //	𐌢 Extend paintbrush
-//		|-> Parametrize by outer radius (at 0) inner radius (at 1) & hardness (degree of polynomial)
+//		|-> Parametrize by outer radius (at 0) & hardness (degree of polynomial)
 //		|-> Note that all these can be implemented on layers on top of the fundamental SDF
 //	𐌢 Accumulate vs Continuous mode
 //		|-> continuous mode does "perfect interpolation" along stroke, doesn't commit stroke until mouse up
@@ -24,7 +24,7 @@
 //		|-> For radius: instead of lerping with unblurred background, as is the norm, lerp the KERNELS
 //		|-> This way we get a kinda smooth falloff
 //  𐌢 Change cursor to "hitmarker" when not over UI element?
-//  𐌢 Somehow dock brush stroke UI to the side of the screen
+//  ✔️ ~~Somehow dock brush stroke UI to the side of the screen~~ nah
 //  𐌢 More keyboard shortcuts!!!
 //  𐌢 Undo/Redo
 
@@ -96,14 +96,14 @@ public:
 	virtual void update_param(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) = 0;
 	// Composites the tool's output with the current Canvas content.
 	// Returns a maximal bound on the modified region.
-	virtual CanvasRegion composite(GLuint dst, GLuint src) = 0;
+	virtual void composite(GLuint dst, GLuint src) = 0;
 	// Draws/updates the IMGUI UI within an existing tool window.
 	virtual void run_ui() = 0;
 	// Render a fullscreen preview into the active framebuffer.
 	// Prior to calling this, the alpha blending function is GL_ONE_MINUS_SRC_ALPHA
 	// and should remain that way afterwards
 	// `screenSize` is guaranteed to be positive.
-	virtual void preview(ivec2 screenSize, ivec2 screenMouse) = 0;
+	virtual void preview(ivec2 screenSize, ivec2 screenMouse, float canvasScale) = 0;
 };
 
 inline ICanvasTool::~ICanvasTool() noexcept {}
@@ -136,8 +136,6 @@ private:
 	// Handle to the program used for drawing the canvas onscreen
 	// This is pretty basic, pretty much just a blit
 	GLuint mCanvasProgram;
-	GLint mCanvasProgramTransformLocation;
-	GLint mCanvasProgramTextureLocation;
 
 	// VAO and VBO for the quad used for drawing the canvas
 	GLuint mCanvasVAO;

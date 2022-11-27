@@ -14,7 +14,7 @@ include(FetchContent)
 FetchContent_Declare(
 	SDL2
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-	GIT_TAG origin/main
+	GIT_TAG release-2.26.0
 	GIT_SHALLOW true
 	GIT_PROGRESS true
 	FIND_PACKAGE_ARGS CONFIG
@@ -133,17 +133,15 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/tools/paint.cpp"
 	"${CMAKE_SOURCE_DIR}/src/controllers.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
-	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.cpp"
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.h"
 	"${CMAKE_SOURCE_DIR}/src/world.h"
 	"${CMAKE_SOURCE_DIR}/src/terrain.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas.h"
-	"${CMAKE_SOURCE_DIR}/src/tools/paint.h"
+	"${CMAKE_SOURCE_DIR}/src/tools/canvas_tools.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"
 	"${CMAKE_SOURCE_DIR}/src/controllers.h"
-	"${CMAKE_SOURCE_DIR}/src/shaders/screenspace_circle.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})

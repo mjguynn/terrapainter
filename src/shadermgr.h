@@ -14,7 +14,13 @@ public:
 	ShaderManager& operator= (const ShaderManager&) = delete;
 
 	GLuint graphics(std::string shaderName);
+	GLuint screenspace(std::string shaderName);
 	GLuint compute(std::string shaderName);
+
+	// Don't do anything sneaky between begin screenspace and end screenspace
+	// Don't bind VAOs, don't change shaders, etc...
+	void begin_screenspace(GLuint program);
+	void end_screenspace();
 
 	void refresh();
 private:
@@ -48,6 +54,9 @@ private:
 
 	// Map from shader name (case-sensitive) to shader program
 	std::unordered_map<std::string, Program> mPrograms;
+
+	// Dummy VAO for screenspace shader
+	GLuint mScreenspaceVAO;
 };
 
 extern ShaderManager g_shaderMgr;

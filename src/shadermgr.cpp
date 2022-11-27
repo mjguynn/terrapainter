@@ -67,6 +67,8 @@ ShaderManager::Program::Program(Program&& moved) noexcept
 	moved.mProgram = 0;
 }
 ShaderManager::Program::~Program() { 
+	// TODO: This is UB if its called while program is closing?
+	// The program is closing though so idk if its an issue
 	if (mProgram) {
 		glDeleteProgram(mProgram);
 	}
@@ -122,7 +124,7 @@ bool ShaderManager::Program::rebuild() {
 	}
 }
 
-ShaderManager::ShaderManager() : mPrograms() {
+ShaderManager::ShaderManager() : mPrograms(), mScreenspaceVAO(0) {
 	// Nothing here, for now...
 }
 
@@ -145,6 +147,13 @@ GLuint ShaderManager::graphics(std::string shaderName) {
 		p->rebuild();
 	});
 }
+GLuint ShaderManager::screenspace(std::string shaderName) {
+	return find_or_create(shaderName, [shaderName](Program* p) {
+		p->vertex = "shaders/screenspace.vert";
+		p->fragment = "shaders/"s + shaderName + ".frag";
+		p->rebuild();
+	});
+}
 GLuint ShaderManager::compute(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
 		p->compute = "shaders/"s + shaderName + ".comp";
@@ -157,6 +166,18 @@ void ShaderManager::refresh() {
 		program.rebuild();
 	}
 	fprintf(stderr, " done\n");
+}
+void ShaderManager::begin_screenspace(GLuint program) {
+	if (!mScreenspaceVAO) {
+		glGenVertexArrays(1, &mScreenspaceVAO);
+	}
+	glBindVertexArray(mScreenspaceVAO);
+	glUseProgram(program);
+}
+void ShaderManager::end_screenspace() {
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+	glUseProgram(0);
+	glBindVertexArray(0);
 }
 ShaderManager::~ShaderManager() {
 	// There used to be stuff in here, but now it's in

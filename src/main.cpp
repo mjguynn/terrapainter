@@ -35,6 +35,8 @@ void GLAPIENTRY glDebugLogger(
     const GLchar* message,
     const void* userParam
 ) {
+    // NVIDIA spams the shit out of this, obscuring literally every useful piece of info
+    if (type == GL_DEBUG_TYPE_OTHER) return;
     const char* header = (type == GL_DEBUG_TYPE_ERROR) ? "[error]" : "[info]";
     fprintf(stderr, "%s OpenGL: %s\n", header, message);
 }
@@ -101,7 +103,7 @@ ivec2 fix_window_size(ivec2 screenSize, ivec2 windowSize) {
 
 int main(int argc, char *argv[])
 {
-    ivec2 windowSize = { 800, 600 };
+    ivec2 windowSize = { 1024, 600 };
     ivec2 windowPos = { 200, 200 };
     const char* initialInput = nullptr;
     std::array<CommandArg, 5> args = {

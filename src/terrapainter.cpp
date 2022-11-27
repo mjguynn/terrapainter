@@ -27,11 +27,14 @@ static void process_window_event(const std::array<IApp*, NUM_STATES>& apps, AppS
     }
 }
 
-static void process_keyboard_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+static void process_keyboard_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event, bool& showMetricsWindow) {
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
     SDL_Keycode pressed = event.key.keysym.sym;
     if (event.type == SDL_KEYDOWN && pressed == SDLK_F5) {
         g_shaderMgr.refresh();
+    }
+    else if (event.type == SDL_KEYDOWN && pressed == SDLK_F3) {
+        showMetricsWindow = !showMetricsWindow;
     }
     else if (event.type == SDL_KEYDOWN && pressed == SDLK_SPACE) {
         // Cycle through apps
@@ -52,8 +55,8 @@ void terrapainter::run(SDL_Window* window) {
     ImGuiIO& io = ImGui::GetIO();
 
     Canvas canvas(window);
+    canvas.register_tool(tools::paint());
     canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
-    // canvas.register_tool(tools::paint());
     World world(canvas);
     
     std::array<IApp*, NUM_STATES> apps = {
@@ -69,6 +72,8 @@ void terrapainter::run(SDL_Window* window) {
     ivec2 viewportSize;
     SDL_GetWindowSizeInPixels(window, &viewportSize.x, &viewportSize.y);
     glViewport(0, 0, viewportSize.x, viewportSize.y);
+
+    bool showMetricsWindow = false;
 
     // Run the event loop
     SDL_Event event;
@@ -95,7 +100,7 @@ void terrapainter::run(SDL_Window* window) {
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
                     if (!io.WantCaptureKeyboard) {
-                        process_keyboard_event(apps, appState, event);
+                        process_keyboard_event(apps, appState, event, showMetricsWindow);
                     }
                     continue;
                 case SDL_MOUSEBUTTONDOWN:
@@ -133,7 +138,7 @@ void terrapainter::run(SDL_Window* window) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         app->run_ui();
-        ImGui::ShowMetricsWindow();
+        if(showMetricsWindow) ImGui::ShowMetricsWindow(&showMetricsWindow);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

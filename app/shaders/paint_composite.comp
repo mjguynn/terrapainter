@@ -1,0 +1,19 @@
+#version 430 core
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+// TODO: Readd blend modes?
+layout (binding = 0, r8) readonly restrict uniform image2D u_stroke;
+layout (binding = 1, rgba8) readonly restrict uniform image2D u_src;
+layout (binding = 2, rgba8) writeonly restrict uniform image2D u_dst;
+layout (location = 3) uniform vec4 u_strokeColor;
+
+void main() {
+	// Out of bounds loads/stores are actually allowed and no-opped
+	// Praise Khronos!
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	float fac = imageLoad(u_stroke, coords).x * u_strokeColor.a;
+	vec4 canvas = imageLoad(u_src, coords);
+	vec4 composite = mix(canvas, vec4(u_strokeColor.rgb, 1), fac);
+	imageStore(u_dst, coords, composite);
+}

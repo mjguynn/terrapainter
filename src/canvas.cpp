@@ -47,10 +47,8 @@ Canvas::Canvas(SDL_Window* window) {
 	glGenTextures(1, &mCanvasTexture);
 	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 	glGenTextures(1, &mCanvasDstTexture);
-	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	configure_texture(mCanvasDstTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 	mCanvasProgram = g_shaderMgr.graphics("canvas");
-	mCanvasProgramTransformLocation = glGetUniformLocation(mCanvasProgram, "u_transform");
-	mCanvasProgramTextureLocation = glGetUniformLocation(mCanvasProgram, "u_texture");
 	glGenVertexArrays(1, &mCanvasVAO);
 	glGenBuffers(1, &mCanvasVBO);
 	configure_quad(mCanvasVAO, mCanvasVBO);
@@ -99,6 +97,10 @@ bool Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path
 			uint8_t clearColor[4] = { 0, 0, 0, 255 };
 			glClearTexImage(mCanvasTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
 		}
+		// Also resize the dst texture, this is overwritten by composite so we don't care about giving it sensible values
+		// We can just leave it uninitialized
+		glBindTexture(GL_TEXTURE_2D, mCanvasDstTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvasSize.x, canvasSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		// Inform tools of the change
 		for (auto& tool : mTools) {
 			tool->clear_stroke(canvasSize);
@@ -167,6 +169,7 @@ void Canvas::process_mouse_button_up(const SDL_MouseButtonEvent& event) {
 		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
 		std::swap(mCanvasDstTexture, mCanvasTexture);
 		mInteractState = InteractState::NONE;
+		mModified = true;
 	}
 }
 void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
@@ -224,21 +227,23 @@ void Canvas::render(ivec2 viewportSize) const {
 		0.0f, relativeScale.y, relativeOffset.y,
 		0.0f, 0.0f, 1.0f
 	};
+	// Note: locations hardcoded in shader
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glBindVertexArray(mCanvasVAO);
 	glUseProgram(mCanvasProgram);
-	glUniformMatrix3fv(mCanvasProgramTransformLocation, 1, GL_TRUE, xform.data());
+	glUniformMatrix3fv(0, 1, GL_TRUE, xform.data());
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
-	glUniform1i(mCanvasProgramTextureLocation, 0);
+	glUniform1i(1, 0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glUseProgram(0);
 
 	// mCurTool should always be valid unless we have no tools at all
 	if (!mTools.empty()) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
 		ivec2 screenMouse = { x, viewportSize.y - y };
-		mTools.at(mCurTool)->preview(viewportSize, screenMouse);
+		mTools.at(mCurTool)->preview(viewportSize, screenMouse, powf(2.0, mCanvasScaleLog));
 	}
 }
 Canvas::SaveResponse Canvas::request_save() const {
@@ -348,7 +353,21 @@ bool Canvas::prompt_save() {
 	return false;
 }
 void Canvas::run_tool_menu() {
-
+	auto windowFlags = ImGuiWindowFlags_AlwaysAutoResize;
+	if (ImGui::Begin("Tool Panel", nullptr, windowFlags)) {
+		for (size_t i = 0; i < mTools.size(); i++) {
+			if (i % 4 > 0) ImGui::SameLine();
+			if(ImGui::Selectable(mTools.at(i)->name(), i == mCurTool, 0, ImVec2(50, 50))) {
+				if (i != mCurTool) {
+					// user changed tools...
+					set_current_tool(i);
+				}
+			}
+		}
+		ImGui::Text("Tool Configuration");
+		if (!mTools.empty()) mTools.at(mCurTool)->run_ui();
+	}
+	ImGui::End();
 }
 void Canvas::run_main_menu() {
 	if (ImGui::BeginMainMenuBar()) {
