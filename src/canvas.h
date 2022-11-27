@@ -204,6 +204,8 @@ private:
 	// Returns the position of the cursor in canvas coordinates
 	// That is, affected by scale, and relative to the canvas origin (bottom left)
 	vec2 cursor_canvas_coords() const;
+
+	void set_interact_state(InteractState s);
 public:
 	Canvas(SDL_Window* window);
 	~Canvas() noexcept override;

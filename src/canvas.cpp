@@ -134,7 +134,53 @@ void Canvas::activate() {
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	SDL_SetRelativeMouseMode(mInteractState == InteractState::CONFIGURE ? SDL_TRUE : SDL_FALSE);
 }
-void Canvas::deactivate() {}
+// NOTE: setting state to stroke doesn't create initial stroke
+// NOTE: setting state to configure doesn't set the held key
+void Canvas::set_interact_state(InteractState s) {
+	if (mInteractState == s) return;
+	
+	// Transition to InteractState::NONE, do cleanup as necessary
+	if (mInteractState == InteractState::NONE) {
+		// Nothing needs to be done
+	}
+	else if (mInteractState == InteractState::PAN) {
+		// Nothing needs to be done
+	}
+	else if (mInteractState == InteractState::STROKE) {
+		// Commit current stroke, clear canvas
+		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
+		mTools.at(mCurTool)->clear_stroke(mCanvasSize);
+		std::swap(mCanvasDstTexture, mCanvasTexture);
+		mModified = true;
+	}
+	else if (mInteractState == InteractState::CONFIGURE) {
+		// Reset mouse state
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+		SDL_WarpMouseInWindow(mWindow, mLastMousePos.x, mLastMousePos.y);
+	}
+
+	// Transition to desired state
+	mInteractState = s;
+	if (mInteractState == InteractState::NONE) {
+		// Nothing needs to be done
+	}
+	else if (mInteractState == InteractState::PAN) {
+		// Nothing needs to be done
+	} 
+	else if (mInteractState == InteractState::STROKE) {
+		// Nothing really needs to be done
+		// We allow transitioning to the stroke state without placing an initial stroke
+	}
+	else if (mInteractState == InteractState::CONFIGURE) {
+		// You must set mHeldKey first
+		// I wish C++ had rust enums for this :(
+		SDL_GetMouseState(&mLastMousePos.x, &mLastMousePos.y);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+	}
+}
+void Canvas::deactivate() {
+	set_interact_state(InteractState::NONE);
+}
 void Canvas::process_key_down(const SDL_KeyboardEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
@@ -150,17 +196,13 @@ void Canvas::process_key_down(const SDL_KeyboardEvent& event) {
 	else if (mInteractState == InteractState::NONE && !mTools.empty()){
 		if (!mTools.at(mCurTool)->understands_param(event.keysym.sym))
 			return;
-		mInteractState = InteractState::CONFIGURE;
 		mHeldKey = event.keysym.sym;
-		SDL_GetMouseState(&mLastMousePos.x, &mLastMousePos.y);
-		SDL_SetRelativeMouseMode(SDL_TRUE);
+		set_interact_state(InteractState::CONFIGURE);
 	}
 }
 void Canvas::process_key_up(const SDL_KeyboardEvent& event) {
 	if (mInteractState == InteractState::CONFIGURE && mHeldKey == event.keysym.sym) {
-		mInteractState = InteractState::NONE;
-		SDL_SetRelativeMouseMode(SDL_FALSE);
-		SDL_WarpMouseInWindow(mWindow, mLastMousePos.x, mLastMousePos.y);
+		set_interact_state(InteractState::NONE);
 	}
 }
 void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
@@ -172,23 +214,19 @@ void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
 		if (event.button == SDL_BUTTON_LEFT && !mTools.empty()) {
 			vec2 canvasMouse = cursor_canvas_coords();
 			mTools.at(mCurTool)->update_stroke(canvasMouse, keys[SDL_SCANCODE_LSHIFT]);
-			mInteractState = InteractState::STROKE;
+			set_interact_state(InteractState::STROKE);
 		}
 		else if (event.button == SDL_BUTTON_RIGHT) {
-			mInteractState = InteractState::PAN;
+			set_interact_state(InteractState::PAN);
 		}
 	}
 }
 void Canvas::process_mouse_button_up(const SDL_MouseButtonEvent& event) {
 	if ( mInteractState == InteractState::PAN && event.button == SDL_BUTTON_RIGHT) {
-		mInteractState = InteractState::NONE;
+		set_interact_state(InteractState::NONE);
 	}
 	else if (mInteractState == InteractState::STROKE && event.button == SDL_BUTTON_LEFT) {
-		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
-		mTools.at(mCurTool)->clear_stroke(mCanvasSize);
-		std::swap(mCanvasDstTexture, mCanvasTexture);
-		mInteractState = InteractState::NONE;
-		mModified = true;
+		set_interact_state(InteractState::NONE);
 	}
 }
 void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
