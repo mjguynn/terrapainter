@@ -93,7 +93,7 @@ public:
 	virtual void update_stroke(ivec2 canvasMouse, bool modifier) = 0;
 	// TODO: A bit complicated to explain
 	// TODO: Leaking SDL details here is really ugly
-	virtual void update_param(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) = 0;
+	virtual void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) = 0;
 	// Composites the tool's output with the current Canvas content.
 	// Returns a maximal bound on the modified region.
 	virtual void composite(GLuint dst, GLuint src) = 0;
@@ -141,6 +141,13 @@ private:
 	GLuint mCanvasVAO;
 	GLuint mCanvasVBO;
 
+	// This is used with mInteractState for configuring the tools
+	SDL_Keycode mHeldKey;
+	// This is used for save/restore mouse position in relative mode,
+	// it shouldn't be necessary except SDL2 is BUGGY and literally does not work
+	// This is in SDL coordinates btw
+	ivec2 mLastMousePos;
+
 	SDL_Window* mWindow;
 	// True if there are changes which haven't been saved to disk
 	bool mModified;
@@ -155,6 +162,7 @@ private:
 		NONE,
 		PAN,
 		STROKE,
+		CONFIGURE, // configuring tool
 		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
 	} mInteractState;
 
@@ -165,7 +173,8 @@ private:
 	} request_save() const;
 
 	// Splitting up functions for my own sanity
-	void process_keyboard(const SDL_KeyboardEvent& event);
+	void process_key_down(const SDL_KeyboardEvent& event);
+	void process_key_up(const SDL_KeyboardEvent& event);
 	void process_mouse_button_down(const SDL_MouseButtonEvent& event);
 	void process_mouse_button_up(const SDL_MouseButtonEvent& event);
 	void process_mouse_motion(const SDL_MouseMotionEvent& event);

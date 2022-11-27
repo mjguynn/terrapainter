@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 
     // Initialize SDL
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "1");
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0");
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0)
     {
         error("Failed to initialize SDL: %s\n", SDL_GetError());

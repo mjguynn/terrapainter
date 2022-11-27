@@ -61,9 +61,7 @@ void World::activate() {
     SDL_SetRelativeMouseMode(mShowCameraControls ? SDL_FALSE : SDL_TRUE);
     mTerrain->generate(mSource);
 }
-void World::deactivate() {
-    // Nothing here, for now...
-}
+void World::deactivate() {}
 void World::process_event(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
         const Uint8* keys = SDL_GetKeyboardState(nullptr);

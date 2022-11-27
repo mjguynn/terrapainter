@@ -52,6 +52,8 @@ Canvas::Canvas(SDL_Window* window) {
 	glGenVertexArrays(1, &mCanvasVAO);
 	glGenBuffers(1, &mCanvasVBO);
 	configure_quad(mCanvasVAO, mCanvasVBO);
+	mHeldKey = SDLK_0; // doesn't matter
+	mLastMousePos = ivec2::zero(); // doesn't matter
 	mWindow = window;
 	mModified = false;
 	mInteractState = InteractState::NONE;
@@ -130,10 +132,10 @@ void Canvas::set_current_tool(ToolIndex toolIndex) {
 void Canvas::activate() {
 	glDepthFunc(GL_ALWAYS);
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	SDL_SetRelativeMouseMode(SDL_FALSE);
+	SDL_SetRelativeMouseMode(mInteractState == InteractState::CONFIGURE ? SDL_TRUE : SDL_FALSE);
 }
 void Canvas::deactivate() {}
-void Canvas::process_keyboard(const SDL_KeyboardEvent& event) {
+void Canvas::process_key_down(const SDL_KeyboardEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	bool ctrl = keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL];
 	if (ctrl && event.keysym.sym == SDLK_n) {
@@ -144,6 +146,19 @@ void Canvas::process_keyboard(const SDL_KeyboardEvent& event) {
 	}
 	else if (ctrl && event.keysym.sym == SDLK_o) {
 		prompt_open();
+	}
+	else if (mInteractState == InteractState::NONE && !mTools.empty()){
+		mInteractState = InteractState::CONFIGURE;
+		mHeldKey = event.keysym.sym;
+		SDL_GetMouseState(&mLastMousePos.x, &mLastMousePos.y);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+	}
+}
+void Canvas::process_key_up(const SDL_KeyboardEvent& event) {
+	if (mInteractState == InteractState::CONFIGURE && mHeldKey == event.keysym.sym) {
+		mInteractState = InteractState::NONE;
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+		SDL_WarpMouseInWindow(mWindow, mLastMousePos.x, mLastMousePos.y);
 	}
 }
 void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
@@ -174,12 +189,15 @@ void Canvas::process_mouse_button_up(const SDL_MouseButtonEvent& event) {
 }
 void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
-	ivec2 pos = { event.xrel, -event.yrel };
+	ivec2 delta = { event.xrel, -event.yrel };
 	if (mInteractState == InteractState::PAN) {
-		mCanvasOffset += pos;
+		mCanvasOffset += delta;
 	}
 	else if (mInteractState == InteractState::STROKE) {
-		mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
+		mTools.at(mCurTool)->update_stroke(delta, keys[SDL_SCANCODE_LSHIFT]);
+	}
+	else if (mInteractState == InteractState::CONFIGURE) {
+		mTools.at(mCurTool)->update_param(mHeldKey, delta, keys[SDL_SCANCODE_LSHIFT]);
 	}
 }
 void Canvas::process_mouse_wheel(const SDL_MouseWheelEvent& event) {
@@ -195,7 +213,10 @@ void Canvas::process_mouse_wheel(const SDL_MouseWheelEvent& event) {
 }
 void Canvas::process_event(const SDL_Event& event) {
 	if (event.type == SDL_KEYDOWN) {
-		process_keyboard(event.key);
+		process_key_down(event.key);
+	}
+	else if (event.type == SDL_KEYUP) {
+		process_key_up(event.key);
 	}
 	else if (event.type == SDL_MOUSEBUTTONDOWN) {
 		process_mouse_button_down(event.button);
@@ -240,9 +261,12 @@ void Canvas::render(ivec2 viewportSize) const {
 
 	// mCurTool should always be valid unless we have no tools at all
 	if (!mTools.empty()) {
-		int x, y;
-		SDL_GetMouseState(&x, &y);
-		ivec2 screenMouse = { x, viewportSize.y - y };
+		ivec2 screenMouse = { mLastMousePos.x, viewportSize.y - mLastMousePos.y };
+		if (mInteractState != InteractState::CONFIGURE) {
+			int x, y;
+			SDL_GetMouseState(&x, &y);
+			screenMouse = { x, viewportSize.y - y };
+		}
 		mTools.at(mCurTool)->preview(viewportSize, screenMouse, powf(2.0, mCanvasScaleLog));
 	}
 }

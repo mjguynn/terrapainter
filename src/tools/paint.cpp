@@ -73,7 +73,7 @@ public:
 		const uint8_t zero = 0;
 		glClearTexImage(mStrokeTexture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
 	}
-	void update_param(SDL_KeyCode keyCode, ivec2 mouseDelta, bool modifier) override {
+	void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) override {
 		if (keyCode == SDLK_r) {
 			// Y axis = brush outer radius
 			float wanted = mBrushRadius + mouseDelta.y;
