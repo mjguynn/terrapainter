@@ -76,6 +76,15 @@ constexpr size_t MAX_CANVAS_AXIS = 8192;
 struct CanvasRegion {
 	ivec2 min; // Min X & Y coordinates of the region
 	ivec2 max; // Max X & Y coordinates of the region
+
+	CanvasRegion(ivec2 min, ivec2 max) : min(min), max(max) {}
+	CanvasRegion(vec2 point, float radius) {
+		min = ivec2(point - vec2::splat(radius));
+		max = ivec2(point + vec2::splat(0.5 + radius));
+	}
+	static CanvasRegion merge(const CanvasRegion& a, const CanvasRegion& b) {
+		return CanvasRegion(math::vmin(a.min, b.min), math::vmax(a.max, b.max));
+	}
 };
 
 // Abstract interface for canvas tools
@@ -90,7 +99,9 @@ public:
 	virtual void clear_stroke(ivec2 canvasSize) = 0;
 	// Creates or continues the current stroke. Strokes are ended by `reset`.
 	// `modifier` indicates whether the modifier key (shift) is being held.
-	virtual void update_stroke(ivec2 canvasMouse, bool modifier) = 0;
+	virtual void update_stroke(vec2 canvasMouse, bool modifier) = 0;
+	// TODO: explain
+	virtual bool understands_param(SDL_Keycode keyCode) = 0;
 	// TODO: A bit complicated to explain
 	// TODO: Leaking SDL details here is really ugly
 	virtual void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) = 0;

@@ -120,7 +120,7 @@ void terrapainter::run(SDL_Window* window) {
 
         // This makes dragging windows feel snappy
         io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
-
+        
         // Test for window resizes...
         ivec2 newViewportSize;
         SDL_GetWindowSizeInPixels(window, &newViewportSize.x, &newViewportSize.y);

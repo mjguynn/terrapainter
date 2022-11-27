@@ -59,7 +59,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mInteractState = InteractState::NONE;
 	mPath = std::filesystem::path();
 	mShowNewDialog = false; // TODO change this?
-	mNewDialogCanvasSize = ivec2{ 1024, 1024 }; // seems reasonable
+	mNewDialogCanvasSize = ivec2{ 512, 512 }; // seems reasonable
 	mDidAStupid = false;
 }
 Canvas::~Canvas() noexcept {
@@ -148,6 +148,8 @@ void Canvas::process_key_down(const SDL_KeyboardEvent& event) {
 		prompt_open();
 	}
 	else if (mInteractState == InteractState::NONE && !mTools.empty()){
+		if (!mTools.at(mCurTool)->understands_param(event.keysym.sym))
+			return;
 		mInteractState = InteractState::CONFIGURE;
 		mHeldKey = event.keysym.sym;
 		SDL_GetMouseState(&mLastMousePos.x, &mLastMousePos.y);
@@ -168,7 +170,8 @@ void Canvas::process_mouse_button_down(const SDL_MouseButtonEvent& event) {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	if (mInteractState == InteractState::NONE) {
 		if (event.button == SDL_BUTTON_LEFT && !mTools.empty()) {
-			mTools.at(mCurTool)->update_stroke(pos, keys[SDL_SCANCODE_LSHIFT]);
+			vec2 canvasMouse = cursor_canvas_coords();
+			mTools.at(mCurTool)->update_stroke(canvasMouse, keys[SDL_SCANCODE_LSHIFT]);
 			mInteractState = InteractState::STROKE;
 		}
 		else if (event.button == SDL_BUTTON_RIGHT) {
@@ -182,6 +185,7 @@ void Canvas::process_mouse_button_up(const SDL_MouseButtonEvent& event) {
 	}
 	else if (mInteractState == InteractState::STROKE && event.button == SDL_BUTTON_LEFT) {
 		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
+		mTools.at(mCurTool)->clear_stroke(mCanvasSize);
 		std::swap(mCanvasDstTexture, mCanvasTexture);
 		mInteractState = InteractState::NONE;
 		mModified = true;
@@ -194,7 +198,8 @@ void Canvas::process_mouse_motion(const SDL_MouseMotionEvent& event) {
 		mCanvasOffset += delta;
 	}
 	else if (mInteractState == InteractState::STROKE) {
-		mTools.at(mCurTool)->update_stroke(delta, keys[SDL_SCANCODE_LSHIFT]);
+		vec2 canvasMouse = cursor_canvas_coords();
+		mTools.at(mCurTool)->update_stroke(canvasMouse, keys[SDL_SCANCODE_LSHIFT]);
 	}
 	else if (mInteractState == InteractState::CONFIGURE) {
 		mTools.at(mCurTool)->update_param(mHeldKey, delta, keys[SDL_SCANCODE_LSHIFT]);
@@ -455,9 +460,9 @@ void Canvas::run_new_dialog() {
 		if (ImGui::Button("Create")) {
 			if (
 				mNewDialogCanvasSize.x < 0 ||
-				mNewDialogCanvasSize.x > 8192 ||
+				mNewDialogCanvasSize.x > MAX_CANVAS_AXIS ||
 				mNewDialogCanvasSize.y < 0 ||
-				mNewDialogCanvasSize.y > 8192
+				mNewDialogCanvasSize.y > MAX_CANVAS_AXIS
 			) {
 				mDidAStupid = true;
 			}

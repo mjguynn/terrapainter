@@ -1,59 +1,37 @@
 #version 430 core
 
-// u_v1 = center
-// u_f1 = radius
-const int TP_STROKE_SDF_CIRCLE = 0;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-// u_v1 = start
-// u_v2 = end
-// u_f1 = start radius
-// u_f2 = end radius
-const int TP_STROKE_SDF_ROD = 1;
-
-layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout (binding = 0, r8) uniform restrict image2D u_stroke;
+layout (location = 1) uniform ivec2 u_offset;
+layout (location = 2) uniform vec2 u_start;
+layout (location = 3) uniform vec2 u_end;
+// X: radius, Y: hardness
+layout (location = 4) uniform vec2 u_params;
 
-uniform ivec2 u_origin;
-
-uniform int u_sdf;
-uniform ivec2 u_v1;
-uniform ivec2 u_v2;
-uniform float u_f1;
-uniform float u_f2;
-
-float circle(ivec2 coords) {
-	vec2 offset = vec2(coords - u_v1);
-	float dist = length(offset);
-	return clamp( u_f1 - dist, 0.0f, 1.0f);
-}
-
-float rod(ivec2 coords) {
-	ivec2 lineDir = u_v2 - u_v1;
-	ivec2 shifted = coords - u_v1;
-	float fac_num = dot(lineDir, shifted);
-	float fac_den = dot(lineDir, lineDir);
+float distance_to_rod(vec2 coords) {
+	vec2 dir = u_end - u_start;
+	vec2 rel = coords - u_start;
+	float fac_num = dot(dir, rel);
+	float fac_den = dot(dir, dir);
 	float fac = clamp(fac_num / fac_den, 0.0f, 1.0f);
-	float radius = (u_f2 - u_f1) * smoothstep(0, 1, fac) + u_f1;
-	vec2 offset = vec2(shifted) - fac * vec2(lineDir);
-	float dist = length(offset);
-	return clamp( radius - dist, 0.0f, 1.0f);
+	vec2 offset = vec2(rel) - fac * vec2(dir);
+	return length(offset);
 }
-
+float hardness_factor(float distance, float radius, float hardness) {
+	float normalized = clamp( (radius - distance) / radius, 0.0f, 1.0f);
+	return pow(normalized, hardness);
+}
+float antialias_factor(float distance, float radius) {
+	return clamp(radius - distance, 0.0f, 1.0f);
+}
 void main() {
-	ivec2 coords = u_origin + ivec2(gl_GlobalInvocationID.xy);
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy) + u_offset;
 	vec4 texel = imageLoad(u_stroke, coords);
-	float fac;
-	switch(u_sdf) {
-		case TP_STROKE_SDF_CIRCLE:
-			fac = circle(coords);
-			break;
-		case TP_STROKE_SDF_ROD:
-			fac = rod(coords);
-			break;
-		default:
-			fac = 0.0f;
-			break;
-	}
-	texel.r = max(texel.r, fac);
+	float dist = distance_to_rod(coords + vec2(0.5, 0.5));
+	
+	float h = hardness_factor(dist, u_params.x, u_params.y);
+	float a = antialias_factor(dist, u_params.x);
+	texel.r = max(texel.r, h*a);
 	imageStore(u_stroke, coords, texel);
 }
