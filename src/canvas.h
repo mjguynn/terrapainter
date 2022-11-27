@@ -185,6 +185,14 @@ private:
 	void run_status_bar();
 	void run_new_dialog();
 
+	// Returns the position of the cursor in window coords
+	// This is its own function because we need to fake a static cursor during interactions
+	// because SDL SUCKS!!!
+	ivec2 cursor_window_coords() const;
+
+	// Returns the position of the cursor in canvas coordinates
+	// That is, affected by scale, and relative to the canvas origin (bottom left)
+	vec2 cursor_canvas_coords() const;
 public:
 	Canvas(SDL_Window* window);
 	~Canvas() noexcept override;

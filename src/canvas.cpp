@@ -261,12 +261,8 @@ void Canvas::render(ivec2 viewportSize) const {
 
 	// mCurTool should always be valid unless we have no tools at all
 	if (!mTools.empty()) {
-		ivec2 screenMouse = { mLastMousePos.x, viewportSize.y - mLastMousePos.y };
-		if (mInteractState != InteractState::CONFIGURE) {
-			int x, y;
-			SDL_GetMouseState(&x, &y);
-			screenMouse = { x, viewportSize.y - y };
-		}
+		auto [x, y] = cursor_window_coords();
+		ivec2 screenMouse = { x, viewportSize.y - y };
 		mTools.at(mCurTool)->preview(viewportSize, screenMouse, powf(2.0, mCanvasScaleLog));
 	}
 }
@@ -410,25 +406,36 @@ void Canvas::run_main_menu() {
 		ImGui::EndMainMenuBar();
 	}
 }
-void Canvas::run_status_bar() {
+ivec2 Canvas::cursor_window_coords() const {
+	if (mInteractState == InteractState::CONFIGURE) {
+		return mLastMousePos;
+	}
+	else {
+		int x, y;
+		SDL_GetMouseState(&x, &y);
+		return ivec2{ x, y };
+	}
+}
+vec2 Canvas::cursor_canvas_coords() const {
 	float scale = powf(2.0f, mCanvasScaleLog);
-	int x, y;
-	SDL_GetMouseState(&x, &y);
+	auto [x, y] = cursor_window_coords();
 	int w, h;
 	SDL_GetWindowSizeInPixels(mWindow, &w, &h);
 	// cursor pos in window pixels relative to center of the image
 	ivec2 cursorW = ivec2{ x - w / 2, h / 2 - y } - mCanvasOffset;
 	// cursor pos in image pixels relative to the bottom left of the image
-	vec2 cursorI = (vec2(cursorW) / scale) + (0.5 * vec2(mCanvasSize));
-	// Draw status bar at the bottom of the screen. using an internal API :P
+	return (vec2(cursorW) / scale) + (0.5 * vec2(mCanvasSize));
+}
+void Canvas::run_status_bar() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
 	float height = ImGui::GetFrameHeight();
 	if (ImGui::BeginViewportSideBar("##StatusBar", NULL, ImGuiDir_Down, height, flags)) {
 		if (ImGui::BeginMenuBar()) {
 			ImGui::Text("Dimensions: %ix%i\t", mCanvasSize.x, mCanvasSize.y);
-			ImGui::Text("Zoom: %g%%\t", scale * 100);
+			ImGui::Text("Zoom: %g%%\t", powf(2.0f, mCanvasScaleLog) * 100);
 			// ImGui::Text("Offset: %i,%i", mCanvasOffset.x, mCanvasOffset.y);
-			ImGui::Text("Cursor: (%5g,%5g)\t", cursorI.x, cursorI.y);
+			vec2 cursor = cursor_canvas_coords();
+			ImGui::Text("Cursor: (%5g,%5g)\t", cursor.x, cursor.y);
 			ImGui::EndMenuBar();
 		}
 	}
