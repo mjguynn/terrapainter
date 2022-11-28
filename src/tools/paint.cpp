@@ -2,6 +2,7 @@
 
 #include "canvas_tools.h"
 #include "../shadermgr.h"
+#include "../helpers.h"
 
 // This is a kind of a misnomer. The user can override this.
 // This is really just the max for the UI widget.
@@ -36,14 +37,7 @@ public:
 		// We can still *make* the stroke texture, though...
 		mCanvasSize = ivec2::zero();
 		glGenTextures(1, &mStrokeTexture);
-		glBindTexture(GL_TEXTURE_2D, mStrokeTexture);
-		// GL_LINEAR for min filter sucks, but the "good" alternative would be computing
-		// mipmaps each frame... yeah, no, we're sticking with linear.
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 0, 0, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+		configure_texture(mStrokeTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_R8, GL_RED);
 		mInStroke = false;
 		mLastBrushPos = vec2::zero();
 		// Since these go through the shader manager, we don't have to
@@ -118,12 +112,12 @@ public:
 		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8);
 		glBindImageTexture(1, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glBindImageTexture(2, dst, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glUniform4f(3, mBrushColor.x, mBrushColor.y, mBrushColor.z, mBrushColor.w);
+		glUniform4fv(3, 1, mBrushColor.data());
 		glDispatchCompute( (mCanvasSize.x + 15) / 16, (mCanvasSize.y + 15) / 16, 1 );
 		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 	void run_ui() override {
-		ImGui::DragFloat("Radius", &mBrushRadius, 1.0f, 1.0f, MAX_BRUSH_RADIUS, "%2.f");
+		ImGui::DragFloat("Radius", &mBrushRadius, 1.0f, 1.0f, MAX_BRUSH_RADIUS, "%g");
 		ImGui::DragFloat("Hardness", &mBrushHardness, 0.1f, 0.0f, 4.0f, "%.2f");
 		ImGui::ColorPicker4("Color", mBrushColor.data());
 	}

@@ -8,6 +8,7 @@
 
 #include "shadermgr.h"
 #include "canvas.h"
+#include "helpers.h"
 
 static void configure_quad(GLuint& vao, GLuint& vbo) {
 	static float QUAD_VERTS[] = {
@@ -27,14 +28,6 @@ static void configure_quad(GLuint& vao, GLuint& vbo) {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-// TODO: Move this to a common header or something, it's pretty useful
-static void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWrap, GLenum tWrap) {
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sWrap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tWrap);
-}
 Canvas::Canvas(SDL_Window* window) {
 	mTools = std::vector<std::unique_ptr<ICanvasTool>>();
 	mCurTool = 0;
@@ -45,9 +38,9 @@ Canvas::Canvas(SDL_Window* window) {
 	// and resize/fill them as needed.
 	mCanvasSize = ivec2::zero();
 	glGenTextures(1, &mCanvasTexture);
-	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
 	glGenTextures(1, &mCanvasDstTexture);
-	configure_texture(mCanvasDstTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+	configure_texture(mCanvasDstTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
 	mCanvasProgram = g_shaderMgr.graphics("canvas");
 	glGenVertexArrays(1, &mCanvasVAO);
 	glGenBuffers(1, &mCanvasVBO);

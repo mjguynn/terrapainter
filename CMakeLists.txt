@@ -131,6 +131,7 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/canvas.cpp"
 	"${CMAKE_SOURCE_DIR}/src/tools/paint.cpp"
+	"${CMAKE_SOURCE_DIR}/src/tools/splatter.cpp"
 	"${CMAKE_SOURCE_DIR}/src/controllers.cpp"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
 )
@@ -142,6 +143,7 @@ set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/tools/canvas_tools.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"
 	"${CMAKE_SOURCE_DIR}/src/controllers.h"
+	"${CMAKE_SOURCE_DIR}/src/helpers.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})

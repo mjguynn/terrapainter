@@ -56,6 +56,7 @@ void terrapainter::run(SDL_Window* window) {
 
     Canvas canvas(window);
     canvas.register_tool(tools::paint());
+    canvas.register_tool(tools::splatter());
     canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
     World world(canvas);
     
