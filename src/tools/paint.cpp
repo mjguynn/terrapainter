@@ -73,14 +73,14 @@ public:
 		glClearTexImage(mStrokeTexture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
 	}
 	bool understands_param(SDL_Keycode keyCode) override {
-		return (keyCode == SDLK_r) || (keyCode == SDLK_f);
+		return (keyCode == SDLK_f) || (keyCode == SDLK_r);
 	}
 	void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) override {
-		if (keyCode == SDLK_r) {
+		if (keyCode == SDLK_f) {
 			float wanted = mBrushRadius + mouseDelta.x + mouseDelta.y;
 			mBrushRadius = std::max(wanted, 1.f);
 		}
-		else if (keyCode == SDLK_f) {
+		else if (keyCode == SDLK_h) {
 			float wanted = mBrushHardness + 0.1 * (mouseDelta.x + mouseDelta.y);
 			mBrushHardness = std::clamp(wanted, 0.f, 4.f);
 		}

@@ -15,16 +15,22 @@ class SplatterTool : public virtual ICanvasTool {
 	GLuint mBufferTexture;
 
 	GLuint mSplatTexture; // TODO: making this an array of textures would be cool
+	ivec2 mSplatSize;
 	vec4 mSplatTint;
-	float mSplatRadius;
-	float mSplatRadiusRnd; // random offset to radius - always positive?
+	float mSplatScale;
+	float mSplatScaleRnd; // random offset to radius - always positive?
 	float mSplatRotation; // radians
 	float mSplatRotationRnd; // random offset to rotation, in [0, 2pi]
 	float mSplatOffsetRnd; // random offset distance from cursor center
+	int mSplatRate; // number of splats per second
 
 	bool mInStroke;
 
+	GLuint mQuadVAO;
+	GLuint mQuadVBO;
+
 	GLuint mCompositeProgram;
+	GLuint mRenderProgram; // used for rendering splats into buffer & rendering preview
 
 	// pixels: rgba8
 	void set_stroke_texture(ivec2 size, uint8_t* pixels) {
@@ -34,6 +40,7 @@ class SplatterTool : public virtual ICanvasTool {
 		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		glBindTexture(GL_TEXTURE_2D, 0);
+		mSplatSize = size;
 	}
 	void prompt_choose_stroke_texture() {
 		// TODO: This has a lot in common with the canvas prompt
@@ -64,15 +71,21 @@ public:
 		configure_texture(mBufferTexture, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
 		glGenTextures(1, &mSplatTexture);
 		configure_texture(mSplatTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
+		glGenVertexArrays(1, &mQuadVAO);
+		glGenBuffers(1, &mQuadVBO);
+		configure_quad(mQuadVAO, mQuadVBO);
 
-		mSplatRadius = 20.0f;
-		mSplatRadiusRnd = 0;
+		mSplatSize = ivec2::zero();
+		mSplatScale = 20.0f;
+		mSplatScaleRnd = 0;
 		mSplatRotation = 0;
 		mSplatRotationRnd = 0;
 		mSplatOffsetRnd = 0;
+		mSplatRate = 4;
 		mInStroke = false;
 
 		mCompositeProgram = g_shaderMgr.compute("splatter_composite");
+		mRenderProgram = g_shaderMgr.graphics("simple_2d");
 	}
 
 	SplatterTool(const SplatterTool&) = delete;
@@ -86,6 +99,10 @@ public:
 		glDeleteTextures(1, &mSplatTexture);
 		assert(mBufferTexture);
 		glDeleteTextures(1, &mBufferTexture);
+		assert(mQuadVAO);
+		glDeleteVertexArrays(1, &mQuadVAO);
+		assert(mQuadVBO);
+		glDeleteBuffers(1, &mQuadVBO);
 	}
 	const char* name() const override {
 		return "Splatter";
@@ -104,19 +121,20 @@ public:
 		glClearTexImage(mBufferTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, zero);
 	}
 	bool understands_param(SDL_Keycode keyCode) override {
-		return (keyCode == SDLK_r) || (keyCode == SDLK_s);
+		return (keyCode == SDLK_f) || (keyCode == SDLK_r) || (keyCode == SDLK_s);
 	}
 	void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) override {
-		if (keyCode == SDLK_r) {
-			float wanted = mSplatRadius + mouseDelta.x + mouseDelta.y;
-			mSplatRadius = std::max(wanted, 1.f);
+		if (keyCode == SDLK_f) {
+			float wanted = mSplatScale + mouseDelta.x + mouseDelta.y;
+			mSplatScale = std::max(wanted, 1.f);
+		}
+		else if (keyCode == SDLK_r) {
+			float wantedRot = mSplatRotation + 0.01 * (mouseDelta.x + mouseDelta.y);
+			mSplatRotation = fmodf(wantedRot, 2 * M_PI);
 		}
 		else if (keyCode == SDLK_s) {
-			// spread X, rotation Y
-			float wantedSpread = mSplatOffsetRnd + (0.1 * mouseDelta.x);
+			float wantedSpread = mSplatOffsetRnd + 0.1 * (mouseDelta.x + mouseDelta.y);
 			mSplatOffsetRnd = std::max(wantedSpread, 0.f);
-			float wantedRot = mSplatRotation + (0.01 * mouseDelta.y);
-			mSplatRotation = fmodf(wantedRot, 2 * M_PI);
 		}
 	}
 	void update_stroke(vec2 canvasMouse, bool modifier) override {
@@ -141,8 +159,8 @@ public:
 		if (ImGui::Button("Choose texture...")) {
 			prompt_choose_stroke_texture();
 		}
-		ImGui::DragFloat("Radius", &mSplatRadius, 1.0f, 1.0f, MAX_BRUSH_RADIUS, "%g");
-		ImGui::DragFloat("Radius (Random)", &mSplatRadiusRnd, 1.0f, 0.0f, MAX_BRUSH_RADIUS, "%g");
+		ImGui::DragFloat("Scale", &mSplatScale, 1.0f, 1.0f, MAX_BRUSH_RADIUS, "%g");
+		ImGui::DragFloat("Scale (Random)", &mSplatScaleRnd, 1.0f, 0.0f, MAX_BRUSH_RADIUS, "%g");
 		float degRot = mSplatRotation * 180 / M_PI;
 		ImGui::DragFloat("Rotation", &degRot, 15.0f, 0.0f, 360.0f, "%g deg");
 		mSplatRotation = (degRot * M_PI) / 180;
@@ -150,9 +168,24 @@ public:
 		ImGui::DragFloat("Rotation (Random):", &degRotRnd, 15.0f, 0.0f, 360.0f, "%g deg");
 		mSplatRotationRnd = (degRotRnd * M_PI) / 180;
 		ImGui::DragFloat("Offset (Random):", &mSplatOffsetRnd, 1.0f, 0.0f, MAX_BRUSH_RADIUS, "%f");
+		ImGui::DragInt("Rate", &mSplatRate, 1.0f, 0, 256);
 	}
 	void preview(ivec2 screenSize, ivec2 screenMouse, float canvasScale) override {
-
+		// dont even ask how I came up with this
+		vec2 nrm = vec2(mSplatSize) / std::max(mSplatSize.x, mSplatSize.y);
+		vec2 scale = (canvasScale * mSplatScale * nrm) / vec2(screenSize);
+		vec2 pos = (2*vec2(screenMouse) - vec2(screenSize)) / vec2(screenSize);
+		auto xform = mat3::translate_hmg(pos)
+			* mat2::diag(scale.x, scale.y).hmg()
+			* mat2::rotate(mSplatRotation).hmg();
+		glBindVertexArray(mQuadVAO);
+		glUseProgram(mRenderProgram);
+		glUniformMatrix3fv(0, 1, GL_TRUE, xform.data());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
+		glUniform1i(1, 0);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glUseProgram(0);
 	}
 };
 
