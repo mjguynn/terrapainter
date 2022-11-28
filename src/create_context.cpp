@@ -11,6 +11,7 @@
 #include "terrapainter/math.h"
 #include "learnopengl/camera.h"
 #include "learnopengl/mesh.h"
+// #include "learnopengl/texture.h"
 
 #include <iostream>
 
@@ -244,36 +245,42 @@ int main(int argc, char *argv[])
   std::cout << "Created " << numStrips * numTrisPerStrip << " triangles total" << std::endl;
 
   // -----------------------Testing Texture -----------------------------------
-  unsigned int texture1;
-  glGenTextures(1, &texture1);
-  glBindTexture(GL_TEXTURE_2D, texture1);
-  // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // load image, create texture and generate mipmaps
-  int width_img, height_img, nrChannels_img;
-  stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-  // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-  string path = "cs4621/images/grass.png";
-  unsigned char *image = stbi_load(path.c_str(), &width_img, &height_img, &nrChannels_img, 0);
-  if (image)
-  {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  }
-  else
-  {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(image);
+  // unsigned int texture1;
+  // glGenTextures(1, &texture1);
+  // glBindTexture(GL_TEXTURE_2D, texture1);
+  // // set the texture wrapping parameters
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // // set texture filtering parameters
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // // load image, create texture and generate mipmaps
+  // int width_img, height_img, nrChannels_img;
+  // stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+  // // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
+  // string path = "cs4621/images/grass.png";
+  // unsigned char *image = stbi_load(path.c_str(), &width_img, &height_img, &nrChannels_img, 0);
+  // if (image)
+  // {
+  //   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+  //   glGenerateMipmap(GL_TEXTURE_2D);
+  // }
+  // else
+  // {
+  //   std::cout << "Failed to load texture" << std::endl;
+  // }
+  // stbi_image_free(image);
 
+  // shader.use();
+  // std::cout << glGetError() << std::endl;
+  // shader.setInt("texture_diff1", 0);
+  // std::cout << glGetError() << std::endl;
+
+  unsigned int texture1;
+  genTexture(texture1, "grass.png");
   shader.use();
   std::cout << glGetError() << std::endl;
   shader.setInt("texture_diff1", 0);
-  // std::cout << glGetError() << std::endl;
 
   // --------------------------------End Testing --------------------------------
 
@@ -313,9 +320,7 @@ int main(int argc, char *argv[])
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
-    // std::cout << glGetError() << std::endl;
     glBindTexture(GL_TEXTURE_2D, texture1);
-    // std::cout << glGetError() << std::endl;
 
     shader.use();
 
