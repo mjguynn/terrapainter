@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SDL.h"
-#include "terrapainter/entity.h"
+#include "terrapainter/scene/entity.h"
 
 class NoclipController {
 	float mMouseSensitivity;

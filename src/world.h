@@ -1,11 +1,11 @@
 #pragma once
 
-#include "terrapainter/camera.h"
-#include "terrapainter/entity.h"
-#include "controllers.h"
 #include "terrapainter.h"
 #include "canvas.h"
-#include "terrain.h"
+#include "terrapainter/scene/camera.h"
+#include "terrapainter/scene/entity.h"
+#include "scene/controllers.h"
+#include "scene/terrain.h"
 
 // This is kind of a misnomer, as its conflating the "world" (in a scene 
 // graph sense) with a bunch of app logic. This is the cause of the ICKY 

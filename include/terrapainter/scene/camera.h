@@ -1,6 +1,6 @@
 #pragma once
 
-#include "terrapainter/entity.h"
+#include "terrapainter/scene/entity.h"
 
 // A generic camera object.
 // 

@@ -9,7 +9,7 @@ inline void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWr
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, 0, 0, 0, abstractFormat, GL_UNSIGNED_BYTE, nullptr);
 }
 
-inline void configure_quad(GLuint& vao, GLuint& vbo) {
+inline void configure_quad(GLuint vao, GLuint vbo) {
 	static float QUAD_VERTS[] = {
 		// POSITION (XY)		// TEXCOORD
 		-1.0f,	-1.0f, 1.0f,	0.0f, 0.0f,

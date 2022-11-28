@@ -1,14 +1,10 @@
-#include "shadermgr.h"
+#include "../shadermgr.h"
 #include "terrain.h"
 
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale) 
     : Entity(position, angles, scale) 
 {
     mProgram = g_shaderMgr.graphics("heightmap");
-    mWorldToProjectionLocation = glGetUniformLocation(mProgram, "u_worldToProjection");
-    mModelToWorldLocation = glGetUniformLocation(mProgram, "u_modelToWorld");
-    mLightDirLocation = glGetUniformLocation(mProgram, "LightDir");
-    mViewPosLocation = glGetUniformLocation(mProgram, "viewPos");
     mMesh = nullptr;
 }
 Terrain::~Terrain() noexcept {
@@ -121,11 +117,12 @@ void Terrain::draw(const mat4& viewProj, vec3 viewPos) const {
     if (!mMesh) return;
 
     const mat4 modelToWorld = world_transform();
+    // TODO change this
     vec3 lightDir = { 0.0f, 0.0f, -5.0f };
     glUseProgram(mProgram);
-    glUniformMatrix4fv(mWorldToProjectionLocation, 1, GL_TRUE, viewProj.data());
-    glUniformMatrix4fv(mModelToWorldLocation, 1, GL_TRUE, modelToWorld.data());
-    glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
-    glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
+    glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+    glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
+    glUniform3f(2, lightDir.x, lightDir.y, lightDir.z);
+    glUniform3f(3, viewPos.x, viewPos.y, viewPos.z);
     mMesh->DrawStrips();
 }

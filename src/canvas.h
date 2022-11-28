@@ -8,24 +8,23 @@
 //		|-> Involves solving a quadratic equation on the GPU, should be ok
 //		|-> Is adding an extra frame of lag unacceptable?
 //		|-> (Could always switch to software cursor or hide cursor while drawing)
+//		|-> Regarding software cursor: SDL2 provides no mechanism to enforce software cursor
+//		|-> ImGui does, but enabling it through ImGui feels... wrong...
 //  ✔️ Separate from image size
 //		|-> Use scrollwheel to zoom in/out, right click & drag to pan
-//	𐌢 Extend paintbrush
+//	✔️ Extend paintbrush
 //		|-> Parametrize by outer radius (at 0) & hardness (degree of polynomial)
 //		|-> Note that all these can be implemented on layers on top of the fundamental SDF
-//	𐌢 Accumulate vs Continuous mode
-//		|-> continuous mode does "perfect interpolation" along stroke, doesn't commit stroke until mouse up
-//		|-> accumulate mode does the basic "spit out a bunch of circles in a loop"
-//	𐌢 Allow brush textures
+//	✔️ Allow brush textures
 //		|-> Will force accumulate mode, unsure how one would do perfect interpolation with a brush texture
-//		|-> For loop in the compute shader? Cache texture reads within workgroup?
+//		|-> ~~For loop in the compute shader?~~ (no, loop with framebuffer and standard rendering)
 //	𐌢 Blur brush
 //		|-> GPU convolution
 //		|-> For radius: instead of lerping with unblurred background, as is the norm, lerp the KERNELS
 //		|-> This way we get a kinda smooth falloff
 //  𐌢 Change cursor to "hitmarker" when not over UI element?
 //  ✔️ ~~Somehow dock brush stroke UI to the side of the screen~~ nah
-//  𐌢 More keyboard shortcuts!!!
+//  ✔️ More keyboard shortcuts!!!
 //  𐌢 Undo/Redo
 
 // ==== Considerations for undo/redo =====

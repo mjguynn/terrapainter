@@ -2,11 +2,11 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 
-out vec3 v_normalDir;
-out vec3 v_fragPos;
+layout (location = 0) out vec3 v_normalDir;
+layout (location = 1) out vec3 v_fragPos;
 
-uniform mat4 u_worldToProjection;
-uniform mat4 u_modelToWorld;
+layout (location = 0) uniform mat4 u_worldToProjection;
+layout (location = 1) uniform mat4 u_modelToWorld;
 
 void main()
 {

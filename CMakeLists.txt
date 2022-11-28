@@ -56,15 +56,15 @@ endif()
 # Terrapainter lib contains everything that should be easily testable
 # so no OpenGL or SDL2 in there
 set(terrapainter_lib_SOURCES 
-	"${CMAKE_SOURCE_DIR}/src/entity.cpp"
-	"${CMAKE_SOURCE_DIR}/src/camera.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/entity.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/camera.cpp"
 )
 set(terrapainter_lib_HEADERS
-	"${CMAKE_SOURCE_DIR}/include/terrapainter/camera.h"
-	"${CMAKE_SOURCE_DIR}/include/terrapainter/entity.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/math.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/pixel.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/util.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/camera.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/entity.h"
 )
 
 add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_lib_HEADERS})
@@ -128,22 +128,24 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/main.cpp"
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.cpp"
 	"${CMAKE_SOURCE_DIR}/src/world.cpp"
-	"${CMAKE_SOURCE_DIR}/src/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/canvas.cpp"
+	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
 	"${CMAKE_SOURCE_DIR}/src/tools/paint.cpp"
 	"${CMAKE_SOURCE_DIR}/src/tools/splatter.cpp"
-	"${CMAKE_SOURCE_DIR}/src/controllers.cpp"
-	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/terrain.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/water.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/controllers.cpp"
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.h"
 	"${CMAKE_SOURCE_DIR}/src/world.h"
-	"${CMAKE_SOURCE_DIR}/src/terrain.h"
 	"${CMAKE_SOURCE_DIR}/src/canvas.h"
-	"${CMAKE_SOURCE_DIR}/src/tools/canvas_tools.h"
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.h"
-	"${CMAKE_SOURCE_DIR}/src/controllers.h"
 	"${CMAKE_SOURCE_DIR}/src/helpers.h"
+	"${CMAKE_SOURCE_DIR}/src/tools/canvas_tools.h"
+	"${CMAKE_SOURCE_DIR}/src/scene/terrain.h"
+	"${CMAKE_SOURCE_DIR}/src/scene/water.h"
+	"${CMAKE_SOURCE_DIR}/src/scene/controllers.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})

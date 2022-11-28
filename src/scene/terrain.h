@@ -1,16 +1,12 @@
 #pragma once
 
-#include "terrapainter/entity.h"
+#include "terrapainter/scene/entity.h"
 #include "learnopengl/mesh.h"
-#include "canvas.h"
+#include "../canvas.h"
 
 class Terrain : public Entity {
 private:
 	GLuint mProgram;
-	GLuint mWorldToProjectionLocation;
-	GLuint mModelToWorldLocation;
-	GLuint mLightDirLocation;
-	GLuint mViewPosLocation;
 	std::unique_ptr<Mesh> mMesh;
 public:
 	Terrain(vec3 position, vec3 angles, vec3 scale);

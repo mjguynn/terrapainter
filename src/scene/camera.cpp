@@ -1,4 +1,4 @@
-#include "terrapainter/camera.h"
+#include "terrapainter/scene/camera.h"
 
 Camera::Camera(vec3 position, vec3 euler_angles, float fov, ivec2 sensorSize, vec2 range) :
 	Entity::Entity(position, euler_angles, vec3::splat(1.0f)),

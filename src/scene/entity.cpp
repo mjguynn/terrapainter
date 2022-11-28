@@ -1,4 +1,4 @@
-#include "terrapainter/entity.h"
+#include "terrapainter/scene/entity.h"
 #include <algorithm>
 
 Entity::Entity(vec3 position, vec3 euler_angles, vec3 scale) :

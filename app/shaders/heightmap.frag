@@ -1,13 +1,14 @@
 #version 430 core
-out vec4 FragColor;
+
+layout (location = 2) uniform vec3 LightDir;
+layout (location = 3) uniform vec3 viewPos;
 
 // Note that the GPU essentially linearly interpolates attributes
 // when sending them to fragments. So this might not be a unit normal!
-in vec3 v_normalDir;
-in vec3 v_fragPos; // in world space
+layout (location = 0) in vec3 v_normalDir;
+layout (location = 1) in vec3 v_fragPos; // in world space
 
-uniform vec3 LightDir;
-uniform vec3 viewPos;
+out vec4 FragColor;
 
 vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	float t = (curh - minh) / (maxh - minh);
