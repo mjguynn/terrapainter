@@ -1,6 +1,7 @@
 #include <imgui/imgui.h>
 #include <nfd.hpp>
 #include <stb/stb_image.h>
+#include <SDL.h>
 
 #include "canvas_tools.h"
 #include "../shadermgr.h"
@@ -23,6 +24,7 @@ class SplatterTool : public virtual ICanvasTool {
 	float mSplatRotationRnd; // random offset to rotation, in [0, 2pi]
 	float mSplatOffsetRnd; // random offset distance from cursor center
 	int mSplatRate; // number of splats per second
+	uint64_t mLastTime;
 
 	bool mInStroke;
 
@@ -31,6 +33,7 @@ class SplatterTool : public virtual ICanvasTool {
 
 	GLuint mCompositeProgram;
 	GLuint mRenderProgram; // used for rendering splats into buffer & rendering preview
+	GLuint mFramebuffer; // used for rendering to the buffer
 
 	// pixels: rgba8
 	void set_stroke_texture(ivec2 size, uint8_t* pixels) {
@@ -62,6 +65,19 @@ class SplatterTool : public virtual ICanvasTool {
 			else fprintf(stderr, "[error] STBI error: %s", stbi_failure_reason());
 		}
 	}
+	void draw_splat(vec2 pos, float rot, vec2 scale) {
+		auto xform = mat3::translate_hmg(pos)
+			* mat2::diag(scale.x, scale.y).hmg()
+			* mat2::rotate(rot).hmg();
+		glBindVertexArray(mQuadVAO);
+		glUseProgram(mRenderProgram);
+		glUniformMatrix3fv(0, 1, GL_TRUE, xform.data());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
+		glUniform1i(1, 0);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glUseProgram(0);
+	}
 public:
 	SplatterTool() {
 		// punt on appropriate canvas size until clear_stroke is called
@@ -74,8 +90,10 @@ public:
 		glGenVertexArrays(1, &mQuadVAO);
 		glGenBuffers(1, &mQuadVBO);
 		configure_quad(mQuadVAO, mQuadVBO);
+		glGenFramebuffers(1, &mFramebuffer);
 
 		mSplatSize = ivec2::zero();
+		mSplatTint = vec4::splat(1);
 		mSplatScale = 20.0f;
 		mSplatScaleRnd = 0;
 		mSplatRotation = 0;
@@ -83,6 +101,7 @@ public:
 		mSplatOffsetRnd = 0;
 		mSplatRate = 4;
 		mInStroke = false;
+		mLastTime = 0;
 
 		mCompositeProgram = g_shaderMgr.compute("splatter_composite");
 		mRenderProgram = g_shaderMgr.graphics("simple_2d");
@@ -103,6 +122,8 @@ public:
 		glDeleteVertexArrays(1, &mQuadVAO);
 		assert(mQuadVBO);
 		glDeleteBuffers(1, &mQuadVBO);
+		assert(mFramebuffer);
+		glDeleteFramebuffers(1, &mFramebuffer);
 	}
 	const char* name() const override {
 		return "Splatter";
@@ -121,7 +142,7 @@ public:
 		glClearTexImage(mBufferTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, zero);
 	}
 	bool understands_param(SDL_Keycode keyCode) override {
-		return (keyCode == SDLK_f) || (keyCode == SDLK_r) || (keyCode == SDLK_s);
+		return (keyCode == SDLK_f) || (keyCode == SDLK_r) || (keyCode == SDLK_s) || (keyCode == SDLK_a);
 	}
 	void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) override {
 		if (keyCode == SDLK_f) {
@@ -136,9 +157,51 @@ public:
 			float wantedSpread = mSplatOffsetRnd + 0.1 * (mouseDelta.x + mouseDelta.y);
 			mSplatOffsetRnd = std::max(wantedSpread, 0.f);
 		}
+		else if (keyCode == SDLK_a) {
+			float wantedAlpha = mSplatTint.w + 0.01 * (mouseDelta.x + mouseDelta.y);
+			mSplatTint.w = std::clamp(wantedAlpha, 0.0f, 1.0f);
+		}
 	}
 	void update_stroke(vec2 canvasMouse, bool modifier) override {
+		if (!mInStroke) {
+			mInStroke = true;
+			mLastTime = SDL_GetTicks64();
+		}
+		uint64_t recip = 1000ull / mSplatRate;
+		uint64_t curTime = SDL_GetTicks64();
 
+		if (curTime - mLastTime < recip) return; // early out to be a bit efficient
+
+		GLfloat clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		int old[4];
+		glGetIntegerv(GL_VIEWPORT, old);
+		// TODO: could be perf implications of not clearing the framebuffer
+		// using a swapchain could be better
+		glViewport(0, 0, mCanvasSize.x, mCanvasSize.y);
+		glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mBufferTexture, 0);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		while (curTime - mLastTime > recip) {
+			// emit one stroke
+			mLastTime = mLastTime + recip;
+			
+			float offsetRadius = mSplatOffsetRnd * sqrtf(float(rand()) / float(RAND_MAX)); // [0, offset]
+			// ^^^ the sqrtf is to get an even distribution since these are polar coordinates
+			float offsetAngle = float(rand()) / (float(RAND_MAX) / (2*M_PI)); // [0, 2pi]
+			vec2 offset = { offsetRadius * cosf(offsetAngle), offsetRadius * sinf(offsetAngle) };
+			vec2 pos = 2 * vec2(canvasMouse+offset) / vec2(mCanvasSize) - vec2::splat(1);
+
+			float rot = mSplatRotation + mSplatRotationRnd * float(rand()) / float(RAND_MAX);
+
+			float prescale = mSplatScale + mSplatScaleRnd * float(rand()) / float(RAND_MAX);
+			vec2 nrm = vec2(mSplatSize) / std::max(mSplatSize.x, mSplatSize.y);
+			vec2 scale = (prescale * nrm) / vec2(mCanvasSize);
+
+			draw_splat(pos, rot, scale);
+		}
+		// reset framebuffer to render buffer
+		glViewport(old[0], old[1], old[2], old[3]);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	void composite(GLuint dst, GLuint src) override {
 		glUseProgram(mCompositeProgram);
@@ -165,27 +228,19 @@ public:
 		ImGui::DragFloat("Rotation", &degRot, 15.0f, 0.0f, 360.0f, "%g deg");
 		mSplatRotation = (degRot * M_PI) / 180;
 		float degRotRnd = mSplatRotationRnd * 180 / M_PI;
-		ImGui::DragFloat("Rotation (Random):", &degRotRnd, 15.0f, 0.0f, 360.0f, "%g deg");
+		ImGui::DragFloat("Rotation (Random)", &degRotRnd, 15.0f, 0.0f, 360.0f, "%g deg");
 		mSplatRotationRnd = (degRotRnd * M_PI) / 180;
-		ImGui::DragFloat("Offset (Random):", &mSplatOffsetRnd, 1.0f, 0.0f, MAX_BRUSH_RADIUS, "%f");
+		ImGui::DragFloat("Offset (Random)", &mSplatOffsetRnd, 1.0f, 0.0f, MAX_BRUSH_RADIUS, "%f");
 		ImGui::DragInt("Rate", &mSplatRate, 1.0f, 0, 256);
+		if (mSplatRate < 0) mSplatRate = 0;
+		ImGui::ColorPicker4("Tint", mSplatTint.data());
 	}
 	void preview(ivec2 screenSize, ivec2 screenMouse, float canvasScale) override {
 		// dont even ask how I came up with this
 		vec2 nrm = vec2(mSplatSize) / std::max(mSplatSize.x, mSplatSize.y);
 		vec2 scale = (canvasScale * mSplatScale * nrm) / vec2(screenSize);
-		vec2 pos = (2*vec2(screenMouse) - vec2(screenSize)) / vec2(screenSize);
-		auto xform = mat3::translate_hmg(pos)
-			* mat2::diag(scale.x, scale.y).hmg()
-			* mat2::rotate(mSplatRotation).hmg();
-		glBindVertexArray(mQuadVAO);
-		glUseProgram(mRenderProgram);
-		glUniformMatrix3fv(0, 1, GL_TRUE, xform.data());
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
-		glUniform1i(1, 0);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		glUseProgram(0);
+		vec2 pos = 2 * vec2(screenMouse) / vec2(screenSize) - vec2::splat(1);
+		draw_splat(pos, mSplatRotation, scale);
 	}
 };
 

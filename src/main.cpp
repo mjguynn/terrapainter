@@ -103,7 +103,7 @@ ivec2 fix_window_size(ivec2 screenSize, ivec2 windowSize) {
 
 int main(int argc, char *argv[])
 {
-    ivec2 windowSize = { 1024, 600 };
+    ivec2 windowSize = { 1024, 768 };
     ivec2 windowPos = { 200, 200 };
     const char* initialInput = nullptr;
     std::array<CommandArg, 5> args = {
