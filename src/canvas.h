@@ -175,13 +175,15 @@ private:
 		STROKE,
 		CONFIGURE, // configuring tool
 		// SWITCH, <-- tool quickswitch, DOOM/UT4 style... I was planning on doing this but probably no time...
-	} mInteractState;
+	};
+	InteractState mInteractState;
 
 	enum class SaveResponse {
 		SAVE,
 		DISCARD,
 		CANCEL
-	} request_save() const;
+	};
+	SaveResponse request_save() const;
 
 	// Splitting up functions for my own sanity
 	void process_key_down(const SDL_KeyboardEvent& event);
