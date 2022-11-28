@@ -6,13 +6,12 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout (binding = 0, rgba8) readonly restrict uniform image2D u_buffer;
 layout (binding = 1, rgba8) readonly restrict uniform image2D u_src;
 layout (binding = 2, rgba8) writeonly restrict uniform image2D u_dst;
-layout (location = 3) uniform vec4 u_splatTint;
 
 void main() {
 	// Out of bounds loads/stores are actually allowed and no-opped
 	// Praise Khronos!
 	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-	vec4 buf = imageLoad(u_buffer, coords) * u_splatTint.a;
+	vec4 buf = imageLoad(u_buffer, coords);
 	vec4 canvas = imageLoad(u_src, coords);
 	vec4 composite = mix(canvas, vec4(buf.rgb, 1), buf.a);
 	imageStore(u_dst, coords, composite);

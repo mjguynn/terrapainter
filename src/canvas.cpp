@@ -274,6 +274,7 @@ void Canvas::render(ivec2 viewportSize) const {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glUniform1i(1, 0);
+	glUniform4f(2, 1.0f, 1.0f, 1.0f, 1.0f);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glUseProgram(0);
 

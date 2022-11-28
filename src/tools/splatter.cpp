@@ -75,6 +75,7 @@ class SplatterTool : public virtual ICanvasTool {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
 		glUniform1i(1, 0);
+		glUniform4fv(2, 1, mSplatTint.data());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glUseProgram(0);
 	}
@@ -209,7 +210,6 @@ public:
 		glBindImageTexture(0, mBufferTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glBindImageTexture(1, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glBindImageTexture(2, dst, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glUniform4fv(3, 1, mSplatTint.data());
 		glDispatchCompute((mCanvasSize.x + 15) / 16, (mCanvasSize.y + 15) / 16, 1);
 		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
