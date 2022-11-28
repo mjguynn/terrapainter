@@ -12,6 +12,8 @@
 #include "learnopengl/camera.h"
 #include "learnopengl/mesh.h"
 
+#include <iostream>
+
 using namespace std;
 
 float get_dpi_scale()
@@ -32,6 +34,34 @@ float get_dpi_scale()
   {
     return 1.0f;
   }
+}
+
+void genTexture(unsigned int &texture, string file_name)
+{
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load image, create texture and generate mipmaps
+  int width, height, nrChannels;
+  stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+  // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
+  string path = "cs4621/images/" + file_name;
+  unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
 }
 
 // ------------------- CAMERA CODE from LearnOpenGL (START) -----------------
@@ -101,11 +131,11 @@ int main(int argc, char *argv[])
   // Set viewport
   glViewport(0, 0, 800, 600);
 
-  Shader shader("../cs4621/shaders/heightmap.vs", "../cs4621/shaders/heightmap.fs");
+  Shader shader("cs4621/shaders/heightmap.vs", "cs4621/shaders/heightmap.fs");
 
   stbi_set_flip_vertically_on_load(true);
   int width, height, nChannels;
-  unsigned char *data = stbi_load("../cs4621/images/iceland_heightmap.png",
+  unsigned char *data = stbi_load("cs4621/images/iceland_heightmap.png",
                                   &width, &height, &nChannels,
                                   0);
   if (data)
@@ -132,9 +162,7 @@ int main(int argc, char *argv[])
 
       vertices.push_back(
           Vertex{
-              .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)
-              }
-        );
+              .Position = vec3(-height / 2.0f + height * i / (float)height, (int)y * yScale - yShift, -width / 2.0f + width * j / (float)width)});
     }
   }
   std::cout << "Loaded " << vertices.size() / 3 << " vertices" << std::endl;
@@ -180,16 +208,16 @@ int main(int argc, char *argv[])
     normaldata[facedata.at(i + 2)] += normal;
   }
 
-
   for (int i = 0; i < normaldata.size(); i += 1)
   {
     normaldata[i] = normaldata[i].normalize();
     vertices[i].Normal = normaldata[i];
   }
-  
-  std::vector<vec3> n100(normaldata.begin()+ 400000, normaldata.begin() + 400020);
-  for (vec3 v: n100) {
-  std::cout << v << std::endl;
+
+  std::vector<vec3> n100(normaldata.begin() + 400000, normaldata.begin() + 400020);
+  for (vec3 v : n100)
+  {
+    std::cout << v << std::endl;
   }
 
   std::vector<unsigned> indices;
@@ -207,12 +235,47 @@ int main(int argc, char *argv[])
 
   std::cout << "Loaded " << indices.size() << " indices" << std::endl;
 
-  Mesh *map = new Mesh(vertices, indices);
+  vector<Texture> textures;
+  Mesh *map = new Mesh(vertices, indices, textures);
 
   const int numStrips = (height - 1) / rez;
   const int numTrisPerStrip = (width / rez) * 2 - 2;
   std::cout << "Created lattice of " << numStrips << " strips with " << numTrisPerStrip << " triangles each" << std::endl;
   std::cout << "Created " << numStrips * numTrisPerStrip << " triangles total" << std::endl;
+
+  // -----------------------Testing Texture -----------------------------------
+  unsigned int texture1;
+  glGenTextures(1, &texture1);
+  glBindTexture(GL_TEXTURE_2D, texture1);
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load image, create texture and generate mipmaps
+  int width_img, height_img, nrChannels_img;
+  stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+  // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
+  string path = "cs4621/images/grass.png";
+  unsigned char *image = stbi_load(path.c_str(), &width_img, &height_img, &nrChannels_img, 0);
+  if (image)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else
+  {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(image);
+
+  shader.use();
+  std::cout << glGetError() << std::endl;
+  shader.setInt("texture_diff1", 0);
+  // std::cout << glGetError() << std::endl;
+
+  // --------------------------------End Testing --------------------------------
 
   bool running = true;
   bool show_demo_window = true;
@@ -232,15 +295,15 @@ int main(int argc, char *argv[])
     {
       camera.ProcessKeyboard(FORWARD, deltaTime);
     }
-    else if (currentKeyStates[SDL_SCANCODE_DOWN])
+    if (currentKeyStates[SDL_SCANCODE_DOWN])
     {
       camera.ProcessKeyboard(BACKWARD, deltaTime);
     }
-    else if (currentKeyStates[SDL_SCANCODE_LEFT])
+    if (currentKeyStates[SDL_SCANCODE_LEFT])
     {
       camera.ProcessKeyboard(LEFT, deltaTime);
     }
-    else if (currentKeyStates[SDL_SCANCODE_RIGHT])
+    if (currentKeyStates[SDL_SCANCODE_RIGHT])
     {
       camera.ProcessKeyboard(RIGHT, deltaTime);
     }
@@ -249,11 +312,11 @@ int main(int argc, char *argv[])
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Shaders
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, texture1);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, texture2);
+    glActiveTexture(GL_TEXTURE0);
+    // std::cout << glGetError() << std::endl;
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    // std::cout << glGetError() << std::endl;
+
     shader.use();
 
     // Camera Projection
@@ -268,10 +331,12 @@ int main(int argc, char *argv[])
     glm::mat4 model = glm::mat4(1.0f);
     shader.setMat4("model", model);
 
-    shader.setVec3("LightDir", glm::vec3(0.0f, -5.0, 0.0f));
+    shader.setVec3("LightDir", glm::vec3(-2.0f, -5.0, 0.0f));
     shader.setVec3("viewPos", camera.Position);
 
+    // render container
     map->DrawStrips(numTrisPerStrip, numStrips);
+    // map->Draw(shader);
 
     // handle events
     while (SDL_PollEvent(&windowEvent))

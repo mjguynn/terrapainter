@@ -4,9 +4,12 @@ out vec4 FragColor;
 in float Height; // from -16 to 80
 in vec3 Normal;
 in vec3 FragPos; // in world coordinates
+in vec2 texcoord;
 
+uniform sampler2D texture_diff1;
 uniform vec3 LightDir;
 uniform vec3 viewPos;
+
 
 vec3 c_smoothstep(vec3 c1, vec3 c2, float curh, float minh, float maxh) {
 	float t = (curh - minh) / (maxh - minh);
@@ -45,10 +48,29 @@ vec3 getColorByHeight(float Height) {
 	return color;
 }
 
+// vec3 getTextureColorByHeight(float Height) {
+// if (Height >= 70) {
+		
+// 	} else if (Height >= 50.0) {
+		
+// 	} else if (Height >= 23.5) {
+		
+// 	} else if (Height >= 3.5) {
+		
+// 	} else if (Height >= 0.0) {
+		
+// 	} else if (Height >= -4.0) {
+		
+// 	} else {
+		
+// 	}
+// 	return color;
+// }
+
 void main()
 {
-	vec3 LightColor = vec3(1.0, 1.0, 1.0);
 
+	vec3 LightColor = vec3(250.0, 239.0, 205.0)/255;
 	vec3 color = getColorByHeight(Height);
 
 	// ambiance
@@ -72,6 +94,5 @@ void main()
 	vec3 specularColor = specularStrength * spec * LightColor;
 
 	color = (ambientColor + diffuseColor + specularColor) * color;	
-
 	FragColor = vec4(color, 1.0);
 }
