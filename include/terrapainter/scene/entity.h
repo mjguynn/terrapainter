@@ -62,7 +62,7 @@ public:
 	virtual ~Entity() noexcept;
 	// TODO: Feels weird to put this here. Kind of a hack.
 	// UPDATE: adding the cull plane here is HORRID
-	virtual void draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {}
+	virtual void draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {}
 
 	// Returns the matrix mapping a scene node to the world.
 	// Each scene node has some associated transform, even

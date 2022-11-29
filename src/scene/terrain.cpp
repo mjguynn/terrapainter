@@ -111,7 +111,7 @@ void Terrain::generate(const Canvas& source) {
 
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 }
-void Terrain::draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
+void Terrain::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
     // This can happen if no canvas is loaded, I suppose...
     // Not sure whether it's worth making this an error condition.
     if (!mMesh) return;

@@ -106,10 +106,10 @@ void World::process_event(const SDL_Event& event) {
 void World::process_frame(float deltaTime) {
     mCameraController.process_frame(mActiveCamera, deltaTime);
 }
-static void render_tree(Entity* root, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) {
-    root->draw(viewProj, viewPos, cullPlane);
+static void render_tree(Entity* root, ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) {
+    root->draw(viewportSize, viewProj, viewPos, cullPlane);
     for (auto& child : root->children()) {
-        render_tree(child.get(), viewProj, viewPos, cullPlane);
+        render_tree(child.get(), viewportSize, viewProj, viewPos, cullPlane);
     }
 }
 void World::render(ivec2 viewportSize) {
@@ -136,11 +136,11 @@ void World::render(ivec2 viewportSize) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mReflectionDepth);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    render_tree(this, reflProj, viewPos, vec4(0, 0, 1, 0));
+    render_tree(this, viewportSize, reflProj, viewPos, vec4(0, 0, 1, 0));
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    render_tree(this, viewProj, viewPos, vec4(0, 0, 1, 128));
+    render_tree(this, viewportSize, viewProj, viewPos, vec4(0, 0, 1, 128));
     
 }
 void World::run_ui() {

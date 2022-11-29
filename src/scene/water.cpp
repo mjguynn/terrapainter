@@ -41,7 +41,7 @@ Water::~Water() {
 	glDeleteBuffers(1, &mVBO);
 	// don't delete reflection texture, we don't own it.
 }
-void Water::draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
+void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
 	const mat4 modelToWorld = world_transform();
 	glBindVertexArray(mVAO);
 	{
@@ -64,8 +64,12 @@ void Water::draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
 			* mat4::translate_hmg(vec3(viewPos.x, viewPos.y, mWaterHeight));
 		glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, waterXform.data());
-		// glUniform4fv(2, 1, cullPlane.data());
-		//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glUniform4fv(5, 1, cullPlane.data());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mReflectionTexture);
+		glUniform1i(3, 0);
+		glUniform2iv(4, 1, viewportSize.data());
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	glBindVertexArray(0);
 }
