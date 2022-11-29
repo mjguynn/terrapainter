@@ -1,7 +1,7 @@
 #include "../shadermgr.h"
 #include "terrain.h"
 #include <algorithm>
-#include "helpers.h"
+#include "../helpers.h"
 
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale)
@@ -11,6 +11,9 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     mMesh = nullptr;
     mGrassVAO;
     mNumGrassTriangles = 0;
+    mGrassTexture;
+    mAlphaTest = 0.25f;
+    mAlphaMultiplier = 1.5f;
 }
 Terrain::~Terrain() noexcept
 {
@@ -167,6 +170,9 @@ void Terrain::generate(const Canvas &source)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void *)0);
 
+    glGenTextures(1, &mGrassTexture);
+    load_mipmap_texture(mGrassTexture, "cs4621/app/images/grassPack.png");
+
     // -------------------------Grass (END) --------------------------------------
 }
 void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 cullPlane) const
@@ -193,8 +199,14 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
     glUniform1f(2, time);
 
-    unsigned int texture;
-    helpers::loadTexture(texture, "cs4621/app/images/grassPack.png");
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mGrassTexture);
+    glUniform1i(4, 0);
+
+    glUniform4f(5, 1, 1, 1, 1);
+    glUniform1f(6, mAlphaTest);
+    glUniform1f(7, mAlphaMultiplier);
+
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 

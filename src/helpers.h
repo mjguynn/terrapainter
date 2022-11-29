@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "stb/stb_image.h"
 
 inline void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWrap, GLenum tWrap, GLenum internalFormat, GLenum abstractFormat, GLenum type = GL_UNSIGNED_BYTE)
 {
@@ -47,28 +48,30 @@ inline void configure_quad(GLuint vao, GLuint vbo)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-inline void loadTexture(unsigned int &texture, std::string file_name)
+inline bool load_mipmap_texture(GLuint texture, std::string fileName)
 {
-	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// load image, create texture and generate mipmaps
 	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	unsigned char *data = stbi_load(file_name.c_str(), &width, &height, &nrChannels, 0);
+	std::string path = "textures/" + fileName;
+	uint8_t *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 4);
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		int levels = (int)std::min(std::log2(width), std::log2(height));
+		glTexStorage2D(GL_TEXTURE_2D, levels, GL_RGBA8, width, height);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
+		stbi_image_free(data);
+		return true;
 	}
 	else
 	{
-		std::cout << "Failed to load texture" << std::endl;
+		fprintf(stderr, "[error] failed to load texture \"%s\"\n", path.c_str());
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 0, 0);
+		return false;
 	}
-	stbi_image_free(data);
 }

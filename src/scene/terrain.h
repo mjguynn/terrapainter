@@ -12,6 +12,9 @@ private:
 	std::unique_ptr<Mesh> mMesh;
 	GLuint mGrassVAO;
 	GLuint mNumGrassTriangles;
+	GLuint mGrassTexture;
+	float mAlphaTest = 0.25f;
+	float mAlphaMultiplier = 1.5f;
 
 public:
 	Terrain(vec3 position, vec3 angles, vec3 scale);
