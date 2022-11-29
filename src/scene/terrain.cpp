@@ -19,8 +19,10 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
 }
 Terrain::~Terrain() noexcept
 {
-    if (mGrassVAO) glDeleteVertexArrays(1, &mGrassVAO);
-    if (mGrassVBO) glDeleteBuffers(1, &mGrassVBO);
+    if (mGrassVAO)
+        glDeleteVertexArrays(1, &mGrassVAO);
+    if (mGrassVBO)
+        glDeleteBuffers(1, &mGrassVBO);
     assert(mGrassTexture);
     glDeleteTextures(1, &mGrassTexture);
 }
@@ -68,10 +70,10 @@ void Terrain::generate(const Canvas &source)
                 float p = smoothstep(23.5, 3.5, h);
                 probability = p;
             }
-            else if (h >= 0.0)
+            else if (h >= 0.0 && h < 3.5)
             {
                 float p = smoothstep(3.5, 0.0, h);
-                probability = p;
+                probability = p * 0.5;
             }
             else
             {
@@ -166,14 +168,16 @@ void Terrain::generate(const Canvas &source)
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 
     // ---------------------- Grass----------------------------------------
-    if (mGrassVAO) glDeleteVertexArrays(1, &mGrassVAO);
-    if (mGrassVBO) glDeleteBuffers(1, &mGrassVBO);
+    if (mGrassVAO)
+        glDeleteVertexArrays(1, &mGrassVAO);
+    if (mGrassVBO)
+        glDeleteBuffers(1, &mGrassVBO);
     glGenVertexArrays(1, &mGrassVAO);
     glGenBuffers(1, &mGrassVBO);
     glBindVertexArray(mGrassVAO);
     glBindBuffer(GL_ARRAY_BUFFER, mGrassVBO);
     glBufferData(GL_ARRAY_BUFFER, grassVertices.size() * sizeof(vec3), grassVertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(vec3), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vec3), (void *)0);
     glEnableVertexAttribArray(0);
 
     // -------------------------Grass (END) --------------------------------------

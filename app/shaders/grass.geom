@@ -52,21 +52,21 @@ void main()
 	vec3 vBaseDir[] =
 	{
 		vec3(1.0, 0.0, 0.0),
-		vec3(float(cos(45.0*PIover180)), 0.0f, float(sin(45.0*PIover180))),
-		vec3(float(cos(-45.0*PIover180)), 0.0f, float(sin(-45.0*PIover180)))
+		vec3(float(cos(45.0*PIover180)), float(sin(45.0*PIover180)), 0.0),
+		vec3(float(cos(-45.0*PIover180)), float(sin(-45.0*PIover180)), 0.0)
 	};
 	
 	float fGrassPatchSize = 5.0;
 	float fWindStrength = 4.0;
 	
-	vec3 vWindDirection = vec3(1.0, 0.0, 1.0);
+	vec3 vWindDirection = vec3(1.0, 1.0, 0.0);
 	vWindDirection = normalize(vWindDirection);
 	
 	for(int i = 0; i < 3; i++)
 	{
 		// Grass patch top left vertex
 		
-		vec3 vBaseDirRotated = (rotationMatrix(vec3(0, 1, 0), sin(fTimePassed*0.7f)*0.1f)*vec4(vBaseDir[i], 1.0)).xyz;
+		vec3 vBaseDirRotated = (rotationMatrix(vec3(0, 0, 1), sin(fTimePassed*0.7f)*0.1f)*vec4(vBaseDir[i], 1.0)).xyz;
 
 		vLocalSeed = vGrassFieldPos*float(i);
 		int iGrassPatch = randomInt(0, 3);
@@ -84,7 +84,7 @@ void main()
 		fWindPower *= fWindStrength;
 		
 		vec3 vTL = vGrassFieldPos - vBaseDirRotated*fGrassPatchSize*0.5f + vWindDirection*fWindPower;
-		vTL.y += fGrassPatchHeight;   
+		vTL.z += fGrassPatchHeight;   
 		gl_Position = mMVP*vec4(vTL, 1.0);
 		vTexCoord = vec2(fTCStartX, 1.0);
 		EmitVertex();
@@ -97,7 +97,7 @@ void main()
 		                               
 		// Grass patch top right vertex
 		vec3 vTR = vGrassFieldPos + vBaseDirRotated*fGrassPatchSize*0.5f + vWindDirection*fWindPower;
-		vTR.y += fGrassPatchHeight;  
+		vTR.z += fGrassPatchHeight;  
 		gl_Position = mMVP*vec4(vTR, 1.0);
 		vTexCoord = vec2(fTCEndX, 1.0);
 		EmitVertex();
