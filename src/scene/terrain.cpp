@@ -6,7 +6,10 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale)
 {
     mProgram = g_shaderMgr.graphics("heightmap");
+    mGrassProgram = g_shaderMgr.geometry("grass");
     mMesh = nullptr;
+    mGrassVAO;
+    mNumGrassTriangles = 0;
 }
 Terrain::~Terrain() noexcept
 {
@@ -73,6 +76,8 @@ void Terrain::generate(const Canvas &source)
                     vec3(-width / 2.0f + width * j / (float)width,
                          -height / 2.0f + height * i / (float)height,
                          (int)z * zScale - zShift));
+
+                mNumGrassTriangles++;
             };
 
             vertices.push_back(
@@ -152,9 +157,9 @@ void Terrain::generate(const Canvas &source)
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 
     // ---------------------- Grass----------------------------------------
-    unsigned int grassVAO;
+
     unsigned int VBOGrassData;
-    glGenVertexArrays(1, &grassVAO);
+    glGenVertexArrays(1, &mGrassVAO);
     glGenBuffers(1, &VBOGrassData);
     glBindBuffer(GL_ARRAY_BUFFER, VBOGrassData);
     glBufferData(GL_ARRAY_BUFFER, grassVertices.size() * sizeof(vec3), &grassVertices, GL_STATIC_DRAW);
@@ -181,5 +186,20 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     glUniform4fv(4, 1, cullPlane.data());
     mMesh->DrawStrips();
 
-    glUseProgram
+    float time = double(SDL_GetTicks64()) / 1000.0;
+    glUseProgram(mGrassProgram);
+    glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+    glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
+    glUniform1f(2, time);
+    // tTextures[7].BindTexture(0);
+    // spGrass.SetUniform("gSampler", 0);
+
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+    glBindVertexArray(mGrassVAO);
+    glDrawArrays(GL_POINTS, 0, mNumGrassTriangles);
+
+    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    glDisable(GL_MULTISAMPLE);
 }
