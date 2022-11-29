@@ -9,15 +9,20 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     mProgram = g_shaderMgr.graphics("heightmap");
     mGrassProgram = g_shaderMgr.geometry("grass");
     mMesh = nullptr;
-    mGrassVAO;
+    mGrassVAO = 0;
+    mGrassVBO = 0;
     mNumGrassTriangles = 0;
-    mGrassTexture;
+    glGenTextures(1, &mGrassTexture);
+    load_mipmap_texture(mGrassTexture, "grassPack.png");
     mAlphaTest = 0.25f;
     mAlphaMultiplier = 1.5f;
 }
 Terrain::~Terrain() noexcept
 {
-    // nothing for now...
+    if (mGrassVAO) glDeleteVertexArrays(1, &mGrassVAO);
+    if (mGrassVBO) glDeleteBuffers(1, &mGrassVBO);
+    assert(mGrassTexture);
+    glDeleteTextures(1, &mGrassTexture);
 }
 
 // Code adapted from: https://stackoverflow.com/questions/28889210/smoothstep-function
@@ -61,12 +66,12 @@ void Terrain::generate(const Canvas &source)
             if (h >= 3.5 && h < 23.5)
             {
                 float p = smoothstep(23.5, 3.5, h);
-                probability = p * 0.1;
+                probability = p;
             }
             else if (h >= 0.0)
             {
                 float p = smoothstep(3.5, 0.0, h);
-                probability = p * 0.1;
+                probability = p;
             }
             else
             {
@@ -161,17 +166,15 @@ void Terrain::generate(const Canvas &source)
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 
     // ---------------------- Grass----------------------------------------
-
-    unsigned int VBOGrassData;
+    if (mGrassVAO) glDeleteVertexArrays(1, &mGrassVAO);
+    if (mGrassVBO) glDeleteBuffers(1, &mGrassVBO);
     glGenVertexArrays(1, &mGrassVAO);
-    glGenBuffers(1, &VBOGrassData);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOGrassData);
-    glBufferData(GL_ARRAY_BUFFER, grassVertices.size() * sizeof(vec3), &grassVertices, GL_STATIC_DRAW);
+    glGenBuffers(1, &mGrassVBO);
+    glBindVertexArray(mGrassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mGrassVBO);
+    glBufferData(GL_ARRAY_BUFFER, grassVertices.size() * sizeof(vec3), grassVertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(vec3), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void *)0);
-
-    glGenTextures(1, &mGrassTexture);
-    load_mipmap_texture(mGrassTexture, "cs4621/app/images/grassPack.png");
 
     // -------------------------Grass (END) --------------------------------------
 }

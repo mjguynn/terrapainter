@@ -83,7 +83,6 @@ void terrapainter::run(SDL_Window *window)
         &world   // AppState::World
     };
     AppState appState = AppState::Canvas;
-    printf("magic the gathering");
     apps.at(size_t(appState))->activate();
 
     float deltaTime = 0.0f; // time between current frame and last frame

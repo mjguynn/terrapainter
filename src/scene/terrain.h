@@ -11,6 +11,7 @@ private:
 	GLuint mGrassProgram;
 	std::unique_ptr<Mesh> mMesh;
 	GLuint mGrassVAO;
+	GLuint mGrassVBO;
 	GLuint mNumGrassTriangles;
 	GLuint mGrassTexture;
 	float mAlphaTest = 0.25f;

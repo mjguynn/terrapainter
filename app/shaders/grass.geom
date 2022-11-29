@@ -1,9 +1,11 @@
-#version 330
+#version 430 core
 
-layout (location = 0) uniform	mat4 modelMatrix;
-layout (location = 1) uniform	mat4 viewProjMatrix;       
+layout (location = 0) uniform mat4 modelMatrix;
+layout (location = 1) uniform mat4 viewProjMatrix;       
 layout (location = 2) uniform float fTimePassed; 
 
+layout (points) in;
+layout (triangle_strip, max_vertices = 12) out;
 
 out vec2 vTexCoord;
 

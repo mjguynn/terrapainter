@@ -1,4 +1,4 @@
-#version 330
+#version 430 core
 
 in vec2 vTexCoord;
 out vec4 outputColor;
@@ -11,7 +11,7 @@ layout (location = 7) uniform float fAlphaMultiplier;
 
 void main()
 {
-	vec4 vTexColor = texture2D(gSampler, vTexCoord);
+	vec4 vTexColor = texture(gSampler, vTexCoord);
 	float fNewAlpha = vTexColor.a*fAlphaMultiplier;               
 	if(fNewAlpha < fAlphaTest)
 		discard;
