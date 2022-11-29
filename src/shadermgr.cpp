@@ -53,6 +53,7 @@ std::optional<GLuint> load_shader_from_file(GLenum shaderType, std::string path)
 ShaderManager::Program::Program() 
 	: mProgram(glCreateProgram()), 
 	vertex(std::nullopt), 
+	geometry(std::nullopt),
 	fragment(std::nullopt), 
 	compute(std::nullopt) 
 {
@@ -61,6 +62,7 @@ ShaderManager::Program::Program()
 ShaderManager::Program::Program(Program&& moved) noexcept
 	: mProgram(moved.mProgram),
 	vertex(std::move(moved.vertex)),
+	geometry(std::move(moved.geometry)),
 	fragment(std::move(moved.fragment)),
 	compute(std::move(moved.compute))
 {
@@ -92,6 +94,7 @@ bool ShaderManager::Program::rebuild() {
 	};
 
 	try_compile(GL_VERTEX_SHADER, vertex);
+	try_compile(GL_GEOMETRY_SHADER, geometry);
 	try_compile(GL_FRAGMENT_SHADER, fragment);
 	try_compile(GL_COMPUTE_SHADER, compute);
 
@@ -157,6 +160,14 @@ GLuint ShaderManager::screenspace(std::string shaderName) {
 GLuint ShaderManager::compute(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
 		p->compute = "shaders/"s + shaderName + ".comp";
+		p->rebuild();
+	});
+}
+GLuint ShaderManager::geometry(std::string shaderName) {
+	return find_or_create(shaderName, [shaderName](Program* p) {
+		p->vertex = "shaders/"s + shaderName + ".vert";
+		p->geometry = "shaders/"s + shaderName + ".geom";
+		p->fragment = "shaders/"s + shaderName + ".frag";
 		p->rebuild();
 	});
 }

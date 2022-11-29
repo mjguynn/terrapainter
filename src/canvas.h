@@ -218,6 +218,7 @@ public:
 	Canvas& operator=(Canvas&&) = delete;
 
 	ivec2 get_canvas_size() const;
+	GLuint get_canvas_texture() const;
 
 	// Returns the pixels comprising the canvas (RGBA)
 	std::vector<uint8_t> get_canvas() const;

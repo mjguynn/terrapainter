@@ -20,14 +20,14 @@ static void configure_infinite_plane(GLuint vao, GLuint vbo) {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-Water::Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture) 
+Water::Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture, Canvas* canvas) 
 	: Entity(vec3(0, 0, 0), vec3::splat(0), vec3::splat(1))
 {
 	glGenVertexArrays(1, &mVAO);
 	glGenBuffers(1, &mVBO);
 	configure_infinite_plane(mVAO, mVBO);
 	mReflectionTexture = reflectionTexture;
-
+	mCanvas = canvas;
 	mWaterHeight = waterHeight;
 	mSeafloorHeight = seafloorHeight;
 	mWaterProgram = g_shaderMgr.graphics("water");
@@ -40,6 +40,7 @@ Water::~Water() {
 	assert(mVBO);
 	glDeleteBuffers(1, &mVBO);
 	// don't delete reflection texture, we don't own it.
+	// same for the canvas texture
 }
 void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
 	const mat4 modelToWorld = world_transform();
@@ -58,18 +59,34 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	{
+		// no, this isn't type confusion, I want the float cast last to preserve as much
+		// precision as possible
+		float time = double(SDL_GetTicks64()) / 1000.0;
 		// TODO
 		glUseProgram(mWaterProgram);
 		const mat4 waterXform = modelToWorld
 			* mat4::translate_hmg(vec3(viewPos.x, viewPos.y, mWaterHeight));
 		glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, waterXform.data());
-		glUniform4fv(5, 1, cullPlane.data());
+		glUniform1f(2, time);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mReflectionTexture);
 		glUniform1i(3, 0);
 		glUniform2iv(4, 1, viewportSize.data());
+		glUniform4fv(5, 1, cullPlane.data());
+		glActiveTexture(GL_TEXTURE1);
+		GLuint canvasTexture = mCanvas->get_canvas_texture();
+		// i am so sorry canvas
+		// this is all OpenGL's fault for not separating samplers from textures
+		// why would they do this, it's not even how the hardware works
+		glBindTexture(GL_TEXTURE_2D, canvasTexture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glUniform1i(6, 1);
+		ivec2 canvasSize = mCanvas->get_canvas_size();
+		glUniform2iv(7, 1, canvasSize.data());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		// still bound to canvas texture
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 	glBindVertexArray(0);
 }

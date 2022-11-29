@@ -50,6 +50,9 @@ Canvas::~Canvas() noexcept {
 ivec2 Canvas::get_canvas_size() const {
 	return mCanvasSize;
 }
+GLuint Canvas::get_canvas_texture() const {
+	return mCanvasTexture;
+}
 std::vector<uint8_t> Canvas::get_canvas() const {
 	size_t numPixels = size_t(mCanvasSize.x) * size_t(mCanvasSize.y);
 	std::vector<uint8_t> pixels(numPixels);

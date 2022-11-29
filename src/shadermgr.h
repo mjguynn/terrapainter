@@ -14,6 +14,7 @@ public:
 	ShaderManager& operator= (const ShaderManager&) = delete;
 
 	GLuint graphics(std::string shaderName);
+	GLuint geometry(std::string shaderName);
 	GLuint screenspace(std::string shaderName);
 	GLuint compute(std::string shaderName);
 
@@ -46,7 +47,7 @@ private:
 
 		// Map from shader stage to shader source
 		// You must call rebuild() for any changes to be reflected.
-		std::optional<std::string> vertex, fragment, compute;
+		std::optional<std::string> vertex, geometry, fragment, compute;
 	};
 
 	template<typename T>
