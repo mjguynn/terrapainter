@@ -1,29 +1,44 @@
 #include "../shadermgr.h"
 #include "terrain.h"
+#include <algorithm>
 
-Terrain::Terrain(vec3 position, vec3 angles, vec3 scale) 
-    : Entity(position, angles, scale) 
+Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
+    : Entity(position, angles, scale)
 {
     mProgram = g_shaderMgr.graphics("heightmap");
     mMesh = nullptr;
 }
-Terrain::~Terrain() noexcept {
+Terrain::~Terrain() noexcept
+{
     // nothing for now...
 }
-void Terrain::generate(const Canvas& source) {
+
+// Code adapted from: https://stackoverflow.com/questions/28889210/smoothstep-function
+float smoothstep(float edge0, float edge1, float x)
+{
+    // Scale, bias and saturate x to 0..1 range
+    x = std::clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    // Evaluate polynomial
+    return x * x * (3 - 2 * x);
+}
+
+void Terrain::generate(const Canvas &source)
+{
     // Delete existing mesh
     mMesh = nullptr;
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     auto [width, height] = source.get_canvas_size();
-    if (width <= 0 || height <= 0) {
+    if (width <= 0 || height <= 0)
+    {
         // canvas not ready, don't do anything else
         return;
     }
     auto pixels = source.get_canvas();
 
     std::vector<Vertex> vertices;
+    std::vector<vec3> grassVertices;
     float zScale = 96.0f / 256.0f, zShift = 16.0f;
     int rez = 1;
     unsigned bytePerPixel = 4;
@@ -31,14 +46,40 @@ void Terrain::generate(const Canvas& source) {
     {
         for (int j = 0; j < width; j++)
         {
-            unsigned char* pixelOffset = (unsigned char*)pixels.data() + (j + width * i) * bytePerPixel;
+            unsigned char *pixelOffset = (unsigned char *)pixels.data() + (j + width * i) * bytePerPixel;
             unsigned char z = pixelOffset[0];
+
+            float h = (int)z * zScale - zShift;
+            float probability = 0;
+            if (h >= 3.5 && h < 23.5)
+            {
+                float p = smoothstep(23.5, 3.5, h);
+                probability = p * 0.1;
+            }
+            else if (h >= 0.0)
+            {
+                float p = smoothstep(3.5, 0.0, h);
+                probability = p * 0.1;
+            }
+            else
+            {
+                probability = 0;
+            }
+
+            if (rand() % 100 < probability * 100)
+            {
+                grassVertices.push_back(
+
+                    vec3(-width / 2.0f + width * j / (float)width,
+                         -height / 2.0f + height * i / (float)height,
+                         (int)z * zScale - zShift));
+            };
 
             vertices.push_back(
                 Vertex{
-                    .Position = vec3(-width / 2.0f + width * j / (float)width, -height / 2.0f + height * i / (float)height, (int)z * zScale - zShift)
-                }
-            );
+                    .Position = vec3(-width / 2.0f + width * j / (float)width,
+                                     -height / 2.0f + height * i / (float)height,
+                                     (int)z * zScale - zShift)});
         }
     }
     fprintf(stderr, "[info] generated %llu vertices \n", vertices.size() / bytePerPixel);
@@ -83,7 +124,6 @@ void Terrain::generate(const Canvas& source) {
         normaldata[facedata.at(i + 2)] += normal;
     }
 
-
     for (int i = 0; i < normaldata.size(); i += 1)
     {
         normaldata[i] = normaldata[i].normalize();
@@ -110,15 +150,29 @@ void Terrain::generate(const Canvas& source) {
     fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
 
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
+
+    // ---------------------- Grass----------------------------------------
+    unsigned int grassVAO;
+    unsigned int VBOGrassData;
+    glGenVertexArrays(1, &grassVAO);
+    glGenBuffers(1, &VBOGrassData);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOGrassData);
+    glBufferData(GL_ARRAY_BUFFER, grassVertices.size() * sizeof(vec3), &grassVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void *)0);
+
+    // -------------------------Grass (END) --------------------------------------
 }
-void Terrain::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
+void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 cullPlane) const
+{
     // This can happen if no canvas is loaded, I suppose...
     // Not sure whether it's worth making this an error condition.
-    if (!mMesh) return;
+    if (!mMesh)
+        return;
 
     const mat4 modelToWorld = world_transform();
     // TODO change this
-    vec3 lightDir = { 0.0f, 0.0f, -5.0f };
+    vec3 lightDir = {0.0f, 0.0f, -5.0f};
     glUseProgram(mProgram);
     glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
@@ -126,4 +180,6 @@ void Terrain::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 
     glUniform3fv(3, 1, viewPos.data());
     glUniform4fv(4, 1, cullPlane.data());
     mMesh->DrawStrips();
+
+    glUseProgram
 }
