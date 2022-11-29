@@ -12,6 +12,8 @@ class Water : public Entity {
 	Canvas* mCanvas;
 
 	GLuint mReflectionTexture;
+	GLuint mNormal1Texture;
+	GLuint mNormal2Texture;
 
 	GLuint mHeightmapProgram;
 	GLuint mWaterProgram;
