@@ -1,6 +1,7 @@
 #include "../shadermgr.h"
 #include "terrain.h"
 #include <algorithm>
+#include "helpers.h"
 
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale)
@@ -191,9 +192,9 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
     glUniform1f(2, time);
-    // tTextures[7].BindTexture(0);
-    // spGrass.SetUniform("gSampler", 0);
 
+    unsigned int texture;
+    helpers::loadTexture(texture, "cs4621/app/images/grassPack.png");
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 

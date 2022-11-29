@@ -3,14 +3,11 @@
 in vec2 vTexCoord;
 out vec4 outputColor;
 
-uniform sampler2D gSampler;
-uniform vec4 vColor;
+layout (location = 4) uniform sampler2D gSampler;
+layout (location = 5) uniform vec4 vColor;
 
-uniform vec3 vEyePosition;
-
-
-uniform float fAlphaTest;
-uniform float fAlphaMultiplier;
+layout (location = 6) uniform float fAlphaTest;
+layout (location = 7) uniform float fAlphaMultiplier;
 
 void main()
 {
