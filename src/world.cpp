@@ -143,8 +143,8 @@ void World::render(ivec2 viewportSize)
 
     const mat4 view = mActiveCamera->world_transform().inverse();
     const mat4 viewProj = mActiveCamera->projection() * view;
-    const vec4 viewPosH = view * mActiveCamera->position().hmg();
-    const vec3 viewPos(viewPosH.x, viewPosH.y, -viewPosH.z);
+    const vec4 viewPosH = mActiveCamera->position().hmg();
+    const vec3 viewPos(viewPosH.x, viewPosH.y, viewPosH.z);
     const mat4 reflProj = viewProj * mat4::diag(1, 1, -1, 1);
 
     glBindFramebuffer(GL_FRAMEBUFFER, mReflectionFramebuffer);

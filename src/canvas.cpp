@@ -10,6 +10,12 @@
 #include "canvas.h"
 #include "helpers.h"
 
+#if _WIN32
+const char SEPARATOR = '\\';
+#else
+const char SEPARATOR = '/';
+#endif
+
 Canvas::Canvas(SDL_Window* window) {
 	mTools = std::vector<std::unique_ptr<ICanvasTool>>();
 	mCurTool = 0;
@@ -32,7 +38,7 @@ Canvas::Canvas(SDL_Window* window) {
 	mWindow = window;
 	mModified = false;
 	mInteractState = InteractState::NONE;
-	mPath = std::filesystem::path();
+	mPath = "";
 	mShowNewDialog = false; // TODO change this?
 	mNewDialogCanvasSize = ivec2{ 512, 512 }; // seems reasonable
 	mDidAStupid = false;
@@ -64,7 +70,7 @@ std::vector<uint8_t> Canvas::get_canvas() const {
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 	return pixels;
 }
-bool Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path source) {
+bool Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels, std::string source) {
 	if (canvasSize.x < 0 || canvasSize.y < 0)
 		return false;
 	if (canvasSize.x > MAX_CANVAS_AXIS || canvasSize.y > MAX_CANVAS_AXIS)
@@ -90,11 +96,13 @@ bool Canvas::set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path
 	mModified = false;
 	mShowNewDialog = false;
 	mPath = source;
-	if (mPath.empty()) {
+	size_t pos = mPath.rfind(SEPARATOR);
+	if (pos == mPath.npos) {
 		SDL_SetWindowTitle(mWindow, "Terrapainter");
 	}
 	else {
-		auto title = "Terrapainter - " + mPath.filename().string();
+		std::string filename = mPath.substr(pos + 1, mPath.size() - pos - 1);
+		auto title = "Terrapainter - " + filename;
 		SDL_SetWindowTitle(mWindow, title.c_str());
 	}
 	return true;
@@ -370,12 +378,20 @@ bool Canvas::prompt_save() {
 
 	nfdu8filteritem_t filters[1] = { { "PNG Images", "png" } };
 	NFD::UniquePathU8 path = nullptr;
+
+	std::string parent = "";
+	std::string filename = "output.png";
+	size_t pos = mPath.rfind(SEPARATOR);
+	if (pos != mPath.npos) {
+		parent = mPath.substr(0, pos);
+		filename = mPath.substr(pos+1, mPath.size() - pos - 1);
+	}
 	auto res = NFD::SaveDialog(
 		path,
 		filters,
 		1,
-		mPath.empty() ? nullptr : mPath.parent_path().string().c_str(),
-		mPath.empty() ? "output.png" : mPath.filename().string().c_str());
+		parent.empty() ? nullptr : parent.c_str(),
+		filename.c_str());
 
 	if (res == NFD_ERROR) {
 		fprintf(stderr, "[error] internal error (save dialog)\n");

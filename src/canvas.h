@@ -62,7 +62,7 @@
 
 #include <memory>
 #include <vector>
-#include <filesystem>
+#include <string>
 
 #include <glad/gl.h>
 
@@ -162,7 +162,7 @@ private:
 	// True if there are changes which haven't been saved to disk
 	bool mModified;
 	// Path to the currently opened file. Empty if file didn't come from disk.
-	std::filesystem::path mPath;
+	std::string mPath;
 	// Whether the new dialog is open, this is modal so we block out everything else but the main menu
 	bool mShowNewDialog; 
 	ivec2 mNewDialogCanvasSize; // the size used in the new file dialog
@@ -226,7 +226,7 @@ public:
 	// If pixels is nullptr, then it will create a blank texture of the requested size
 	// Source is used to track where this canvas came from
 	// Returns false if the size is invalid
-	bool set_canvas(ivec2 canvasSize, uint8_t* pixels, std::filesystem::path source = std::filesystem::path());
+	bool set_canvas(ivec2 canvasSize, uint8_t* pixels, std::string source = "");
 
 	bool prompt_new();
 	bool prompt_open();
