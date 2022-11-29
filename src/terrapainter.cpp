@@ -65,8 +65,9 @@ void terrapainter::run(SDL_Window* window) {
     canvas.register_tool(tools::splatter());
     canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
     World world(canvas);
-    auto water = std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT, world.reflection_texture());
-    world.add_child(std::move(water));
+    auto w = std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT, world.reflection_texture(), &canvas);
+    Water* water = w.get();
+    world.add_child(std::move(w));
     std::array<IApp*, NUM_STATES> apps = {
         &canvas, // AppState::Canvas
         &world // AppState::World

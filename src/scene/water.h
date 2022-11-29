@@ -3,11 +3,16 @@
 #include <glad/gl.h>
 #include "terrapainter/scene/entity.h"
 
+#include "../canvas.h"
+
 class Water : public Entity {
 	float mSeafloorHeight;
 	float mWaterHeight;
 
+	Canvas* mCanvas;
+
 	GLuint mReflectionTexture;
+
 	GLuint mHeightmapProgram;
 	GLuint mWaterProgram;
 
@@ -16,7 +21,7 @@ class Water : public Entity {
 	GLuint mVAO;
 	GLuint mVBO;
 public:
-	Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture);
+	Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture, Canvas* canvas);
 	~Water() noexcept override;
 
 	void draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const override;
