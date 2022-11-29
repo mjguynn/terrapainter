@@ -1,6 +1,6 @@
 #include "water.h"
 #include "../shadermgr.h"
-
+#include "../helpers.h"
 // sets up an "infinite" horizontal plane at Z=0
 static void configure_infinite_plane(GLuint vao, GLuint vbo) {
 	static float VERTS[] = {
@@ -27,6 +27,10 @@ Water::Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture, 
 	glGenBuffers(1, &mVBO);
 	configure_infinite_plane(mVAO, mVBO);
 	mReflectionTexture = reflectionTexture;
+	glGenTextures(1, &mNormal1Texture);
+	load_mipmap_texture(mNormal1Texture, "wave_normal_01.png");
+	glGenTextures(1, &mNormal2Texture);
+	load_mipmap_texture(mNormal2Texture, "wave_normal_02.png");
 	mCanvas = canvas;
 	mWaterHeight = waterHeight;
 	mSeafloorHeight = seafloorHeight;
@@ -46,9 +50,10 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 	const mat4 modelToWorld = world_transform();
 	glBindVertexArray(mVAO);
 	{
+		// TODO: fix this!
+		vec3 lightDir = { 0.0f, 0.0f, -5.0f };
 		glUseProgram(mHeightmapProgram);
 		// TODO change this
-		vec3 lightDir = { 0.0f, 0.0f, -5.0f };
 		const mat4 seafloorXform = modelToWorld
 			* mat4::translate_hmg(vec3(viewPos.x, viewPos.y, mSeafloorHeight));
 		glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
@@ -59,6 +64,7 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	{
+		vec3 lightDir = { 0.2f, 1.0f, 1.0f };
 		// no, this isn't type confusion, I want the float cast last to preserve as much
 		// precision as possible
 		float time = double(SDL_GetTicks64()) / 1000.0;
@@ -84,8 +90,17 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		glUniform1i(6, 1);
 		ivec2 canvasSize = mCanvas->get_canvas_size();
 		glUniform2iv(7, 1, canvasSize.data());
+		glUniform3fv(8, 1, lightDir.data());
+		glUniform3fv(9, 1, viewPos.data());
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, mNormal1Texture);
+		glUniform1i(10, 2);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, mNormal2Texture);
+		glUniform1i(11, 3);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		// still bound to canvas texture
+
+		glBindTexture(GL_TEXTURE_2D, canvasTexture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 	glBindVertexArray(0);
