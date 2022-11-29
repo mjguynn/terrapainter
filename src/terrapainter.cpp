@@ -9,6 +9,7 @@
 
 #include "world.h"
 #include "scene/water.h"
+#include "scene/sky.h"
 
 #include "shadermgr.h"
 
@@ -68,6 +69,7 @@ void terrapainter::run(SDL_Window* window) {
     auto w = std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT, world.reflection_texture(), &canvas);
     Water* water = w.get();
     world.add_child(std::move(w));
+    world.add_child(std::make_unique<Sky>("skybox"));
     std::array<IApp*, NUM_STATES> apps = {
         &canvas, // AppState::Canvas
         &world // AppState::World

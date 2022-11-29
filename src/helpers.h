@@ -4,6 +4,25 @@
 #include <glad/gl.h>
 #include <stb/stb_image.h>
 
+class RGBAImage {
+	uint8_t* mData;
+	ivec2 mSize;
+public:
+	RGBAImage(const std::string& filename) {
+		int unused;
+		mSize = ivec2::zero();
+		mData = stbi_load(filename.c_str(), &mSize.x, &mSize.y, &unused, 4);
+		if (!mData) {
+			fprintf(stderr, "[error] failed to load texture \"%s\"\n", filename.c_str());
+		}
+	}
+	~RGBAImage() {
+		if (mData) stbi_image_free(mData);
+	}
+	ivec2 size() const { return mSize; }
+	uint8_t* data() const { return mData; }
+};
+
 inline bool load_mipmap_texture(GLuint texture, std::string fileName)
 {
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -12,19 +31,16 @@ inline bool load_mipmap_texture(GLuint texture, std::string fileName)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
-    int width, height, nrChannels;
-    std::string path = "textures/" + fileName;
-    uint8_t* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 4);
-    if (data) {
-		int levels = (int)std::min(std::log2(width), std::log2(height));
-		glTexStorage2D(GL_TEXTURE_2D, levels, GL_RGBA8, width, height);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	RGBAImage im("textures/" + fileName);
+    if (im.data()) {
+		auto [w, h] = im.size();
+		int levels = (int)std::min(std::log2(w), std::log2(h));
+		glTexStorage2D(GL_TEXTURE_2D, levels, GL_RGBA8, w, h);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, im.data());
         glGenerateMipmap(GL_TEXTURE_2D);
-		stbi_image_free(data);
 		return true;
     }
     else {
-		fprintf(stderr, "[error] failed to load texture \"%s\"\n", path.c_str());
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 0, 0);
 		return false;
     }

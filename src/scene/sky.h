@@ -7,6 +7,7 @@ class Sky : public Entity {
 	GLuint mTexture;
 	GLuint mVAO;
 	GLuint mVBO;
+	GLuint mProgram;
 public:
 	Sky(std::string skyboxName);
 	~Sky() noexcept override;
