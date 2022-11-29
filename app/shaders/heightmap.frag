@@ -2,6 +2,7 @@
 
 layout (location = 2) uniform vec3 LightDir;
 layout (location = 3) uniform vec3 viewPos;
+layout (location = 4) uniform vec4 u_cullPlane;
 
 // Note that the GPU essentially linearly interpolates attributes
 // when sending them to fragments. So this might not be a unit normal!
@@ -49,6 +50,9 @@ vec3 getColorByHeight(float Height) {
 
 void main()
 {
+	if (dot(vec4(v_fragPos, 1), u_cullPlane) < 0)
+		discard;
+
 	vec3 LightColor = vec3(1.0, 1.0, 1.0);
 
 	vec3 color = getColorByHeight(v_fragPos.z);

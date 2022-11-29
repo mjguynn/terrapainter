@@ -111,7 +111,7 @@ void Terrain::generate(const Canvas& source) {
 
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 }
-void Terrain::draw(const mat4& viewProj, vec3 viewPos) const {
+void Terrain::draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
     // This can happen if no canvas is loaded, I suppose...
     // Not sure whether it's worth making this an error condition.
     if (!mMesh) return;
@@ -122,7 +122,8 @@ void Terrain::draw(const mat4& viewProj, vec3 viewPos) const {
     glUseProgram(mProgram);
     glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
-    glUniform3f(2, lightDir.x, lightDir.y, lightDir.z);
-    glUniform3f(3, viewPos.x, viewPos.y, viewPos.z);
+    glUniform3fv(2, 1, lightDir.data());
+    glUniform3fv(3, 1, viewPos.data());
+    glUniform4fv(4, 1, cullPlane.data());
     mMesh->DrawStrips();
 }

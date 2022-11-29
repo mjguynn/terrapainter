@@ -176,14 +176,14 @@ int main(int argc, char *argv[])
     stbi_set_flip_vertically_on_load(1);
     stbi_flip_vertically_on_write(1);
 
+    // Enable debug/error logging
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(glDebugLogger, 0);
     // Enable depth test (for 3D)
     glEnable(GL_DEPTH_TEST);
     // Enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // Enable debug/error logging
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(glDebugLogger, 0);
 
     fprintf(stderr, "[info] renderer: %s\n", glGetString(GL_RENDERER));
 

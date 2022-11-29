@@ -250,7 +250,7 @@ void Canvas::process_event(const SDL_Event& event) {
 	}
 }
 void Canvas::process_frame(float deltaTime) {}
-void Canvas::render(ivec2 viewportSize) const {
+void Canvas::render(ivec2 viewportSize) {
 	GLuint image = mCanvasTexture;
 	// Composite current stroke
 	if (!mTools.empty()) {

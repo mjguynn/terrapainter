@@ -46,39 +46,49 @@ private:
 	// This is recursive right now
 	void bake_world_transform() const;
 
+	// TODO: This is terrible
+	void set_world_transform_dirty() {
+		if (!mBakedWorldTransformDirty) {
+			mBakedWorldTransformDirty = true;
+			for (auto& child : mChildren) {
+				child->set_world_transform_dirty();
+			}
+		}
+	}
 protected:
 	Entity(vec3 position, vec3 angles, vec3 scale);
 
 public:
 	virtual ~Entity() noexcept;
 	// TODO: Feels weird to put this here. Kind of a hack.
-	virtual void draw(const mat4& viewProj, vec3 viewPos) const {}
+	// UPDATE: adding the cull plane here is HORRID
+	virtual void draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {}
 
 	// Returns the matrix mapping a scene node to the world.
 	// Each scene node has some associated transform, even
 	// if it doesn't make any sense (like the canvas)
 	mat4 world_transform() const {
-		if (mBakedWorldTransformDirty) bake_world_transform();
+		bake_world_transform();
 		return mBakedWorldTransform;
 	}
 
 	vec3 position() const { return mPosition; }
 	void set_position(vec3 position) {
 		mPosition = position;
-		mBakedWorldTransformDirty = true;
+		set_world_transform_dirty();
 	}
 
 	// XYZ angles
 	vec3 angles() const { return mAngles; };
 	void set_angles(vec3 angles) { 
 		mAngles = angles; 
-		mBakedWorldTransformDirty = true;
+		set_world_transform_dirty();
 	};
 
 	vec3 scale() const { return mScale; }
 	void set_scale(vec3 scale) { 
 		mScale = scale;
-		mBakedWorldTransformDirty = true;
+		set_world_transform_dirty();
 	}
 
 	Entity const* parent() const { return mParent; }

@@ -28,11 +28,20 @@ class World : public Entity, public virtual IApp {
 	// Whether to show the debug camera window.
 	bool mShowCameraControls;
 
+	ivec2 mLastViewportSize;
+	GLuint mReflectionFramebuffer;
+	GLuint mReflectionTexture;
+	GLuint mReflectionDepth;
+
 	void run_camera_control_ui();
 
 public:
 	World(Canvas& source);
 	~World() noexcept override;
+
+	// Returns texture for water reflection around z = 0
+	// Kinda nasty that this is hardcoded, but this is due on Wednesday...
+	GLuint reflection_texture();
 
 	// IApp implementation
 	// Remind me again why the hell I have to rewrite
@@ -41,6 +50,6 @@ public:
 	void deactivate() override;
 	void process_event(const SDL_Event& event) override;
 	void process_frame(float deltaTime) override;
-	void render(ivec2 viewportSize) const override;
+	void render(ivec2 viewportSize) override;
 	void run_ui() override;
 };

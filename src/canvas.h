@@ -244,6 +244,6 @@ public:
 	void deactivate() override;
 	void process_event(const SDL_Event& event) override;
 	void process_frame(float deltaTime) override;
-	void render(ivec2 viewportSize) const override;
+	void render(ivec2 viewportSize) override;
 	void run_ui() override;
 };

@@ -1,6 +1,7 @@
 #include <imgui/imgui.h>
 
 #include "world.h"
+#include "helpers.h"
 
 World::World(Canvas& source) 
 	: Entity(vec3::zero(), vec3::zero(), vec3::splat(1)), 
@@ -23,10 +24,26 @@ World::World(Canvas& source)
     );
     mActiveCamera = camera.get();
     this->add_child(std::move(camera));
+
+    mLastViewportSize = ivec2::zero();
+    // water ideas from http://ivanleben.blogspot.com/2008/03/water-reflections-with-opengl.html
+    glGenFramebuffers(1, &mReflectionFramebuffer);
+    glGenTextures(1, &mReflectionTexture);
+    configure_texture(mReflectionTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGB8, GL_RGB);
+    glGenRenderbuffers(1, &mReflectionDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, mReflectionDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 0, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 World::~World() noexcept {
-	// nothing, for now...
+    glDeleteFramebuffers(1, &mReflectionFramebuffer);
+    glDeleteTextures(1, &mReflectionTexture);
+    glDeleteRenderbuffers(1, &mReflectionDepth);
+}
+
+GLuint World::reflection_texture() {
+    return mReflectionTexture;
 }
 
 void World::run_camera_control_ui() {
@@ -89,21 +106,42 @@ void World::process_event(const SDL_Event& event) {
 void World::process_frame(float deltaTime) {
     mCameraController.process_frame(mActiveCamera, deltaTime);
 }
-void render_tree(const Entity* root, const mat4& viewProj, vec3 viewPos) {
-    root->draw(viewProj, viewPos);
-    for (const auto& child : root->children()) {
-        render_tree(child.get(), viewProj, viewPos);
+static void render_tree(Entity* root, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) {
+    root->draw(viewProj, viewPos, cullPlane);
+    for (auto& child : root->children()) {
+        render_tree(child.get(), viewProj, viewPos, cullPlane);
     }
 }
-void World::render(ivec2 viewportSize) const {
-    mActiveCamera->set_sensor_size(viewportSize);
-    // Clear color set in activate()
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+void World::render(ivec2 viewportSize) {
+    if (viewportSize != mLastViewportSize) {
+        mActiveCamera->set_sensor_size(viewportSize);
+        glBindTexture(GL_TEXTURE_2D, mReflectionTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, viewportSize.x, viewportSize.y, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+        glDeleteRenderbuffers(1, &mReflectionDepth);
+        glGenRenderbuffers(1, &mReflectionDepth);
+        glBindRenderbuffer(GL_RENDERBUFFER, mReflectionDepth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, viewportSize.x, viewportSize.y);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        mLastViewportSize = viewportSize;
+    }
+
     const mat4 view = mActiveCamera->world_transform().inverse();
     const mat4 viewProj = mActiveCamera->projection() * view;
     const vec4 viewPosH = view * mActiveCamera->position().hmg();
-    const vec3 viewPos(viewPosH.x, viewPosH.y, viewPosH.z);
-    render_tree(this, viewProj, viewPos);
+    const vec3 viewPos(viewPosH.x, viewPosH.y, -viewPosH.z);
+    const mat4 reflProj = viewProj * mat4::diag(1, 1, -1, 1);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, mReflectionFramebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mReflectionTexture, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mReflectionDepth);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    render_tree(this, reflProj, viewPos, vec4(0, 0, 1, 0));
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    render_tree(this, viewProj, viewPos, vec4(0, 0, 1, 128));
+    
 }
 void World::run_ui() {
     if (mShowCameraControls) run_camera_control_ui();

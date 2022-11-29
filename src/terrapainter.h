@@ -14,7 +14,7 @@ public:
     virtual void deactivate() = 0;
     virtual void process_event(const SDL_Event& event) = 0;
     virtual void process_frame(float deltaTime) = 0;
-    virtual void render(ivec2 viewportSize) const = 0;
+    virtual void render(ivec2 viewportSize) = 0;
     virtual void run_ui() = 0;
 };
 inline IApp::~IApp() {}

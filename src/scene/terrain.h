@@ -14,5 +14,5 @@ public:
 
 	void generate(const Canvas& source);
 
-	void draw(const mat4& viewProj, vec3 viewPos) const override;
+	void draw(const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const override;
 };

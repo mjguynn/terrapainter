@@ -55,7 +55,7 @@ static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppSt
 
 void terrapainter::run(SDL_Window* window) {
     // Keep these in sync with heightmap.frag and water.cpp
-    const float WATER_HEIGHT = -4.0f;
+    const float WATER_HEIGHT = 0.0f;
     const float DWATER_HEIGHT = -16.0f;
 
     ImGuiIO& io = ImGui::GetIO();
@@ -65,7 +65,8 @@ void terrapainter::run(SDL_Window* window) {
     canvas.register_tool(tools::splatter());
     canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
     World world(canvas);
-    world.add_child(std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT));
+    auto water = std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT, world.reflection_texture());
+    world.add_child(std::move(water));
     std::array<IApp*, NUM_STATES> apps = {
         &canvas, // AppState::Canvas
         &world // AppState::World
