@@ -48,7 +48,7 @@ Water::~Water() {
 	// don't delete reflection texture, we don't own it.
 	// same for the canvas texture
 }
-void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
+void Water::draw(const RenderCtx& c) const {
 	const mat4 modelToWorld = world_transform();
 	glBindVertexArray(mVAO);
 	{
@@ -57,31 +57,31 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		glUseProgram(mHeightmapProgram);
 		// TODO change this
 		const mat4 seafloorXform = modelToWorld
-			* mat4::translate_hmg(vec3(viewPos.x, viewPos.y, mSeafloorHeight));
-		glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+			* mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, mSeafloorHeight));
+		glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, seafloorXform.data());
 		glUniform3fv(2, 1, lightDir.data());
-		glUniform3fv(3, 1, viewPos.data());
-		glUniform4fv(4, 1, cullPlane.data());
+		glUniform3fv(3, 1, c.viewPos.data());
+		glUniform4fv(4, 1, c.cullPlane.data());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
-	{
-		vec3 lightDir = { 0.2f, 1.0f, 1.0f };
+	if(!c.inWaterPass) {
+		vec3 lightDir = { -0.45399049974f, -0.89100652419, 0.43837114679f };
 		// no, this isn't type confusion, I want the float cast last to preserve as much
 		// precision as possible
 		float time = double(SDL_GetTicks64()) / 1000.0;
 		// TODO
 		glUseProgram(mWaterProgram);
 		const mat4 waterXform = modelToWorld
-			* mat4::translate_hmg(vec3(viewPos.x, viewPos.y, mWaterHeight));
-		glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+			* mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, mWaterHeight));
+		glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, waterXform.data());
 		glUniform1f(2, time);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mReflectionTexture);
 		glUniform1i(3, 0);
-		glUniform2iv(4, 1, viewportSize.data());
-		glUniform4fv(5, 1, cullPlane.data());
+		glUniform2iv(4, 1, c.viewportSize.data());
+		glUniform4fv(5, 1, c.cullPlane.data());
 		glActiveTexture(GL_TEXTURE1);
 		GLuint canvasTexture = mCanvas->get_canvas_texture();
 		// i am so sorry canvas
@@ -93,7 +93,7 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		ivec2 canvasSize = mCanvas->get_canvas_size();
 		glUniform2iv(7, 1, canvasSize.data());
 		glUniform3fv(8, 1, lightDir.data());
-		glUniform3fv(9, 1, viewPos.data());
+		glUniform3fv(9, 1, c.viewPos.data());
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, mNormal1Texture);
 		glUniform1i(10, 2);

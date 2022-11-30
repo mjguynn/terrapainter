@@ -106,10 +106,10 @@ void World::process_event(const SDL_Event& event) {
 void World::process_frame(float deltaTime) {
     mCameraController.process_frame(mActiveCamera, deltaTime);
 }
-static void render_tree(Entity* root, ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) {
-    root->draw(viewportSize, viewProj, viewPos, cullPlane);
+static void render_tree(Entity* root, const RenderCtx& ctx) {
+    root->draw(ctx);
     for (auto& child : root->children()) {
-        render_tree(child.get(), viewportSize, viewProj, viewPos, cullPlane);
+        render_tree(child.get(), ctx);
     }
 }
 void World::render(ivec2 viewportSize) {
@@ -136,11 +136,20 @@ void World::render(ivec2 viewportSize) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mReflectionDepth);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    render_tree(this, viewportSize, reflProj, viewPos, vec4(0, 0, 1, 0));
+    RenderCtx c = RenderCtx{ 
+        .viewProj = reflProj, 
+        .cullPlane = vec4(0,0,1,0), 
+        .viewPos = viewPos, 
+        .viewportSize = viewportSize, 
+        .inWaterPass = true 
+    };
+    render_tree(this, c);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    render_tree(this, viewportSize, viewProj, viewPos, vec4(0, 0, 1, 128));
+    c.inWaterPass = false;
+    c.viewProj = viewProj;
+    render_tree(this, c);
     
 }
 void World::run_ui() {

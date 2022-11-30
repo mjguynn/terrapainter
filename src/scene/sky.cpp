@@ -90,11 +90,11 @@ Sky::~Sky() noexcept {
 	assert(mVBO);
 	glDeleteVertexArrays(1, &mVBO);
 }
-void Sky::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {
+void Sky::draw(const RenderCtx& c) const {
     glBindVertexArray(mVAO);
     glUseProgram(mProgram);
-    mat4 xform = mat4::translate_hmg(viewPos) * mat4::diag(8192, 8192, 8192, 1);
-    glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+    mat4 xform = mat4::translate_hmg(c.viewPos) * mat4::diag(8192, 8192, 8192, 1);
+    glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, xform.data());
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, mTexture);

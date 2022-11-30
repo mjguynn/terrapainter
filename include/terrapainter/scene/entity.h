@@ -12,6 +12,15 @@
 // In the future it would be good to do an ECS/data oriented model
 // with components.
 
+// TODO:
+// move this
+struct RenderCtx {
+	mat4 viewProj;
+	vec4 cullPlane;
+	vec3 viewPos;
+	ivec2 viewportSize;
+	bool inWaterPass;
+};
 class Entity {
 private:
 	// Position aka translation
@@ -61,8 +70,7 @@ protected:
 public:
 	virtual ~Entity() noexcept;
 	// TODO: Feels weird to put this here. Kind of a hack.
-	// UPDATE: adding the cull plane here is HORRID
-	virtual void draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const {}
+	virtual void draw(const RenderCtx& c) const {}
 
 	// Returns the matrix mapping a scene node to the world.
 	// Each scene node has some associated transform, even

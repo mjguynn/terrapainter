@@ -27,5 +27,5 @@ public:
 	Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture, Canvas* canvas);
 	~Water() noexcept override;
 
-	void draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cullPlane) const override;
+	void draw(const RenderCtx& c) const override;
 };
