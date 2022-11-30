@@ -63,34 +63,6 @@ void Terrain::generate(const Canvas &source)
             unsigned char *pixelOffset = (unsigned char *)pixels.data() + (j + width * i) * bytePerPixel;
             unsigned char z = pixelOffset[0];
 
-            float h = (int)z * zScale - zShift;
-            float probability = 0;
-            if (h >= 3.5 && h < 23.5)
-            {
-                float p = smoothstep(23.5, 3.5, h);
-                probability = p;
-            }
-            else if (h >= 0.0 && h < 3.5)
-            {
-                float p = smoothstep(3.5, 0.0, h);
-                probability = p * 0.5;
-            }
-            else
-            {
-                probability = 0;
-            }
-
-            if (rand() % 100 < probability * 100)
-            {
-                grassVertices.push_back(
-
-                    vec3(-width / 2.0f + width * j / (float)width,
-                         -height / 2.0f + height * i / (float)height,
-                         (int)z * zScale - zShift));
-
-                mNumGrassTriangles++;
-            };
-
             vertices.push_back(
                 Vertex{
                     .Position = vec3(-width / 2.0f + width * j / (float)width,
@@ -168,6 +140,32 @@ void Terrain::generate(const Canvas &source)
     mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
 
     // ---------------------- Grass----------------------------------------
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        auto vertex = vertices[i];
+        float h = vertex.Position.z;
+        vec3 n = vertex.Normal;
+        float probability = 0;
+        if (dot(n, vec3(0, 0, 1)) < 0.8)
+        {
+            probability = 0;
+        }
+        else if (h > 3 && h < 18)
+        {
+            probability = 1;
+        }
+        else
+        {
+            probability = 0;
+        }
+
+        if (rand() % 100 < probability * 100)
+        {
+            grassVertices.push_back(vertex.Position);
+            mNumGrassTriangles++;
+        };
+    }
+
     if (mGrassVAO)
         glDeleteVertexArrays(1, &mGrassVAO);
     if (mGrassVBO)
