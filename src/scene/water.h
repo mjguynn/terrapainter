@@ -12,6 +12,7 @@ class Water : public Entity {
 	Canvas* mCanvas;
 
 	GLuint mReflectionTexture;
+	GLuint mSeafoamTexture;
 	GLuint mNormal1Texture;
 	GLuint mNormal2Texture;
 

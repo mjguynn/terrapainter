@@ -31,6 +31,8 @@ Water::Water(float waterHeight, float seafloorHeight, GLuint reflectionTexture, 
 	load_mipmap_texture(mNormal1Texture, "wave_normal_01.png");
 	glGenTextures(1, &mNormal2Texture);
 	load_mipmap_texture(mNormal2Texture, "wave_normal_02.png");
+	glGenTextures(1, &mSeafoamTexture);
+	load_mipmap_texture(mSeafoamTexture, "seafoam.jpg");
 	mCanvas = canvas;
 	mWaterHeight = waterHeight;
 	mSeafloorHeight = seafloorHeight;
@@ -98,6 +100,9 @@ void Water::draw(ivec2 viewportSize, const mat4& viewProj, vec3 viewPos, vec4 cu
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, mNormal2Texture);
 		glUniform1i(11, 3);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, mSeafoamTexture);
+		glUniform1i(12, 4);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glBindTexture(GL_TEXTURE_2D, canvasTexture);

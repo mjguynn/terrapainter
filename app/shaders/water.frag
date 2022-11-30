@@ -10,6 +10,7 @@ layout (location = 8) uniform vec3 u_lightDir;
 layout (location = 9) uniform vec3 u_eyePos;
 layout (location = 10) uniform sampler2D u_normalTexture1;
 layout (location = 11) uniform sampler2D u_normalTexture2;
+layout (location = 12) uniform sampler2D u_seafoamTexture;
 
 layout (location = 0) in vec3 v_normalDir;
 layout (location = 1) in vec3 v_fragPos; // in world space
@@ -60,15 +61,25 @@ void main()
 	vec4 base = vec4(still, 0.6);
 	vec4 waves = vec4(1.0, 1.0, 1.0, 1.0);
 	
-	vec4 water = mix(base, waves, wave_factor(height, u_time));
+	vec2 foamCoords = v_fragPos.xy / 64 + normal.xy / 32 + 0.01*vec2(u_time, 0);
+	vec3 foam2 = texture(u_seafoamTexture, foamCoords).rgb;
+	float foamFacPre = clamp(1-8*height, 0, 1) + foam2.r;
+	float foamFac2 = clamp(foamFacPre - 1.75, 0, 1) / 3;
+	vec3 trueNormal = normalize(mix(normal, vec3(0,0,1), foamFac2));
+	vec4 prefoam = mix(base, waves, wave_factor(height, u_time));
+	vec4 water = mix(prefoam, vec4(foam, 1), foamFac2);
 	
 	vec3 viewDir = normalize(u_eyePos - v_fragPos);
 	vec3 lightDir = normalize(u_lightDir); // i don't trust myself
 	vec3 halfAngle = normalize(viewDir + lightDir);
-	float specFac = 0.5 * pow(dot(normal, halfAngle), 20);
-	float geomFac = max(0, dot(normal, lightDir));
+	
+	float specAmt = mix(0.5, 0.1, foamFac2);
+	float specPow = mix(20, 4, foamFac2);
+	float specFac = specAmt * pow(dot(trueNormal, halfAngle), specPow);
+	float geomFac = max(0, dot(trueNormal, lightDir));
 	water += vec4(specFac * geomFac);
 	water.a = clamp(water.a, 0, 1);
 	water.a -= max(64*(height-0.1640625), 0);
+
 	o_color = water;
 }
