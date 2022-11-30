@@ -129,7 +129,7 @@ void Terrain::generate(const Canvas &source)
         }
         else if (h > 3 && h < 18)
         {
-            probability = 1;
+            probability = 0.25;
         }
         else
         {
