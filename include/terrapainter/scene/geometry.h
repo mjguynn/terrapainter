@@ -38,13 +38,17 @@ class Geometry {
     // Expects an attribute named "normal"
     void normalizeNormals();
 
+    // Expects an attribute named "tangent"
+    void normalizeTangents();
+
     // Expects an attribute named "position"
     // Creates new attribute named "normal" containing normals for each position
+    // Creates new attribute named "tangent" containing normals for each position
     // Normals are generated differently depending on the primitive, and if indices are present
-    void GenerateNormals();
+    void GenerateNormalTangent();
 
     private:
-    void GenerateNormalTriangle();
-    void GenerateNormalStrips();
+    void GenerateNormalTangentTriangle();
+    void GenerateNormalTangentStrips();
 
 };

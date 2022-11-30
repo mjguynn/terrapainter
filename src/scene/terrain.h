@@ -7,12 +7,17 @@
 class Terrain : public Entity
 {
 private:
-	GLuint mProgram;
+	// Terrain Material
+	Material* tMat;
 	GLuint mGrassProgram;
 	std::unique_ptr<Mesh> mMesh;
 	GLuint mGrassVAO;
 	GLuint mGrassVBO;
 	GLuint mNumGrassTriangles;
+	GLuint mSand; 
+	GLuint mGrass;
+	GLuint mDirt;
+	GLuint mMnt;
 	GLuint mGrassTexture;
 	float mAlphaTest = 0.25f;
 	float mAlphaMultiplier = 1.5f;

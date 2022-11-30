@@ -6,12 +6,25 @@
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale)
 {
-    mProgram = g_shaderMgr.graphics("heightmap");
     mGrassProgram = g_shaderMgr.geometry("grass");
     mMesh = nullptr;
     mGrassVAO = 0;
     mGrassVBO = 0;
     mNumGrassTriangles = 0;
+
+    std::vector<Texture> mTexs;
+    mTexs.push_back(Texture {"mSand", "sand.png"});
+    mTexs.push_back(Texture {"mGrass", "grass.png"});
+    mTexs.push_back(Texture {"mDirt", "dirt.png"});
+    mTexs.push_back(Texture {"mMnt", "mountain.png"});
+    mTexs.push_back(Texture {"mGrassNorm", "grass-normal.png"});
+    mTexs.push_back(Texture {"mMountNorm", "mountain-normal.png"});
+    mTexs.push_back(Texture {"mSandNorm", "sand-normal.png"});
+    mTexs.push_back(Texture {"mSnowNorm", "snow-normal.png"});
+    mTexs.push_back(Texture {"mDirtNorm", "dirt-normal.png"});
+
+    tMat = new Material("heightmap", mTexs);
+
     glGenTextures(1, &mGrassTexture);
     load_mipmap_texture(mGrassTexture, "grassPack.png");
     mAlphaTest = 0.25f;
@@ -19,6 +32,7 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
 }
 Terrain::~Terrain() noexcept
 {
+    free(tMat);
     if (mGrassVAO)
         glDeleteVertexArrays(1, &mGrassVAO);
     if (mGrassVBO)
@@ -93,10 +107,9 @@ void Terrain::generate(const Canvas &source)
     Geometry tGeo = Geometry(height, width, numTrisPerStrip, numStrips);
     tGeo.setIndex(indices);
     tGeo.setAttr("position", aPos);
-    tGeo.GenerateNormals();
+    tGeo.GenerateNormalTangent();
 
-    Material mTerrainMat = Material("heightmap");
-    mMesh = std::make_unique<Mesh>(tGeo, mTerrainMat);
+    mMesh = std::make_unique<Mesh>(tGeo, *this->tMat);
 
     // ---------------------- Grass----------------------------------------
     for (int i = 0; i < aPos->count; i++)
@@ -152,12 +165,14 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     const mat4 modelToWorld = world_transform();
     // TODO change this
     vec3 lightDir = {0.0f, 0.0f, -5.0f};
-    glUseProgram(mProgram);
-    glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
-    glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
-    glUniform3fv(2, 1, lightDir.data());
-    glUniform3fv(3, 1, viewPos.data());
-    glUniform4fv(4, 1, cullPlane.data());
+    glUseProgram(tMat->progID);
+
+    mMesh->mat.setMat4Float("u_worldToProjection", viewProj);
+    mMesh->mat.setMat4Float("u_modelToWorld", modelToWorld);
+    mMesh->mat.set3Float("LightDir", lightDir);
+    mMesh->mat.set3Float("viewPos", viewPos);
+    mMesh->mat.set4Float("u_cullPlane", cullPlane);
+    mMesh->mat.setBool("blinn", true);
     mMesh->Draw();
 
     float time = double(SDL_GetTicks64()) / 1000.0;

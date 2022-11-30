@@ -5,14 +5,15 @@
 #include <iostream>
 #include "../shadermgr.h"
 #include <algorithm>
+#include "../helpers.h"
 
-Material::Material(std::string shaderName, std::vector<Texture> texs) {
+Material::Material(std::string shaderName, std::vector<Texture> textures) {
   progID = g_shaderMgr.graphics(shaderName);
   g_shaderMgr.mPrograms[shaderName].rebuild();
   attrLocs = g_shaderMgr.mPrograms[shaderName].attrLocs;
   uniformLocs = g_shaderMgr.mPrograms[shaderName].uniformLocs;
 
-  texs = texs;
+  texs = textures;
   texIds = std::vector<unsigned int>(texs.size());
   std::transform(texs.cbegin(), texs.cend(), std::back_inserter(texNames),
                 [](Texture t) { return t.name; });
@@ -42,33 +43,28 @@ void Material::setFloat(const std::string &name, float value) const
 { 
     glUniform1f(glGetUniformLocation(progID, name.c_str()), value); 
 }
+void Material::set3Float(const std::string &name, vec3 value) const
+{ 
+    glUniform3fv(glGetUniformLocation(progID, name.c_str()), 1, value.data()); 
+}
+void Material::set4Float(const std::string &name, vec4 value) const
+{ 
+    glUniform4fv(glGetUniformLocation(progID, name.c_str()), 1, value.data()); 
+}
+void Material::setMat4Float(const std::string &name, mat4 value) const
+{ 
+    glUniformMatrix4fv(glGetUniformLocation(progID, name.c_str()), 1, GL_TRUE, value.data());
+}
 
 void Material::setupTexs() {
   for (unsigned int i = 0; i < texs.size(); i++)
   {
-    glGenTextures(1, &texIds[i]);
-    glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+    unsigned int x;
+    glGenTextures(1, &x);
+    texIds[i] = x;
 
-    // TODO: Could parameterize options
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    // load and generate the texture
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load((texs[i].path).c_str(), &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    glBindTexture(GL_TEXTURE_2D, texIds[i]);
+    load_mipmap_texture(texIds[i], texs[i].path);
+    // configure_texture(texIds[i], texs[i].min, texs[i].); 
   }
-  glActiveTexture(GL_TEXTURE0);
   std::cout << "Setup textures..." << std::endl;
 }

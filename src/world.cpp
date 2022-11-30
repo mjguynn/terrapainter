@@ -14,6 +14,10 @@ World::World(Canvas &source)
     mTerrain = terrain.get();
     this->add_child(std::move(terrain));
 
+    auto sky = std::make_unique<Sky>();
+    mSky = sky.get();
+    this->add_child(std::move(sky));
+
     auto camera = std::make_unique<Camera>(
         vec3{0.0f, 0.0f, 400.0f},     // position
         vec3{0, -M_PI / 2, M_PI / 2}, // rotation

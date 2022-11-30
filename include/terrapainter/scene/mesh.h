@@ -1,25 +1,38 @@
 #pragma once
 
 #include "terrapainter/scene/geometry.h"
-#include "terrapainter/scene/material.h" 
+#include "terrapainter/scene/material.h"
+#include "entity.h" 
 
-class Mesh {
+class Mesh : Entity {
   public:
     Geometry geo;
     Material mat;
     unsigned int VAO;
-
-    Mesh(Geometry geo, Material mat) : mat(mat) {
+    Mesh(Geometry geo, Material mat, vec3 position = vec3::zero(), vec3 angles = vec3::zero(), vec3 scale = vec3::splat(1.f)) : Entity(position, angles, scale), mat(mat) {
       this->geo = geo;
       this->mat = mat;
       setupMesh();
     }
   
+    ~Mesh() noexcept
+    {
+      glDeleteVertexArrays(1, &VAO);
+
+      for (auto &vbo : VBOs)
+      {
+        glDeleteBuffers(1, &vbo.second);
+      }
+      
+      if (EBO) { glDeleteBuffers(1, &EBO); }
+    }
+
     void Draw()
     {
       // bind appropriate textures
       for (unsigned int i = 0; i < mat.texNames.size(); i++)
       {
+        assert(mat.uniformLocs.contains(mat.texNames[i]));
         glActiveTexture(GL_TEXTURE0 + i);
         // now set the sampler to the correct texture unit
         mat.setInt(mat.texNames[i], i);
@@ -70,6 +83,9 @@ class Mesh {
 
     void setupMesh()
     {
+      // printf("sanity check: (%f, %f, %f)",
+      //  ((float*)geo.attrs["tangent"]->data)[0], ((float*)geo.attrs["tangent"]->data)[1], ((float*)geo.attrs["tangent"]->data)[2]);
+      
       // create buffers/arrays
       glGenVertexArrays(1, &VAO);
       glBindVertexArray(VAO);

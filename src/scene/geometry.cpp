@@ -48,13 +48,25 @@ void Geometry::normalizeNormals() {
   }
 }
 
-// Expects an attribute named "position"
-// Creates new attribute named "normal"
-void Geometry::GenerateNormals() {
+// Expects an attribute named "normal"
+void Geometry::normalizeTangents() {
+  Attribute* tangents = this->getAttr( "tangent" );
+
+  if (tangents) {
+    auto il = tangents->count;
+    for ( auto i = 0; i < il; i ++ ) {
+      vec3 n = vec3::splat(0.0);
+      tangents->getXYZ(i, n);
+      n = n.normalize();
+      tangents->setXYZ( i, n.x, n.y, n.z );
+    }
+  }
+}
+
+void Geometry::GenerateNormalTangent() {
   Attribute* posAttr = Geometry::getAttr( "position" );
 
   if ( posAttr ) {
-    Attribute* normalAttr = Geometry::getAttr( "normal" );
 
     if ( !Geometry::hasAttr("normal") ) {
       // create normals attribute
@@ -63,24 +75,37 @@ void Geometry::GenerateNormals() {
       Geometry::setAttr( "normal", nAttr );
     } else {
       // reset existing normals to zero
-      unsigned int il = normalAttr->count;
+      unsigned int il = Geometry::getAttr( "normal" )->count;
       for ( auto i = 0; i < il; i ++ ) {
-        normalAttr->setXYZ( i, 0.f, 0.f, 0.f );
+        Geometry::getAttr( "normal" )->setXYZ( i, 0.f, 0.f, 0.f );
       }
     }
 
-    normalAttr = Geometry::getAttr( "normal" );
+    if ( !Geometry::hasAttr("tangent") ) {
+      // create tangent attribute
+      std::vector<float> tangs(posAttr->count * 3);
+      Attribute* tAttr = new Attribute( &tangs, 3 );
+      Geometry::setAttr( "tangent", tAttr );
+    } else {
+      // reset existing tangent to zero
+      unsigned int il = Geometry::getAttr( "tangent" )->count;
+      for ( auto i = 0; i < il; i ++ ) {
+        Geometry::getAttr( "tangent" )->setXYZ( i, 0.f, 0.f, 0.f );
+      }
+    }
+
+    Attribute* normalAttr = Geometry::getAttr( "normal" );
 
     // indexed elements (smooth shading)
     if ( Geometry::hasIndices() ) {
       switch (primitive)
       {
       case GL_TRIANGLES:
-        Geometry::GenerateNormalTriangle();
+        Geometry::GenerateNormalTangentTriangle();
         break;
 
       case GL_TRIANGLE_STRIP:
-        Geometry::GenerateNormalStrips();
+        Geometry::GenerateNormalTangentStrips();
         break;
 
       default:
@@ -111,12 +136,13 @@ void Geometry::GenerateNormals() {
       }
     }
     Geometry::normalizeNormals();
+    Geometry::normalizeTangents();
 
     normalAttr->needsUpdate = true;
   }
 }
 
-void Geometry::GenerateNormalTriangle() {
+void Geometry::GenerateNormalTangentTriangle() {
   Attribute* posAttr = Geometry::getAttr( "position" );
   Attribute* normalAttr = Geometry::getAttr( "normal" );
 
@@ -164,9 +190,10 @@ void Geometry::GenerateNormalTriangle() {
   }
 }
 
-void Geometry::GenerateNormalStrips() {
+void Geometry::GenerateNormalTangentStrips() {
   Attribute* posAttr = Geometry::getAttr( "position" );
   Attribute* normalAttr = Geometry::getAttr( "normal" );
+  Attribute* tangAttr = Geometry::getAttr( "tangent" );
 
   StripData dat = stripData.value(); 
 
@@ -196,7 +223,6 @@ void Geometry::GenerateNormalStrips() {
       vec3 v1 = vec3::splat(0.0);
       posAttr->getXYZ(vA, v1);
 
-
       vec3 v2 = vec3::splat(0.0);
       posAttr->getXYZ(vB, v2);
 
@@ -206,6 +232,10 @@ void Geometry::GenerateNormalStrips() {
       vec3 side1 = v2 - v1;
       vec3 side2 = v3 - v1;
       vec3 normal = cross(side1, side2);
+
+      vec3 tangent;
+      if (i % 2 == 0) {tangent = side1;}
+      else { tangent = v2 - v3; }
 
       vec3 nA = vec3::splat(0.0);
       normalAttr->getXYZ(vA, nA);
@@ -224,5 +254,21 @@ void Geometry::GenerateNormalStrips() {
       normalAttr->setXYZ( vB, nB.x, nB.y, nB.z );
       normalAttr->setXYZ( vC, nC.x, nC.y, nC.z );
 
+      vec3 tA = vec3::splat(0.0);
+      tangAttr->getXYZ(vA, tA);
+
+      vec3 tB = vec3::splat(0.0);
+      tangAttr->getXYZ(vB, tB);
+
+      vec3 tC = vec3::splat(0.0);
+      tangAttr->getXYZ(vC, tC);
+
+      tA += tangent;
+      tB += tangent;
+      tC += tangent;
+      
+      tangAttr->setXYZ( vA, tA.x, tA.y, tA.z );
+      tangAttr->setXYZ( vB, tB.x, tB.y, tB.z );
+      tangAttr->setXYZ( vC, tC.x, tC.y, tC.z );
   }
 }
