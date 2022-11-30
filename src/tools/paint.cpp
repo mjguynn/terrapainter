@@ -98,8 +98,6 @@ public:
 		CanvasRegion end(canvasMouse, mBrushRadius);
 		CanvasRegion total = CanvasRegion::merge(start, end);
 		ivec2 size = total.max - total.min;
-		// TODO compute offset
-		// TODO compute region size
 		glUseProgram(mStrokeProgram);
 		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 		glUniform2iv(1, 1, total.min.data());
