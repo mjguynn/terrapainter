@@ -263,8 +263,8 @@ void Canvas::process_event(const SDL_Event& event) {
 void Canvas::process_frame(float deltaTime) {}
 void Canvas::render(ivec2 viewportSize) {
 	GLuint image = mCanvasTexture;
-	// Composite current stroke
-	if (!mTools.empty()) {
+	// Composite current stroke, if there's a stroke to composite
+	if (!mTools.empty() && mInteractState == InteractState::STROKE) {
 		mTools.at(mCurTool)->composite(mCanvasDstTexture, mCanvasTexture);
 		image = mCanvasDstTexture;
 	}

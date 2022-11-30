@@ -32,7 +32,7 @@ public:
 		// We have sensible defaults for these
 		mBrushColor = vec4::splat(1);
 		mBrushRadius = 20.0f;
-		mBrushHardness = 0.0f;
+		mBrushHardness = 1.0f;
 		// We can't do anything about these until we receive canvas info
 		// We can still *make* the stroke texture, though...
 		mCanvasSize = ivec2::zero();
@@ -73,7 +73,7 @@ public:
 		glClearTexImage(mStrokeTexture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
 	}
 	bool understands_param(SDL_Keycode keyCode) override {
-		return (keyCode == SDLK_f) || (keyCode == SDLK_r);
+		return (keyCode == SDLK_f) || (keyCode == SDLK_h) || (keyCode == SDLK_a);
 	}
 	void update_param(SDL_Keycode keyCode, ivec2 mouseDelta, bool modifier) override {
 		if (keyCode == SDLK_f) {
@@ -83,6 +83,10 @@ public:
 		else if (keyCode == SDLK_h) {
 			float wanted = mBrushHardness + 0.1 * (mouseDelta.x + mouseDelta.y);
 			mBrushHardness = std::clamp(wanted, 0.f, 4.f);
+		}
+		else if (keyCode == SDLK_a) {
+			float wanted = mBrushColor.w + 0.01 * (mouseDelta.x + mouseDelta.y);
+			mBrushColor.w = std::clamp(wanted, 0.0f, 1.0f);
 		}
 	}
 	void update_stroke(vec2 canvasMouse, bool modifier) override {
