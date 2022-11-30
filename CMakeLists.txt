@@ -132,6 +132,7 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/shadermgr.cpp"
 	"${CMAKE_SOURCE_DIR}/src/tools/paint.cpp"
 	"${CMAKE_SOURCE_DIR}/src/tools/splatter.cpp"
+	"${CMAKE_SOURCE_DIR}/src/tools/smooth.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/water.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/controllers.cpp"
