@@ -39,6 +39,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nfd)
 
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG        v5.2.5
+    GIT_SHALLOW true
+    GIT_PROGRESS true
+)
+FetchContent_MakeAvailable(assimp)
+
 # ================== TERRAPAINTER SETUP ======================
 # Dummy library which exists to "bundle up" all the shared compile options
 add_library(terrapainter_shared INTERFACE)
@@ -154,6 +163,7 @@ set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/material.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/geometry.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/mesh.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/model.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})
@@ -175,6 +185,7 @@ target_link_libraries(terrapainter PRIVATE
 	glad
 	nfd
 	stb
+	assimp
 	${CMAKE_DL_LIBS}
 )
 
