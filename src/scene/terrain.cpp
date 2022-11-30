@@ -51,7 +51,7 @@ void Terrain::generate(const Canvas &source)
     }
     auto pixels = source.get_canvas();
 
-    std::vector<Vertex> vertices;
+    std::vector<float> positions;
     std::vector<vec3> grassVertices;
     float zScale = 96.0f / 256.0f, zShift = 16.0f;
     int rez = 1;
@@ -63,60 +63,13 @@ void Terrain::generate(const Canvas &source)
             unsigned char *pixelOffset = (unsigned char *)pixels.data() + (j + width * i) * bytePerPixel;
             unsigned char z = pixelOffset[0];
 
-            vertices.push_back(
-                Vertex{
-                    .Position = vec3(-width / 2.0f + width * j / (float)width,
-                                     -height / 2.0f + height * i / (float)height,
-                                     (int)z * zScale - zShift)});
+            positions.push_back(-width / 2.0f + width * j / (float)width);
+            positions.push_back(-height / 2.0f + height * i / (float)height);
+            positions.push_back((int)z * zScale - zShift);
+
         }
     }
-    fprintf(stderr, "[info] generated %llu vertices \n", vertices.size() / bytePerPixel);
-
-    // ------------------ Normal (start)-------------------------
-
-    // facedata[i] is the vertex index for face i // 3
-    std::vector<unsigned int> facedata;
-    // loading each face in
-    for (int i = 0; i < height - 1; i++)
-    {
-        for (int j = 0; j < width - 1; j++)
-        {
-            facedata.push_back(i * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-        }
-    }
-
-    // normal[i] is the vec3 normal of vertices[i]
-    std::vector<vec3> normaldata;
-    for (int i = 0; i < vertices.size(); i++)
-    {
-        normaldata.push_back(vec3(0));
-    }
-
-    for (int i = 0; i < facedata.size(); i += 3)
-    {
-        vec3 v1 = vertices.at(facedata.at(i)).Position;
-        vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
-        vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
-
-        vec3 side1 = v2 - v1;
-        vec3 side2 = v3 - v1;
-        vec3 normal = cross(side1, side2);
-
-        normaldata[facedata.at(i)] += normal;
-        normaldata[facedata.at(i + 1)] += normal;
-        normaldata[facedata.at(i + 2)] += normal;
-    }
-
-    for (int i = 0; i < normaldata.size(); i += 1)
-    {
-        normaldata[i] = normaldata[i].normalize();
-        vertices[i].Normal = normaldata[i];
-    }
+    fprintf(stderr, "[info] generated %llu vertices \n", positions.size() / bytePerPixel / 3);
 
     std::vector<unsigned> indices;
     for (unsigned i = 0; i < height - 1; i += rez)
@@ -129,7 +82,6 @@ void Terrain::generate(const Canvas &source)
             }
         }
     }
-    // ------------------- Normal(End) -----------------
 
     const int numStrips = (height - 1) / rez;
     const int numTrisPerStrip = (width / rez) * 2 - 2;
@@ -137,14 +89,24 @@ void Terrain::generate(const Canvas &source)
     fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
     fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
 
-    mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
+    Attribute* aPos = new Attribute(&positions, 3);
+    Geometry tGeo = Geometry(height, width, numTrisPerStrip, numStrips);
+    tGeo.setIndex(indices);
+    tGeo.setAttr("position", aPos);
+    tGeo.GenerateNormals();
+
+    Material mTerrainMat = Material("heightmap");
+    mMesh = std::make_unique<Mesh>(tGeo, mTerrainMat);
 
     // ---------------------- Grass----------------------------------------
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < aPos->count; i++)
     {
-        auto vertex = vertices[i];
-        float h = vertex.Position.z;
-        vec3 n = vertex.Normal;
+        vec3 vPos = vec3::splat(0.0);
+        aPos->getXYZ(i, vPos);
+        float h = vPos.z;
+        vec3 n = vec3::splat(0.0);
+        tGeo.getAttr("normal")->getXYZ(i, n);
+
         float probability = 0;
         if (dot(n, vec3(0, 0, 1)) < 0.8)
         {
@@ -161,7 +123,7 @@ void Terrain::generate(const Canvas &source)
 
         if (rand() % 100 < probability * 100)
         {
-            grassVertices.push_back(vertex.Position);
+            grassVertices.push_back(vPos);
             mNumGrassTriangles++;
         };
     }
@@ -196,7 +158,7 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     glUniform3fv(2, 1, lightDir.data());
     glUniform3fv(3, 1, viewPos.data());
     glUniform4fv(4, 1, cullPlane.data());
-    mMesh->DrawStrips();
+    mMesh->Draw();
 
     float time = double(SDL_GetTicks64()) / 1000.0;
     glUseProgram(mGrassProgram);

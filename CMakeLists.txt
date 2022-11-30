@@ -135,6 +135,8 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/scene/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/water.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/controllers.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/material.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/geometry.cpp"
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.h"
@@ -146,6 +148,10 @@ set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/scene/terrain.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/water.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/controllers.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/attribute.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/material.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/geometry.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/scene/mesh.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})

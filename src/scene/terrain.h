@@ -1,7 +1,7 @@
 #pragma once
 
 #include "terrapainter/scene/entity.h"
-#include "learnopengl/mesh.h"
+#include "terrapainter/scene/mesh.h"
 #include "../canvas.h"
 
 class Terrain : public Entity
@@ -16,7 +16,7 @@ private:
 	GLuint mGrassTexture;
 	float mAlphaTest = 0.25f;
 	float mAlphaMultiplier = 1.5f;
-
+	
 public:
 	Terrain(vec3 position, vec3 angles, vec3 scale);
 	~Terrain() noexcept override;

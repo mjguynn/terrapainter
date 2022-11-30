@@ -24,7 +24,7 @@ public:
 	void end_screenspace();
 
 	void refresh();
-private:
+
 	class Program {
 		// https://registry.khronos.org/OpenGL-Refpages/gl4/html/glCreateProgram.xhtml
 		// 0 is an invalid program ID. So we re-use 0 to indicate that the program
@@ -48,16 +48,21 @@ private:
 		// Map from shader stage to shader source
 		// You must call rebuild() for any changes to be reflected.
 		std::optional<std::string> vertex, geometry, fragment, compute;
-	};
 
-	template<typename T>
-	GLuint find_or_create(std::string shaderName, T callback);
+		std::unordered_map<std::string, GLint> attrLocs;
+    std::unordered_map<std::string, GLint> uniformLocs;
+	};
 
 	// Map from shader name (case-sensitive) to shader program
 	std::unordered_map<std::string, Program> mPrograms;
 
-	// Dummy VAO for screenspace shader
-	GLuint mScreenspaceVAO;
+	private:
+		template<typename T>
+		GLuint find_or_create(std::string shaderName, T callback);
+
+
+		// Dummy VAO for screenspace shader
+		GLuint mScreenspaceVAO;
 };
 
 extern ShaderManager g_shaderMgr;
