@@ -13,15 +13,15 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     mNumGrassTriangles = 0;
 
     std::vector<Texture> mTexs;
-    mTexs.push_back(Texture {"mSand", "sand.png"});
-    mTexs.push_back(Texture {"mGrass", "grass.png"});
-    mTexs.push_back(Texture {"mDirt", "dirt.png"});
-    mTexs.push_back(Texture {"mMnt", "mountain.png"});
-    mTexs.push_back(Texture {"mGrassNorm", "grass-normal.png"});
-    mTexs.push_back(Texture {"mMountNorm", "mountain-normal.png"});
-    mTexs.push_back(Texture {"mSandNorm", "sand-normal.png"});
-    mTexs.push_back(Texture {"mSnowNorm", "snow-normal.png"});
-    mTexs.push_back(Texture {"mDirtNorm", "dirt-normal.png"});
+    mTexs.push_back(Texture{"mSand", "sand.png"});
+    mTexs.push_back(Texture{"mGrass", "grass.png"});
+    mTexs.push_back(Texture{"mDirt", "dirt.png"});
+    mTexs.push_back(Texture{"mMnt", "mountain.png"});
+    mTexs.push_back(Texture{"mGrassNorm", "grass-normal.png"});
+    mTexs.push_back(Texture{"mMountNorm", "mountain-normal.png"});
+    mTexs.push_back(Texture{"mSandNorm", "sand-normal.png"});
+    mTexs.push_back(Texture{"mSnowNorm", "snow-normal.png"});
+    mTexs.push_back(Texture{"mDirtNorm", "dirt-normal.png"});
 
     tMat = new Material("heightmap", mTexs);
 
@@ -80,7 +80,6 @@ void Terrain::generate(const Canvas &source)
             positions.push_back(-width / 2.0f + width * j / (float)width);
             positions.push_back(-height / 2.0f + height * i / (float)height);
             positions.push_back((int)z * zScale - zShift);
-
         }
     }
     fprintf(stderr, "[info] generated %llu vertices \n", positions.size() / bytePerPixel / 3);
@@ -103,7 +102,7 @@ void Terrain::generate(const Canvas &source)
     fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
     fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
 
-    Attribute* aPos = new Attribute(&positions, 3);
+    Attribute *aPos = new Attribute(&positions, 3);
     Geometry tGeo = Geometry(height, width, numTrisPerStrip, numStrips);
     tGeo.setIndex(indices);
     tGeo.setAttr("position", aPos);
@@ -120,8 +119,11 @@ void Terrain::generate(const Canvas &source)
         vec3 n = vec3::splat(0.0);
         tGeo.getAttr("normal")->getXYZ(i, n);
 
+        float fGrassPatchOffsetMin = 1.0f;
+        float fGrassPatchOffsetMax = 2.0f;
+
         float probability = 0;
-        if (dot(n, vec3(0, 0, 1)) < 0.8)
+        if (dot(n, vec3(0, 0, 1)) < 0.95)
         {
             probability = 0;
         }
@@ -136,8 +138,26 @@ void Terrain::generate(const Canvas &source)
 
         if (rand() % 100 < probability * 100)
         {
-            grassVertices.push_back(vPos);
-            mNumGrassTriangles++;
+            float vertOffset = 1.3;
+            grassVertices.push_back(vec3(vPos.x, vPos.y, vPos.z - vertOffset));
+            float value = fGrassPatchOffsetMin + (fGrassPatchOffsetMax - fGrassPatchOffsetMin) * float(rand() % 1000) * 0.001f;
+            float x = vPos.x + value;
+            float y = vPos.y + value;
+            grassVertices.push_back(vec3(x, y, vPos.z - vertOffset));
+            x = vPos.x + value;
+            y = vPos.y - value;
+            grassVertices.push_back(vec3(x, y, vPos.z - vertOffset));
+            x = vPos.x - value;
+            y = vPos.y + value;
+            grassVertices.push_back(vec3(x, y, vPos.z - vertOffset));
+            x = vPos.x - value;
+            y = vPos.y - value;
+            grassVertices.push_back(vec3(x, y, vPos.z - vertOffset));
+            grassVertices.push_back(vec3(vPos.x, vPos.y + value, vPos.z - vertOffset));
+            grassVertices.push_back(vec3(vPos.x, vPos.y - value, vPos.z - vertOffset));
+            grassVertices.push_back(vec3(vPos.x + value, vPos.y, vPos.z - vertOffset));
+            grassVertices.push_back(vec3(vPos.x - value, vPos.y, vPos.z - vertOffset));
+            mNumGrassTriangles += 9;
         };
     }
 
