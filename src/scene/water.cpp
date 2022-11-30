@@ -49,31 +49,29 @@ Water::~Water() {
 	// same for the canvas texture
 }
 void Water::draw(const RenderCtx& c) const {
+	// Obviously we don't want water in the water reflection pass
+	if (c.inWaterPass) return;
+
 	const mat4 modelToWorld = world_transform();
 	glBindVertexArray(mVAO);
+	glUseProgram(mHeightmapProgram);
 	{
-		// TODO: fix this!
-		vec3 lightDir = { 0.0f, 0.0f, -5.0f };
-		glUseProgram(mHeightmapProgram);
-		// TODO change this
 		const mat4 seafloorXform = modelToWorld
 			* mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, mSeafloorHeight));
 		glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, seafloorXform.data());
-		glUniform3fv(2, 1, lightDir.data());
+		glUniform3fv(2, 1, c.sunDir.data());
 		glUniform3fv(3, 1, c.viewPos.data());
 		glUniform4fv(4, 1, c.cullPlane.data());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
-	if(!c.inWaterPass) {
-		vec3 lightDir = { -0.45399049974f, -0.89100652419, 0.43837114679f };
+	glUseProgram(mWaterProgram);
+	{
 		// no, this isn't type confusion, I want the float cast last to preserve as much
 		// precision as possible
 		float time = double(SDL_GetTicks64()) / 1000.0;
-		// TODO
-		glUseProgram(mWaterProgram);
 		const mat4 waterXform = modelToWorld
-			* mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, mWaterHeight));
+			* mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, mWaterHeight + 0.25*cosf(time)));
 		glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 		glUniformMatrix4fv(1, 1, GL_TRUE, waterXform.data());
 		glUniform1f(2, time);
@@ -92,7 +90,7 @@ void Water::draw(const RenderCtx& c) const {
 		glUniform1i(6, 1);
 		ivec2 canvasSize = mCanvas->get_canvas_size();
 		glUniform2iv(7, 1, canvasSize.data());
-		glUniform3fv(8, 1, lightDir.data());
+		glUniform3fv(8, 1, c.sunDir.data());
 		glUniform3fv(9, 1, c.viewPos.data());
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, mNormal1Texture);
@@ -103,6 +101,7 @@ void Water::draw(const RenderCtx& c) const {
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, mSeafoamTexture);
 		glUniform1i(12, 4);
+		glUniform3fv(13, 1, c.sunColor.data());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glBindTexture(GL_TEXTURE_2D, canvasTexture);

@@ -117,13 +117,12 @@ void Terrain::draw(const RenderCtx& c) const {
     if (!mMesh) return;
 
     const mat4 modelToWorld = world_transform();
-    // TODO change this
-    vec3 lightDir = { 0.0f, 0.0f, -5.0f };
     glUseProgram(mProgram);
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
-    glUniform3fv(2, 1, lightDir.data());
+    glUniform3fv(2, 1, c.sunDir.data());
     glUniform3fv(3, 1, c.viewPos.data());
     glUniform4fv(4, 1, c.cullPlane.data());
+    glUniform3fv(5, 1, c.sunColor.data());
     mMesh->DrawStrips();
 }

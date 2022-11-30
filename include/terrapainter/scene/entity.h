@@ -18,6 +18,8 @@ struct RenderCtx {
 	mat4 viewProj;
 	vec4 cullPlane;
 	vec3 viewPos;
+	vec3 sunDir;
+	vec3 sunColor;
 	ivec2 viewportSize;
 	bool inWaterPass;
 };

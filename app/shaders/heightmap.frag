@@ -1,8 +1,9 @@
 #version 430 core
 
-layout (location = 2) uniform vec3 LightDir;
+layout (location = 2) uniform vec3 u_sunDir;
 layout (location = 3) uniform vec3 viewPos;
 layout (location = 4) uniform vec4 u_cullPlane;
+layout (location = 5) uniform vec3 u_sunColor;
 
 // Note that the GPU essentially linearly interpolates attributes
 // when sending them to fragments. So this might not be a unit normal!
@@ -53,31 +54,29 @@ void main()
 	if (dot(vec4(v_fragPos, 1), u_cullPlane) < 0)
 		discard;
 
-	vec3 LightColor = vec3(1.0, 1.0, 1.0);
-
 	vec3 color = getColorByHeight(v_fragPos.z);
 
+	vec3 lightColor = u_sunColor;
+	
+	float depthFac = clamp( -v_fragPos.z/32, 0, 1);
+	vec3 norm = normalize(mix(v_normalDir, vec3(0, 0, 3), depthFac));
+	
 	// ambiance
-	float ambientStrength = 0.05;
-	vec3 ambientColor = ambientStrength * LightColor;
+	float ambient = 0.2;
 
 	// diffuse
-	vec3 norm = normalize(v_normalDir);
-	vec3 lightDir = normalize(LightDir);
-	float diff = max(dot(norm, -lightDir), 0.0);
-	vec3 diffuseColor = diff * LightColor;
+	vec3 lightDir = normalize(u_sunDir);
+	float diffuse = 0.6*max(dot(norm, lightDir), 0) - depthFac/2;
 
 	// specular
-	float specularStrength = 0.1;
-	if (v_fragPos.z <= 0 || v_fragPos.z >= 65) {
-		specularStrength = 0.5;
-	}
+	float specularStrength = 0.5 * clamp(v_fragPos.z - 65, 0, 3) / 3;
 	vec3 viewDir = normalize(viewPos - v_fragPos);
-	vec3 reflectDir = reflect(lightDir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specularColor = specularStrength * spec * LightColor;
+	vec3 halfAngle = normalize(viewDir + lightDir);
+	float phongFac = pow(max(0, dot(norm, halfAngle)), 32);
+	float geomFac = max(dot(norm, lightDir), 0);
+	float specular = specularStrength * phongFac * geomFac;
 
-	color = (ambientColor + diffuseColor + specularColor) * color;	
+	color = (ambient + diffuse + specular) * lightColor * color;	
 
 	FragColor = vec4(color, 1.0);
 }

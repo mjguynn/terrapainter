@@ -99,6 +99,7 @@ void Sky::draw(const RenderCtx& c) const {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, mTexture);
     glUniform1i(2, 0);
+    glUniform3fv(3, 1, c.viewPos.data());
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }

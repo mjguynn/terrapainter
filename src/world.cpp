@@ -136,10 +136,14 @@ void World::render(ivec2 viewportSize) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mReflectionDepth);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    RenderCtx c = RenderCtx{ 
-        .viewProj = reflProj, 
-        .cullPlane = vec4(0,0,1,0), 
-        .viewPos = viewPos, 
+    RenderCtx c = RenderCtx{
+        .viewProj = reflProj,
+        .cullPlane = vec4(0,0,1,0),
+        .viewPos = viewPos,
+        // --- TODO: These are hardcoded to match the current skybox
+        .sunDir = vec3(-0.45399049974f, -0.89100652419, 0.43837114679f),
+        .sunColor = vec3(1.8, 2.0, 2.5),
+        // --- 
         .viewportSize = viewportSize, 
         .inWaterPass = true 
     };
@@ -149,6 +153,7 @@ void World::render(ivec2 viewportSize) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     c.inWaterPass = false;
     c.viewProj = viewProj;
+    c.cullPlane = vec4(0, 0, 1, 1024);
     render_tree(this, c);
     
 }
