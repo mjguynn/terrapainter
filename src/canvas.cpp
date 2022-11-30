@@ -25,10 +25,18 @@ Canvas::Canvas(SDL_Window* window) {
 	// but we can still register texture objects for them 
 	// and resize/fill them as needed.
 	mCanvasSize = ivec2::zero();
+
+	vec4 border = { 0.0f, 0.0f, 0.0f, 1.0f };
 	glGenTextures(1, &mCanvasTexture);
-	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
+	configure_texture(mCanvasTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER, GL_RGBA8, GL_RGBA);
+	glBindTexture(GL_TEXTURE_2D, mCanvasTexture);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border.data());
+
 	glGenTextures(1, &mCanvasDstTexture);
-	configure_texture(mCanvasDstTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA8, GL_RGBA);
+	configure_texture(mCanvasDstTexture, GL_LINEAR, GL_NEAREST, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER, GL_RGBA8, GL_RGBA);
+	glBindTexture(GL_TEXTURE_2D, mCanvasDstTexture);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border.data());
+
 	mCanvasProgram = g_shaderMgr.graphics("simple_2d");
 	glGenVertexArrays(1, &mCanvasVAO);
 	glGenBuffers(1, &mCanvasVBO);
