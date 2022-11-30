@@ -83,16 +83,15 @@ void main()
 	// Note: this is the height from the heightmap, not the actual worldspace height
 	float height = compute_height();
 	
-	vec4 base = vec4(compute_mirror_reflection(viewDir, normal), 0.9);
+	vec4 base = vec4(compute_mirror_reflection(viewDir, normal), 0.85);
 	vec4 foam = vec4(0.85, 0.95, 1.0, 0.8);
 	vec4 foamed = mix(base, foam, foam_factor_2(normal, height));
 	
 	vec4 prewave = mix(foamed, vec4(1, 1, 1, 1), phong_factor(lightDir, viewDir, normal));
-	// This improves the water intersection
-	prewave.a -= max(64*(height-0.1640625), 0) + 0.1;
+	prewave.a -= max(4*(height-0.05), 0);
 	
 	vec4 waves = vec4(1, 1, 1, 1);
 	vec4 wavy = mix(prewave, waves, wave_factor(height, u_time));
-
+	
 	o_color = wavy;
 }
