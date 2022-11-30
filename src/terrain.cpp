@@ -27,7 +27,7 @@ void Terrain::generate(const Canvas& source) {
     }
     auto pixels = source.get_canvas();
 
-    std::vector<Vertex> vertices;
+    std::vector<float> positions;
     float zScale = 96.0f / 256.0f, zShift = 16.0f;
     int rez = 1;
     unsigned bytePerPixel = 4;
@@ -38,61 +38,12 @@ void Terrain::generate(const Canvas& source) {
             unsigned char* pixelOffset = (unsigned char*)pixels.data() + (j + width * i) * bytePerPixel;
             unsigned char z = pixelOffset[0];
 
-            vertices.push_back(
-                Vertex{
-                    .Position = vec3(-width / 2.0f + width * j / (float)width, -height / 2.0f + height * i / (float)height, (int)z * zScale - zShift)
-                }
-            );
+            positions.push_back(-width / 2.0f + width * j / (float)width);
+            positions.push_back(-height / 2.0f + height * i / (float)height);
+            positions.push_back((int)z * zScale - zShift);
         }
     }
-    fprintf(stderr, "[info] generated %llu vertices \n", vertices.size() / bytePerPixel);
-
-    // ------------------ Normal (start)-------------------------
-
-    // facedata[i] is the vertex index for face i // 3
-    std::vector<unsigned int> facedata;
-    // loading each face in
-    for (int i = 0; i < height - 1; i++)
-    {
-        for (int j = 0; j < width - 1; j++)
-        {
-            facedata.push_back(i * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-            facedata.push_back(i * width + j + 1);
-            facedata.push_back((i + 1) * width + j + 1);
-            facedata.push_back((i + 1) * width + j);
-        }
-    }
-
-    // normal[i] is the vec3 normal of vertices[i]
-    std::vector<vec3> normaldata;
-    for (int i = 0; i < vertices.size(); i++)
-    {
-        normaldata.push_back(vec3(0));
-    }
-
-    for (int i = 0; i < facedata.size(); i += 3)
-    {
-        vec3 v1 = vertices.at(facedata.at(i)).Position;
-        vec3 v2 = vertices.at(facedata.at(i + 1)).Position;
-        vec3 v3 = vertices.at(facedata.at(i + 2)).Position;
-
-        vec3 side1 = v2 - v1;
-        vec3 side2 = v3 - v1;
-        vec3 normal = cross(side1, side2);
-
-        normaldata[facedata.at(i)] += normal;
-        normaldata[facedata.at(i + 1)] += normal;
-        normaldata[facedata.at(i + 2)] += normal;
-    }
-
-
-    for (int i = 0; i < normaldata.size(); i += 1)
-    {
-        normaldata[i] = normaldata[i].normalize();
-        vertices[i].Normal = normaldata[i];
-    }
+    fprintf(stderr, "[info] generated %llu vertices \n", positions.size() / bytePerPixel / 3);
 
     std::vector<unsigned> indices;
     for (unsigned i = 0; i < height - 1; i += rez)
@@ -113,7 +64,16 @@ void Terrain::generate(const Canvas& source) {
     fprintf(stderr, "[info] created lattice of %i strips with %i triangles each\n", numStrips, numTrisPerStrip);
     fprintf(stderr, "[info] created %i triangles total\n", numStrips * numTrisPerStrip);
 
-    mMesh = std::make_unique<Mesh>(vertices, indices, numTrisPerStrip, numStrips);
+    Attribute* aPos = new Attribute(&positions, 3);
+    Geometry tGeo = Geometry(height, width, numTrisPerStrip, numStrips);
+    tGeo.setIndex(indices);
+    tGeo.setAttr("position", aPos);
+    tGeo.GenerateNormals();
+
+    Material tMat = Material("heightmap");
+    mMesh = std::make_unique<Mesh>(tGeo, tMat);
+
+    std::cout << "Created terrain Mesh" << std::endl;
 }
 void Terrain::draw(const mat4& viewProj, vec3 viewPos) const {
     // This can happen if no canvas is loaded, I suppose...
@@ -127,5 +87,6 @@ void Terrain::draw(const mat4& viewProj, vec3 viewPos) const {
     glUniformMatrix4fv(mModelToWorldLocation, 1, GL_TRUE, modelToWorld.data());
     glUniform3f(mLightDirLocation, lightDir.x, lightDir.y, lightDir.z);
     glUniform3f(mViewPosLocation, viewPos.x, viewPos.y, viewPos.z);
-    mMesh->DrawStrips();
+    //std::cout << "Drawing Terrain..." << std::endl;
+    mMesh->Draw();
 }

@@ -58,6 +58,8 @@ endif()
 set(terrapainter_lib_SOURCES 
 	"${CMAKE_SOURCE_DIR}/src/entity.cpp"
 	"${CMAKE_SOURCE_DIR}/src/camera.cpp"
+	"${CMAKE_SOURCE_DIR}/src/geometry.cpp"
+	"${CMAKE_SOURCE_DIR}/src/material.cpp"
 )
 set(terrapainter_lib_HEADERS
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/camera.h"
@@ -65,6 +67,10 @@ set(terrapainter_lib_HEADERS
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/math.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/pixel.h"
 	"${CMAKE_SOURCE_DIR}/include/terrapainter/util.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/attribute.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/geometry.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/material.h"
+	"${CMAKE_SOURCE_DIR}/include/terrapainter/mesh.h"
 )
 
 add_library(terrapainter_lib STATIC ${terrapainter_lib_SOURCES} ${terrapainter_lib_HEADERS})

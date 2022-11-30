@@ -18,7 +18,7 @@
 // such as gaming laptops. Disabled by default because
 //  1. Using the iGPU is actually a bit snapper right now, for some reason
 //  2. Using the dGPU drains battery life and we don't need the extra perf anyways
-#define TP_ENABLE_DGPU 0
+#define TP_ENABLE_DGPU 1
 #if TP_ENABLE_DGPU
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
@@ -92,7 +92,7 @@ ivec2 fix_window_size(ivec2 screenSize, ivec2 windowSize) {
         // But Windows goes "oh fullscreen app clearly it's a Video Game
         // let me put it in Exclusive Fullscreen Mode which makes your
         // screen lock up for like 5 seconds and then 5 seconds more
-        // every time you Alt-Tab™ surely that's a good idea"
+        // every time you Alt-Tabï¿½ surely that's a good idea"
         // ... to get around this we just fudge the height a bit
         return { windowSize.x, windowSize.y + 1 };
     }

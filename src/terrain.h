@@ -1,7 +1,7 @@
 #pragma once
 
 #include "terrapainter/entity.h"
-#include "learnopengl/mesh.h"
+#include "terrapainter/mesh.h"
 #include "canvas.h"
 
 class Terrain : public Entity {

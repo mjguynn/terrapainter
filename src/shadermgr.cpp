@@ -106,11 +106,6 @@ bool ShaderManager::Program::rebuild() {
 
 	glLinkProgram(mProgram);
 
-	for (auto shader : shaders) {
-		glDetachShader(mProgram, shader);
-		glDeleteShader(shader);
-	}
-
 	int success;
 	glGetProgramiv(mProgram, GL_LINK_STATUS, &success);
 	if (!success) {
@@ -120,6 +115,61 @@ bool ShaderManager::Program::rebuild() {
 		fprintf(stderr, "%s\n", info);
 		return false;
 	} else {
+		// Get all active uniforms and store them in map of uniform variable locations
+		int numUniforms;
+		glGetProgramiv(mProgram, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+		int maxCharLength;
+		glGetProgramiv(mProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxCharLength);
+		if (numUniforms > 0 && maxCharLength > 0)
+		{
+			char* charBuffer = (char*)malloc(sizeof(char) * maxCharLength);
+
+			for (int i = 0; i < numUniforms; i++)
+			{
+				int length, size;
+				GLenum dataType;
+				glGetActiveUniform(mProgram, i, maxCharLength, &length, &size, &dataType, charBuffer);
+				GLint varLocation = glGetUniformLocation(mProgram, charBuffer);
+				std::string name = std::string(charBuffer, length);
+				this->uniformLocs[name] = varLocation;
+			}
+
+			free(charBuffer);
+		}
+
+		// Do the same for attributes
+		int numAttribs;
+		glGetProgramiv(mProgram, GL_ACTIVE_ATTRIBUTES, &numAttribs);
+		printf("numAttribs: %d\n", numAttribs);
+
+		int maxAttrLength;
+		glGetProgramiv(mProgram, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttrLength);
+		if (numAttribs > 0 && maxAttrLength > 0)
+		{
+			char* charBuffer = (char*)malloc(sizeof(char) * maxAttrLength);
+
+			for (int i = 0; i < numAttribs; i++)
+			{
+				int length, size;
+				GLenum dataType;
+				glGetActiveAttrib(mProgram, i, maxAttrLength, &length, &size, &dataType, charBuffer);
+
+				GLint varLocation = glGetAttribLocation(mProgram, charBuffer);
+
+				std::string name = std::string(charBuffer, length);
+				printf("name: %s, loc = %d\n", name.c_str(), varLocation);
+				this->attrLocs[name] = varLocation;
+			}
+
+			free(charBuffer);
+		}
+
+		for (auto shader : shaders) {
+			glDetachShader(mProgram, shader);
+			glDeleteShader(shader);
+		}
+
 		return true;
 	}
 }
