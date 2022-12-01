@@ -14,7 +14,7 @@ layout (location = 1) uniform mat4 u_modelToWorld;
 
 void main()
 {
-	v_normalDir = (u_modelToWorld * vec4(normal, 0)).xyz;
+	v_normalDir = (transpose(inverse(u_modelToWorld)) * vec4(normal, 0)).xyz;
 	v_tangentDir = (u_modelToWorld * vec4(tangent, 0)).xyz;
 	vec4 worldPos = u_modelToWorld * vec4(position, 1);
 	v_fragPos = worldPos.xyz;

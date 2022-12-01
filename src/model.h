@@ -17,6 +17,8 @@
 
 using namespace std;
 
+// Adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/model.h
+
 class Model
 {
 public:
@@ -147,6 +149,7 @@ private:
         mGeo.setIndex(indices);
 
         mGeo.setAttr("position", Attribute(&positions, 3));
+        mGeo.setAttr("normal", Attribute(&normals, 3));
         mGeo.setAttr("texCoord", Attribute(&texCoords, 2));
         mGeo.setAttr("tangent", Attribute(&tangents, 3));
         mGeo.setAttr("biTangent", Attribute(&biTangents, 3));
@@ -160,8 +163,8 @@ private:
         // 3. normal maps
         std::vector<initTex> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-        // 4. height maps
-        std::vector<initTex> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        // 4. opacity maps
+        std::vector<initTex> heightMaps = loadMaterialTextures(material, aiTextureType_OPACITY, "texture_opacity");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
         Mesh *nMesh = new Mesh(Material(shaderName, textures));
@@ -185,8 +188,6 @@ private:
         return nMesh;
     }
 
-    // checks all material textures of a given type and loads the textures if they're not loaded yet.
-    // the required info is returned as a Texture struct.
     vector<initTex> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
     {
         vector<initTex> textures;
@@ -201,9 +202,10 @@ private:
             {
                 if(std::strcmp(textures_loaded[j].first.path.data(), filename.c_str()) == 0)
                 {
+                    // found texture with same filepath
                     textures.push_back( initTex {textures_loaded[j].second, textures_loaded[j].first} );
-                    // printf(as"found texture with same path: %s\n", textures_loaded[j].first.path.c_str());
-                    skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+                    printf("found texture with same path: %s\n", textures_loaded[j].first.path.c_str());
+                    skip = true;
                     break;
                 }
             }
@@ -214,7 +216,7 @@ private:
                 texture.tex.path = filename;
                 texture.tex.name = typeName + to_string(i);
                 texture.id = 0;
-                // printf("loading texture %s with name: %s\n", texture.tex.path.c_str(), texture.tex.name.c_str());
+                printf("loading texture %s with name: %s\n", texture.tex.path.c_str(), texture.tex.name.c_str());
                 textures.push_back(texture);
             }
         }
