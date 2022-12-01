@@ -62,12 +62,11 @@ inline void configure_texture(GLuint texture, GLenum min, GLenum mag, GLenum sWr
 inline void configure_quad(GLuint vao, GLuint vbo)
 {
 	static float QUAD_VERTS[] = {
-			// POSITION (XY)		// TEXCOORD
-			-1.0f,	-1.0f,			1.0f,	0.0f,
-			0.0f,	-1.0f,			+1.0f,	1.0f,
-			0.0f,	1.0f,			+1.0f,	-1.0f,
-			1.0f,	1.0f,			0.0f,	+1.0f,
-			+1.0f,	1.0f,			1.0f,	1.0f,
+			// POSITION (XYZ)		// TEXCOORD
+			-1.0f,	1.0f,	1.0f,	0.0f,	1.0f,
+			-1.0f,	-1.0f,	1.0f,	0.0f,	0.0f,
+			1.0f,	1.0f,	1.0f,	1.0f,	1.0f,
+			1.0f,	-1.0f,	1.0f,	1.0f,	0.0f
 	};
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);

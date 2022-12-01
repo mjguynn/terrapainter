@@ -169,6 +169,7 @@ void Terrain::generate(const Canvas &source)
 }
 void Terrain::draw(const RenderCtx &c) const
 {
+    const mat4 modelToWorld = world_transform();
 
     // Tree
     glUseProgram(mTreeProgram->id());
@@ -185,15 +186,20 @@ void Terrain::draw(const RenderCtx &c) const
     mTree->Draw();
 
     // Terrain
-    const mat4 modelToWorld = world_transform();
-    glUseProgram(mHeightmap.mat().id());
-    mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
-    mHeightmap.mat().setMat4Float("u_modelToWorld", modelToWorld);
-    mHeightmap.mat().set3Float("u_sunDir", c.sunDir);
-    mHeightmap.mat().set3Float("u_sunColor", c.sunColor);
-    mHeightmap.mat().set3Float("u_viewPos", c.viewPos);
-    mHeightmap.mat().set4Float("u_cullPlane", c.cullPlane);
-    mHeightmap.draw();
+    {
+        // TODO HACK: This should really be fixed inside the mesh generation itself!
+        // Instead we have to do this stupid leaky abstraction hack...
+        glFrontFace(c.inWaterPass  ? GL_CCW : GL_CW);
+        glUseProgram(mHeightmap.mat().id());
+        mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
+        mHeightmap.mat().setMat4Float("u_modelToWorld", modelToWorld);
+        mHeightmap.mat().set3Float("u_sunDir", c.sunDir);
+        mHeightmap.mat().set3Float("u_sunColor", c.sunColor);
+        mHeightmap.mat().set3Float("u_viewPos", c.viewPos);
+        mHeightmap.mat().set4Float("u_cullPlane", c.cullPlane);
+        mHeightmap.draw();
+        glFrontFace(c.inWaterPass ? GL_CW : GL_CCW);
+    }
 
     // Grass
     if (!c.inWaterPass) {
@@ -213,11 +219,13 @@ void Terrain::draw(const RenderCtx &c) const
 
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        glDisable(GL_CULL_FACE);
 
         glBindVertexArray(mGrassVAO);
         glDrawArrays(GL_POINTS, 0, mNumGrassTriangles);
 
         glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         glDisable(GL_MULTISAMPLE);
+        glEnable(GL_CULL_FACE);
     }
 }
