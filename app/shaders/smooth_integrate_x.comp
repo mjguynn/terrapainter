@@ -5,12 +5,13 @@ layout (binding = 1, rgba32f) writeonly restrict uniform image2D u_dst;
 layout (location = 2) uniform int u_height;
 void main() {
 	int x = int(gl_GlobalInvocationID.x);
-	// The -0.5 bias is undone later during compositing, see
-	// http://developer.amd.com/wordpress/media/2012/10/GDC2005_SATEnvironmentReflections.pdf
 	vec4 sum = vec4(0);
 	for (int y=0; y<u_height; y+=1) {
 		ivec2 coords = ivec2(x,y);
-		sum += imageLoad(u_src, coords);
+		// subtracting 0.5 ensures that the sign bit is fully utilized,
+		// which gives us a bit more precision
+		// this trick comes from GDC2005_SATEnvironmentReflections
+		sum += imageLoad(u_src, coords) - 0.5; 
 		imageStore(u_dst, coords, sum);
 	}
 }

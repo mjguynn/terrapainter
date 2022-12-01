@@ -153,11 +153,11 @@ public:
 		glUseProgram(mCompositeProgram);
 		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mIntegralXTexture);
-		glUniform1i(2, 0);
-		glBindImageTexture(2, dst, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glUniform1i(3, mBlurRadius);
-		glUniform2iv(4, 1, mCanvasSize.data());
+		glBindTexture(GL_TEXTURE_2D, mIntegralXYTexture);
+		glUniform1i(1, 0);
+		glBindImageTexture(2, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+		glBindImageTexture(3, dst, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glUniform1i(4, mBlurRadius);
 		glDispatchCompute((mCanvasSize.x + 15) / 16, (mCanvasSize.y + 15) / 16, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 	}
@@ -172,7 +172,8 @@ public:
 		g_shaderMgr.begin_screenspace(mPreviewProgram);
 		glUniform2i(0, screenMouse.x, screenMouse.y);
 		glUniform4f(1, 0.0f, mBrushRadius, mBrushHardness, canvasScale);
-		glUniform4f(2, 0, 0, 0, 0);
+		float v = mInStroke ? 0.0f : 1.0f;
+		glUniform4f(2, v, v, v, v);
 		g_shaderMgr.end_screenspace();
 	}
 };
