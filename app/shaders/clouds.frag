@@ -7,7 +7,7 @@ out vec4 fragColor;
 
 const float cloudscale = 10.1;
 const float speed = 0.01;
-const float clouddark = 0.5;
+const float clouddark = 0.3;
 const float cloudlight = 0.3;
 const float cloudcover = 0.3;
 const float cloudalpha = 8.0;
