@@ -1,0 +1,50 @@
+#version 430 core
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout (binding = 0, r8) readonly restrict uniform image2D u_stroke;
+layout (location = 1) uniform sampler2D u_integral;
+// In a perfect world, we could just use u_integral for everything, but
+// precision loss means it's better to use u_src for 0 intensity...
+layout (binding = 2, rgba8) readonly restrict uniform image2D u_src;
+layout (binding = 3, rgba8) writeonly restrict uniform image2D u_dst;
+layout (location = 4) uniform int u_blurRadius;
+
+void passthrough(ivec2 coords) {
+	vec4 src = imageLoad(u_src, coords);
+	imageStore(u_dst, coords, src);
+}
+void blur(ivec2 coords, float radius) {	
+	vec2 size = vec2(textureSize(u_integral, 0));
+	
+	// Why do we need this when out-of-bounds reads are okay?
+	// Because continuing the current integral is *not* correct behavior
+	// and we need to know the correct area to divide the integral by
+	float left = max(0.0f, float(coords.x) - radius);
+	float right = min(size.x, float(coords.x) + radius);
+	float bottom = max(0.0f, float(coords.y) - radius);
+	float top = min(size.y, float(coords.y) + radius);
+	
+	float area = (right - left)*(top - bottom);
+	vec2 s = 1 / size;
+	
+	vec4 lb = texture(u_integral, vec2(left, bottom) * s);
+	vec4 rb = texture(u_integral, vec2(right, bottom) * s);
+	vec4 lt = texture(u_integral, vec2(left, top) * s);
+	vec4 rt = texture(u_integral, vec2(right, top) * s);
+	
+	vec4 integral = (rt + lb) - (rb + lt);
+	// adding back the 0.5 because we took it away in smooth_integrate_x
+	vec4 blurred = (integral / area) + 0.5;
+	imageStore(u_dst, coords, blurred);
+}
+void main() {
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	float amount = imageLoad(u_stroke, coords).r;
+	float radius = u_blurRadius * amount;
+	if (radius <= 0.5f) {
+		passthrough(coords);
+	} else {
+		blur(coords, radius);
+	}
+}

@@ -423,7 +423,7 @@ void Canvas::run_tool_menu() {
 	if (ImGui::Begin("Tool Panel", nullptr, windowFlags)) {
 		for (size_t i = 0; i < mTools.size(); i++) {
 			if (i % 4 > 0) ImGui::SameLine();
-			if(ImGui::Selectable(mTools.at(i)->name(), i == mCurTool, 0, ImVec2(50, 50))) {
+			if(ImGui::Selectable(mTools.at(i)->name(), i == mCurTool, 0, ImVec2(75, 15))) {
 				if (i != mCurTool) {
 					// user changed tools...
 					set_current_tool(i);

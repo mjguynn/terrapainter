@@ -70,7 +70,8 @@ void terrapainter::run(SDL_Window *window)
     Canvas canvas(window);
     canvas.register_tool(tools::paint());
     canvas.register_tool(tools::splatter());
-    canvas.set_canvas(ivec2{512, 512}, nullptr);
+    canvas.register_tool(tools::smooth());
+    canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
     World world(canvas);
     world.add_child(std::make_unique<Water>(world.reflection_texture(), &canvas));
     world.add_child(std::make_unique<Sky>("skybox"));
