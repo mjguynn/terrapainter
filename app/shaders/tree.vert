@@ -11,5 +11,5 @@ layout (location = 1) uniform mat4 model;
 void main()
 {
     TexCoords = texCoord;    
-    gl_Position = viewProj *model * vec4(position, 1.0);
+    gl_Position = viewProj * model * vec4(position, 1.0);
 }
