@@ -48,4 +48,6 @@ class Material {
     void set3Float(const std::string &name, vec3 value) const;
     void set4Float(const std::string &name, vec4 value) const;
     void setMat4Float(const std::string &name, const mat4& value) const;
+  private:
+    void load_tex_helper(GLuint texture, std::string fileName);
 };

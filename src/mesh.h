@@ -41,9 +41,11 @@ public:
       // bind appropriate textures
       int i = 0;
       for (const auto& [tex, id] : mMat.texs) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, id);
-        mMat.setInt(tex.name, i);
+        if (mMat.uniforms().count(tex.name) != 0) {
+          glActiveTexture(GL_TEXTURE0 + i);
+          glBindTexture(GL_TEXTURE_2D, id);
+          mMat.setInt(tex.name, i);
+        }
         i += 1;
       }
 

@@ -5,15 +5,15 @@
 #include "../material.h"
 
 static std::array<Texture, 9> textures = {
-    Texture{"mSand", "sand.png"},
-    Texture{"mGrass", "grass.png"},
-    Texture{"mDirt", "dirt.png"},
-    Texture{"mMnt", "mountain.png"},
-    Texture{"mGrassNorm", "grass-normal.png"},
-    Texture{"mMountNorm", "mountain-normal.png"},
-    Texture{"mSandNorm", "sand-normal.png"},
-    Texture{"mSnowNorm", "snow-normal.png"},
-    Texture{"mDirtNorm", "dirt-normal.png"}};
+    Texture{"mSand", "textures/sand.png"},
+    Texture{"mGrass", "textures/grass.png"},
+    Texture{"mDirt", "textures/dirt.png"},
+    Texture{"mMnt", "textures/mountain.png"},
+    Texture{"mGrassNorm", "textures/grass-normal.png"},
+    Texture{"mMountNorm", "textures/mountain-normal.png"},
+    Texture{"mSandNorm", "textures/sand-normal.png"},
+    Texture{"mSnowNorm", "textures/snow-normal.png"},
+    Texture{"mDirtNorm", "textures/dirt-normal.png"}};
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale),
       mGrassProgram(g_shaderMgr.geometry("grass")),
@@ -165,11 +165,12 @@ void Terrain::generate(const Canvas &source)
 
     // -------------------------Grass (END) --------------------------------------
     mHeightmap.setGeometry(std::move(tGeo));
-    mTree = new Model("models/backpack/backpack.obj", "tree");
+    mTree = new Model("models/tree/tree1.obj", "tree");
 }
 void Terrain::draw(const RenderCtx &c) const
 {
 
+    // Tree
     glUseProgram(mTreeProgram->id());
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 
@@ -183,6 +184,7 @@ void Terrain::draw(const RenderCtx &c) const
     glUniformMatrix4fv(1, 1, GL_TRUE, new_model.data());
     mTree->Draw();
 
+    // Terrain
     const mat4 modelToWorld = world_transform();
     glUseProgram(mHeightmap.mat().id());
     mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
@@ -193,6 +195,7 @@ void Terrain::draw(const RenderCtx &c) const
     mHeightmap.mat().set4Float("u_cullPlane", c.cullPlane);
     mHeightmap.draw();
 
+    // Grass
     float time = double(SDL_GetTicks64()) / 1000.0;
     glUseProgram(mGrassProgram->id());
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
