@@ -140,12 +140,7 @@ void main()
 	float phongScale;
 	lookup_properties(height, color, normalMap);
 	
-	float depthFac = clamp( -v_fragPos.z/32, 0, 1);
-	vec3 norm = normalize(mix(
-		adjust_normal(normalMap),
-		vec3(0, 0, 3),
-		depthFac
-	));
+	vec3 norm = adjust_normal(normalMap);
 	
 	vec3 lightColor = u_sunColor;
 	
@@ -154,7 +149,7 @@ void main()
 
 	// diffuse
 	vec3 lightDir = normalize(u_sunDir);
-	float diffuse = 0.6*max(dot(norm, lightDir), 0) - depthFac/2;
+	float diffuse = 0.6*max(dot(norm, lightDir), 0);
 
 	// specular
 	float specularStrength = 0.5 * (
