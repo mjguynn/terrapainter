@@ -16,15 +16,15 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
 
     // Terrain
     std::vector<Texture> mTexs;
-    mTexs.push_back(Texture {"mSand", "sand.png"});
-    mTexs.push_back(Texture {"mGrass", "grass.png"});
-    mTexs.push_back(Texture {"mDirt", "dirt.png"});
-    mTexs.push_back(Texture {"mMnt", "mountain.png"});
-    mTexs.push_back(Texture {"mGrassNorm", "grass-normal.png"});
-    mTexs.push_back(Texture {"mMountNorm", "mountain-normal.png"});
-    mTexs.push_back(Texture {"mSandNorm", "sand-normal.png"});
-    mTexs.push_back(Texture {"mSnowNorm", "snow-normal.png"});
-    mTexs.push_back(Texture {"mDirtNorm", "dirt-normal.png"});
+    mTexs.push_back(Texture{"mSand", "sand.png"});
+    mTexs.push_back(Texture{"mGrass", "grass.png"});
+    mTexs.push_back(Texture{"mDirt", "dirt.png"});
+    mTexs.push_back(Texture{"mMnt", "mountain.png"});
+    mTexs.push_back(Texture{"mGrassNorm", "grass-normal.png"});
+    mTexs.push_back(Texture{"mMountNorm", "mountain-normal.png"});
+    mTexs.push_back(Texture{"mSandNorm", "sand-normal.png"});
+    mTexs.push_back(Texture{"mSnowNorm", "snow-normal.png"});
+    mTexs.push_back(Texture{"mDirtNorm", "dirt-normal.png"});
     tMat = new Material("heightmap", mTexs);
 
     // Grass
@@ -182,7 +182,6 @@ void Terrain::generate(const Canvas &source)
     // -------------------------Grass (END) --------------------------------------
 
     treeModel = new Model("models/tree1.obj", "tree");
-
 }
 void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 cullPlane) const
 {
@@ -191,14 +190,26 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     if (!mMesh)
         return;
 
+    glUseProgram(mTreeProgram);
+    glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+
+    mat4 scale = mat3::scale(1).hmg();
+    mat4 rotation = mat3{
+        1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0}
+                        .hmg();
+    mat4 new_model = scale * rotation;
+    glUniformMatrix4fv(1, 1, GL_TRUE, new_model.data());
+    treeModel->Draw();
+
+    // float *dat = (float *)treeModel->meshes[0]->geo.getAttr("position")->data;
+    // for (size_t i = 0; i < 20; i++)
+    // {
+    //     printf("pos %d of first model: (%f, %f, %f)\n", i, dat[3 * i], dat[3 * i + 1], dat[3 * i + 2]);
+    // }
 
     const mat4 modelToWorld = world_transform();
-
-    // glUseProgram(mTreeProgram);
-    // glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
-    // glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
-    // treeModel->Draw();
-
     // TODO change this
     vec3 lightDir = {0.0f, 0.0f, -5.0f};
     glUseProgram(tMat->progID);
