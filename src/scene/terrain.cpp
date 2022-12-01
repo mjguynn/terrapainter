@@ -32,6 +32,26 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     mAlphaMultiplier = 1.5f;
 
     mTree = nullptr;
+
+    // --------- TODO HACK
+    glGenVertexArrays(1, &mSeafloorVAO);
+    glGenBuffers(1, &mSeafloorVBO);
+    glBindVertexArray(mSeafloorVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mSeafloorVBO);
+    static float SEAFLOOR_VERTS[] = {
+        // POSITION (XYZ)		// NORMAL (XYZ)     // TANGENT (XYZ)
+        -1.0f,	1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
+        -1.0f,	-1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
+        1.0f,	1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // this formatting is intentional!
+        1.0f,	-1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f  // wfdasdsag
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(SEAFLOOR_VERTS), SEAFLOOR_VERTS, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(0));
+    glEnableVertexAttribArray(0); // POSITION
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1); // NORMAL
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2); // TANGENT
 }
 Terrain::~Terrain() noexcept
 {
@@ -41,6 +61,10 @@ Terrain::~Terrain() noexcept
     glDeleteBuffers(1, &mGrassVBO);
     assert(mGrassTexture);
     glDeleteTextures(1, &mGrassTexture);
+    assert(mSeafloorVAO);
+    glDeleteVertexArrays(1, &mSeafloorVAO);
+    assert(mSeafloorVBO);
+    glDeleteBuffers(1, &mSeafloorVBO);
 }
 
 // Code adapted from: https://stackoverflow.com/questions/28889210/smoothstep-function
@@ -202,6 +226,13 @@ void Terrain::draw(const RenderCtx &c) const
         mHeightmap.mat().set4Float("u_cullPlane", c.cullPlane);
         mHeightmap.draw();
         glFrontFace(c.inWaterPass ? GL_CW : GL_CCW);
+        // the biggest hack of all time, super unstable, awful, etc
+        // this depends on the shader state being the same since the previous invocation
+        glBindVertexArray(mSeafloorVAO);
+        mat4 seafloorXform = modelToWorld * mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, -16.0f))
+            * mat4::diag(8192, 8192, 1, 1);
+        mHeightmap.mat().setMat4Float("u_modelToWorld", seafloorXform);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
     // Grass

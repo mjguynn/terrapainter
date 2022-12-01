@@ -19,6 +19,8 @@ private:
 	GLuint mGrassVBO;
 	GLuint mNumGrassTriangles;
 	GLuint mGrassTexture;
+	GLuint mSeafloorVAO;
+	GLuint mSeafloorVBO;
 	float mAlphaTest = 0.25f;
 	float mAlphaMultiplier = 1.5f;
 	
