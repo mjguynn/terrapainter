@@ -55,5 +55,7 @@ void main()
 	vec3 result = (ambient + diffuse + specular) * lightColor * color;
 
   float alpha = texture(texture_opacity0, TexCoords).x;
+  if (alpha < 0.5)
+		discard;
 	FragColor = vec4(result, alpha);
 }
