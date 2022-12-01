@@ -150,6 +150,8 @@ void World::render(ivec2 viewportSize)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mReflectionDepth);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    // everything gets flipped by the viewproj, including normals!
+    glFrontFace(GL_CW);
     RenderCtx c = RenderCtx{
         .viewProj = reflProj,
         .cullPlane = vec4(0,0,1,0),
@@ -165,6 +167,7 @@ void World::render(ivec2 viewportSize)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glFrontFace(GL_CCW);
     c.inWaterPass = false;
     c.viewProj = viewProj;
     c.cullPlane = vec4(0, 0, 1, 1024);

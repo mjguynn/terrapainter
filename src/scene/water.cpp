@@ -4,10 +4,10 @@
 static void configure_infinite_plane(GLuint vao, GLuint vbo) {
 	static float VERTS[] = {
 		// POSITION (XYZ)			// NORMAL
-		-8192.f, -8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
 		-8192.f, +8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
-		+8192.f, -8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
+		-8192.f, -8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
 		+8192.f, +8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
+		+8192.f, -8192.f, 0.0f,		0.0f, 0.0f, 1.0f,
 	};
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
