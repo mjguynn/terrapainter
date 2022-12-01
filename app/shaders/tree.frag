@@ -8,9 +8,7 @@ in vec3 v_tangentDir;
 in vec3 v_biTangentDir;
 
 uniform sampler2D texture_diffuse0;
-uniform sampler2D texture_specular0;
 uniform sampler2D texture_normal0;
-uniform sampler2D texture_opacity0;
 
 layout (location = 2) uniform vec3 u_sunDir;
 layout (location = 3) uniform vec3 u_viewPos;
@@ -28,12 +26,15 @@ vec3 adjust_normal(vec3 normalMap) {
 }
 
 void main()
-{    
-	vec3 color = texture( texture_diffuse0, TexCoords ).xyz;
-	vec3 normalMap = texture( texture_normal0, TexCoords ).xyz;
-	float phongScale;
+{   
+	vec4 base = texture(texture_diffuse0, TexCoords);
+	if (base.a < 0.5)
+		discard;
+	vec3 color = base.xyz;
 	
-	vec3 norm = adjust_normal(normalMap);
+	vec4 ns = texture(texture_normal0, TexCoords);
+	vec3 norm = adjust_normal(ns.xyz);
+	float specularStrength = ns.w;
 	
 	vec3 lightColor = u_sunColor;
 	
@@ -45,7 +46,6 @@ void main()
 	float diffuse = 0.6*max(dot(norm, lightDir), 0);
 
 	// specular
-	float specularStrength = texture( texture_specular0, TexCoords ).x;
 	vec3 viewDir = normalize(u_viewPos - v_fragPos);
 	vec3 halfAngle = normalize(viewDir + lightDir);
 	float phongFac = pow(max(0, dot(norm, halfAngle)), 32);
@@ -53,9 +53,5 @@ void main()
 	float specular = specularStrength * phongFac * geomFac;
 
 	vec3 result = (ambient + diffuse + specular) * lightColor * color;
-
-  float alpha = texture(texture_opacity0, TexCoords).x;
-  if (alpha < 0.5)
-		discard;
-	FragColor = vec4(result, alpha);
+	FragColor = vec4(result, 1);
 }
