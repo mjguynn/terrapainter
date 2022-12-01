@@ -17,7 +17,8 @@ static std::array<Texture, 9> textures = {
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale),
       mGrassProgram(g_shaderMgr.geometry("grass")),
-      mHeightmap(Material("heightmap", std::span(textures)))
+      mHeightmap(Material("heightmap", std::span(textures))),
+      mTree(Model("models/tree/tree1.obj", "tree"))
 {
     mGrassProgram = g_shaderMgr.geometry("grass");
     glGenVertexArrays(1, &mGrassVAO);
@@ -30,8 +31,6 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     load_mipmap_texture(mGrassTexture, "grassPack.png");
     mAlphaTest = 0.25f;
     mAlphaMultiplier = 1.5f;
-
-    mTree = nullptr;
 
     // --------- TODO HACK
     glGenVertexArrays(1, &mSeafloorVAO);
@@ -191,7 +190,6 @@ void Terrain::generate(const Canvas &source)
 
     // -------------------------Grass (END) --------------------------------------
     mHeightmap.setGeometry(std::move(tGeo));
-    mTree = new Model("models/tree/tree1.obj", "tree");
 }
 void Terrain::draw(const RenderCtx &c) const
 {
@@ -212,7 +210,7 @@ void Terrain::draw(const RenderCtx &c) const
                         .hmg();
     mat4 new_model = scale * rotation;
     glUniformMatrix4fv(1, 1, GL_TRUE, new_model.data());
-    mTree->Draw();
+    mTree.Draw();
 
     // Terrain
     {

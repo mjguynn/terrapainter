@@ -13,7 +13,7 @@ private:
 	// Terrain Material
 	Program* mGrassProgram;
 	Mesh mHeightmap;
-	Model* mTree;
+	Model mTree;
 	Program* mTreeProgram;
 	GLuint mGrassVAO;
 	GLuint mGrassVBO;

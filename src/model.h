@@ -40,7 +40,7 @@ public:
     }
 
     // draws the model, and thus all its meshes
-    void Draw()
+    void Draw() const
     {
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i]->draw();
