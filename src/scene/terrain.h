@@ -4,6 +4,8 @@
 #include "../mesh.h"
 #include "../canvas.h"
 #include "../shadermgr.h"
+#include "../model.h"
+
 
 class Terrain : public Entity
 {
@@ -11,6 +13,8 @@ private:
 	// Terrain Material
 	Program* mGrassProgram;
 	Mesh mHeightmap;
+	Model* mTree;
+	Program* mTreeProgram;
 	GLuint mGrassVAO;
 	GLuint mGrassVBO;
 	GLuint mNumGrassTriangles;

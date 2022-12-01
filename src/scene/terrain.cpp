@@ -24,10 +24,14 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     glGenBuffers(1, &mGrassVBO);
     mNumGrassTriangles = 0;
 
+    mTreeProgram = g_shaderMgr.graphics("tree");
+
     glGenTextures(1, &mGrassTexture);
     load_mipmap_texture(mGrassTexture, "grassPack.png");
     mAlphaTest = 0.25f;
     mAlphaMultiplier = 1.5f;
+
+    mTree = nullptr;
 }
 Terrain::~Terrain() noexcept
 {
@@ -161,9 +165,24 @@ void Terrain::generate(const Canvas &source)
 
     // -------------------------Grass (END) --------------------------------------
     mHeightmap.setGeometry(std::move(tGeo));
+    mTree = new Model("models/backpack/backpack.obj", "tree");
 }
 void Terrain::draw(const RenderCtx &c) const
 {
+
+    glUseProgram(mTreeProgram->id());
+    glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
+
+    mat4 scale = mat3::scale(0.04).hmg();
+    mat4 rotation = mat3{
+        1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0}
+                        .hmg();
+    mat4 new_model = scale * rotation;
+    glUniformMatrix4fv(1, 1, GL_TRUE, new_model.data());
+    mTree->Draw();
+
     const mat4 modelToWorld = world_transform();
     glUseProgram(mHeightmap.mat().id());
     mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
