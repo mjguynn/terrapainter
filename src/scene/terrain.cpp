@@ -196,26 +196,28 @@ void Terrain::draw(const RenderCtx &c) const
     mHeightmap.draw();
 
     // Grass
-    float time = double(SDL_GetTicks64()) / 1000.0;
-    glUseProgram(mGrassProgram->id());
-    glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
-    glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
-    glUniform1f(2, time);
+    if (!c.inWaterPass) {
+        float time = double(SDL_GetTicks64()) / 1000.0;
+        glUseProgram(mGrassProgram->id());
+        glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
+        glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
+        glUniform1f(2, time);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mGrassTexture);
-    glUniform1i(4, 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mGrassTexture);
+        glUniform1i(4, 0);
 
-    glUniform4f(5, 1, 1, 1, 1);
-    glUniform1f(6, mAlphaTest);
-    glUniform1f(7, mAlphaMultiplier);
+        glUniform4f(5, 1, 1, 1, 1);
+        glUniform1f(6, mAlphaTest);
+        glUniform1f(7, mAlphaMultiplier);
 
-    glEnable(GL_MULTISAMPLE);
-    glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        glEnable(GL_MULTISAMPLE);
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-    glBindVertexArray(mGrassVAO);
-    glDrawArrays(GL_POINTS, 0, mNumGrassTriangles);
+        glBindVertexArray(mGrassVAO);
+        glDrawArrays(GL_POINTS, 0, mNumGrassTriangles);
 
-    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-    glDisable(GL_MULTISAMPLE);
+        glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        glDisable(GL_MULTISAMPLE);
+    }
 }
