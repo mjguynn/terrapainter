@@ -1,0 +1,50 @@
+# Blender MTL File: 'None'
+# Material Count: 4
+
+newmtl yamaboushi_leaf_aut1_1_Mat
+Ns 127.999985
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump leaf1ns.png
+map_Kd leaf1.png
+
+newmtl yamaboushi_leaf_aut1_2_Mat
+Ns 127.999985
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump leaf2ns.png
+map_Kd leaf2.png
+
+newmtl yamaboushi_leaf_aut1_3_Mat
+Ns 127.999985
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump leaf3ns.png
+map_Kd leaf3.png
+
+newmtl yamaboushi_tan_trunk_Mat
+Ns 127.999985
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump trunkns.png
+map_Kd trunk.png

@@ -18,7 +18,7 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale),
       mGrassProgram(g_shaderMgr.geometry("grass")),
       mHeightmap(Material("heightmap", std::span(textures))),
-      mTree(Model("models/tree/tree1.obj", "tree"))
+      mTree(Model("models/tree/tree1low.obj", "tree"))
 {
     mGrassProgram = g_shaderMgr.geometry("grass");
     glGenVertexArrays(1, &mGrassVAO);
