@@ -41,4 +41,5 @@ class Material {
     void setMat4Float(const std::string &name, mat4 value) const;
   private:
     void setupTexs();
+    void load_tex_helper(GLuint texture, std::string fileName);
 };

@@ -16,15 +16,15 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
 
     // Terrain
     std::vector<Texture> mTexs;
-    mTexs.push_back(Texture{"mSand", "sand.png"});
-    mTexs.push_back(Texture{"mGrass", "grass.png"});
-    mTexs.push_back(Texture{"mDirt", "dirt.png"});
-    mTexs.push_back(Texture{"mMnt", "mountain.png"});
-    mTexs.push_back(Texture{"mGrassNorm", "grass-normal.png"});
-    mTexs.push_back(Texture{"mMountNorm", "mountain-normal.png"});
-    mTexs.push_back(Texture{"mSandNorm", "sand-normal.png"});
-    mTexs.push_back(Texture{"mSnowNorm", "snow-normal.png"});
-    mTexs.push_back(Texture{"mDirtNorm", "dirt-normal.png"});
+    mTexs.push_back(Texture{"mSand", "textures/sand.png"});
+    mTexs.push_back(Texture{"mGrass", "textures/grass.png"});
+    mTexs.push_back(Texture{"mDirt", "textures/dirt.png"});
+    mTexs.push_back(Texture{"mMnt", "textures/mountain.png"});
+    mTexs.push_back(Texture{"mGrassNorm", "textures/grass-normal.png"});
+    mTexs.push_back(Texture{"mMountNorm", "textures/mountain-normal.png"});
+    mTexs.push_back(Texture{"mSandNorm", "textures/sand-normal.png"});
+    mTexs.push_back(Texture{"mSnowNorm", "textures/snow-normal.png"});
+    mTexs.push_back(Texture{"mDirtNorm", "textures/dirt-normal.png"});
     tMat = new Material("heightmap", mTexs);
 
     // Grass
@@ -181,7 +181,7 @@ void Terrain::generate(const Canvas &source)
 
     // -------------------------Grass (END) --------------------------------------
 
-    treeModel = new Model("models/tree1.obj", "tree");
+    treeModel = new Model("models/backpack/backpack.obj", "tree");
 }
 void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 cullPlane) const
 {
@@ -193,7 +193,7 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     glUseProgram(mTreeProgram);
     glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
 
-    mat4 scale = mat3::scale(1).hmg();
+    mat4 scale = mat3::scale(0.04).hmg();
     mat4 rotation = mat3{
         1.0, 0.0, 0.0,
         0.0, 0.0, 1.0,

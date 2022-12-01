@@ -83,6 +83,7 @@ private:
 
     Mesh *processMesh(aiMesh *mesh, const aiScene *scene, std::string shaderName)
     {
+        printf("creating mesh\n");
         // data to fill
         vector<float> positions;
         vector<float> normals;
@@ -102,8 +103,7 @@ private:
             positions.push_back(mesh->mVertices[i].z);
 
             // normals
-            if (mesh->HasNormals())
-            {
+            if (mesh->HasNormals()) {
                 normals.push_back(mesh->mNormals[i].x);
                 normals.push_back(mesh->mNormals[i].y);
                 normals.push_back(mesh->mNormals[i].z);
@@ -145,8 +145,7 @@ private:
 
         // TODO: AADD CHECKS
         Attribute *aPos = new Attribute(&positions, 3);
-        if (mesh->HasNormals())
-        {
+        if (mesh->HasNormals()) {
             Attribute *aNormals = new Attribute(&normals, 3);
             mGeo.setAttr("normal", aNormals);
         }
@@ -177,6 +176,8 @@ private:
         Material mMat = Material(shaderName, textures);
         Mesh *nMesh = new Mesh(mGeo, mMat);
 
+        printf("mesh created\n");
+
         // return a mesh object created from the extracted mesh data
         return nMesh;
     }
@@ -196,6 +197,7 @@ private:
             std::string filename = this->directory + '/' + string(str.C_Str());
             texture.path = filename;
             texture.name = typeName + to_string(i);
+            printf("loading texture with name: %s\n", texture.name.c_str());
             textures.push_back(texture);
         }
         return textures;

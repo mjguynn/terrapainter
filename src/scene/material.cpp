@@ -63,8 +63,32 @@ void Material::setupTexs() {
     glGenTextures(1, &x);
     texIds[i] = x;
 
-    load_mipmap_texture(texIds[i], texs[i].path);
+    Material::load_tex_helper(texIds[i], texs[i].path);
     // configure_texture(texIds[i], texs[i].min, texs[i].); 
   }
   std::cout << "Setup textures..." << std::endl;
+}
+
+void Material::load_tex_helper(GLuint texture, std::string fileName)
+{
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load image, create texture and generate mipmaps
+  int width, height, nrChannels;
+  std::string path = fileName;
+  uint8_t* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 4);
+  if (data) {
+    int levels = (int)std::min(std::log2(width), std::log2(height));
+    glTexStorage2D(GL_TEXTURE_2D, levels, GL_RGBA8, width, height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+  }
+  else {
+    fprintf(stderr, "[error] failed to load texture \"%s\"\n", path.c_str());
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 0, 0);
+  }
 }
