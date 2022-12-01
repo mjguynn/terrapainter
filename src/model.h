@@ -13,12 +13,14 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
 
 class Model
 {
 public:
+    std::vector<std::pair<Texture, GLuint>> textures_loaded;
     vector<Mesh *> meshes;
     string directory;
     Material* mMat;
@@ -82,7 +84,7 @@ private:
 
     Mesh *processMesh(aiMesh *mesh, const aiScene *scene, std::string shaderName)
     {
-        printf("creating mesh\n");
+        // printf("creating mesh\n");
         // data to fill
         vector<float> positions;
         vector<float> normals;
@@ -92,7 +94,7 @@ private:
         vector<float> biTangents;
 
         vector<unsigned int> indices;
-        vector<Texture> textures;
+        vector<initTex> textures;
 
         // walk through each of the mesh's vertices
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -113,6 +115,8 @@ private:
             {
                 texCoords.push_back(mesh->mTextureCoords[0][i].x);
                 texCoords.push_back(mesh->mTextureCoords[0][i].y);
+
+                // printf("texCoords for vertex %d: (%f, %f)\n", i, mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 
                 tangents.push_back(mesh->mTangents[i].x);
                 tangents.push_back(mesh->mTangents[i].y);
@@ -143,28 +147,39 @@ private:
         mGeo.setIndex(indices);
 
         mGeo.setAttr("position", Attribute(&positions, 3));
-        mGeo.setAttr("texCoord", Attribute(&texCoords, 3));
+        mGeo.setAttr("texCoord", Attribute(&texCoords, 2));
         mGeo.setAttr("tangent", Attribute(&tangents, 3));
         mGeo.setAttr("biTangent", Attribute(&biTangents, 3));
 
         // 1. diffuse maps
-        vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+        vector<initTex> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
         textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
         // 2. specular maps
-        vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+        vector<initTex> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
         textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
         // 3. normal maps
-        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+        std::vector<initTex> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        std::vector<initTex> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
         Mesh *nMesh = new Mesh(Material(shaderName, textures));
 
+        for (auto && [t, id] : nMesh->mat().texs) {
+            bool skip = false;
+            for(unsigned int j = 0; j < textures_loaded.size(); j++) {
+                if(std::strcmp(textures_loaded[j].first.path.data(), t.path.data()) == 0)
+                    skip = true;
+                    break;
+            }
+            if (!skip)
+                textures_loaded.emplace_back(t, id);
+        }
+
         nMesh->setGeometry(std::move(mGeo));
 
-        printf("mesh created\n");
+        // printf("mesh created\n");
 
         // return a mesh object created from the extracted mesh data
         return nMesh;
@@ -172,21 +187,36 @@ private:
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet.
     // the required info is returned as a Texture struct.
-    vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
+    vector<initTex> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
     {
-        vector<Texture> textures;
+        vector<initTex> textures;
         for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
         {
             aiString str;
             mat->GetTexture(type, i, &str);
-
-            // if texture hasn't been loaded already, load it
-            Texture texture;
             std::string filename = this->directory + '/' + string(str.C_Str());
-            texture.path = filename;
-            texture.name = typeName + to_string(i);
-            printf("loading texture with name: %s\n", texture.name.c_str());
-            textures.push_back(texture);
+
+            bool skip = false;
+            for(unsigned int j = 0; j < textures_loaded.size(); j++)
+            {
+                if(std::strcmp(textures_loaded[j].first.path.data(), filename.c_str()) == 0)
+                {
+                    textures.push_back( initTex {textures_loaded[j].second, textures_loaded[j].first} );
+                    // printf(as"found texture with same path: %s\n", textures_loaded[j].first.path.c_str());
+                    skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+                    break;
+                }
+            }
+            if(!skip)
+            {
+                // Texture has not been loaded in yet
+                initTex texture;
+                texture.tex.path = filename;
+                texture.tex.name = typeName + to_string(i);
+                texture.id = 0;
+                // printf("loading texture %s with name: %s\n", texture.tex.path.c_str(), texture.tex.name.c_str());
+                textures.push_back(texture);
+            }
         }
         return textures;
     }

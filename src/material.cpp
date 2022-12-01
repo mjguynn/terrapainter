@@ -18,6 +18,21 @@ Material::Material(const std::string& shaderName, const std::span<Texture>& text
   }
 }
 
+Material::Material(const std::string& shaderName, const std::span<initTex>& textures) 
+    : mProgram(g_shaderMgr.graphics(shaderName)), texs()
+{
+  for (auto tex : textures)
+  {
+    if (tex.id) {
+        texs.emplace_back(tex.tex, tex.id);
+    } else {
+        glGenTextures(1, &tex.id);
+        load_tex_helper(tex.id, tex.tex.path);
+        texs.emplace_back(tex.tex, tex.id);
+    }
+  }
+}
+
 Material::Material(const std::string& shaderName) 
     : Material(shaderName, std::span<Texture>()) {}
 

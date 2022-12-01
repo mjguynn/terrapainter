@@ -20,6 +20,13 @@ struct Texture {
     GLenum type = GL_UNSIGNED_BYTE;
 };
 
+// possibly initialized texture
+// id = 0 iff uninitialized
+struct initTex {
+    GLuint id;
+    Texture tex; 
+};
+
 class Material {
   private:
     Program* mProgram;
@@ -27,6 +34,7 @@ class Material {
     std::vector<std::pair<Texture, GLuint>> texs;
     Material(const std::string& shaderName);
     Material(const std::string& shaderName, const std::span<Texture>& texs);
+    Material(const std::string& shaderName, const std::span<initTex>& texs);
     ~Material() noexcept;
 
     Material(const Material&) = delete;

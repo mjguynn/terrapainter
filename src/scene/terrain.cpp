@@ -165,7 +165,7 @@ void Terrain::generate(const Canvas &source)
 
     // -------------------------Grass (END) --------------------------------------
     mHeightmap.setGeometry(std::move(tGeo));
-    mTree = new Model("models/tree/tree1.obj", "tree");
+    mTree = new Model("models/backpack/backpack.obj", "tree");
 }
 void Terrain::draw(const RenderCtx &c) const
 {
@@ -174,7 +174,7 @@ void Terrain::draw(const RenderCtx &c) const
     glUseProgram(mTreeProgram->id());
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
 
-    mat4 scale = mat3::scale(0.04).hmg();
+    mat4 scale = mat3::scale(5.0).hmg();
     mat4 rotation = mat3{
         1.0, 0.0, 0.0,
         0.0, 0.0, 1.0,

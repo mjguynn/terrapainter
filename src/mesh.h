@@ -93,7 +93,7 @@ public:
         new (&mGeo) std::optional(std::move(geo));
 
         // printf("sanity check: (%f, %f, %f)",
-        //  ((float*)geo.attrs["tangent"]->data)[0], ((float*)geo.attrs["tangent"]->data)[1], ((float*)geo.attrs["tangent"]->data)[2]);
+        //  ((float*)this->ge["texCoord"]->data)[0], ((float*)geo.attrs["texCoord"]->data)[1], ((float*)geo.attrs["texCoord"]->data)[2]);
 
         // create buffers/arrays
         
