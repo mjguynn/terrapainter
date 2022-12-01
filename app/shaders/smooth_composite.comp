@@ -1,0 +1,26 @@
+#version 430 core
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout (binding = 0, r8) readonly restrict uniform image2D u_stroke;
+layout (location = 1) uniform sampler2D u_integral;
+layout (binding = 2, rgba8) writeonly restrict uniform image2D u_dst;
+layout (location = 3) uniform int u_blurRadius;
+layout (location = 4) uniform ivec2 u_canvasSize;
+
+void main() {
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	float intensity = imageLoad(u_stroke, coords).r;
+	float radius = 0.5 + u_blurRadius * intensity;
+	float xl = max(0, coords.x - radius);
+	float xh = min(u_canvasSize.x-1, coords.x + radius);
+	float area = 4*radius*radius;
+	
+	vec4 bottomLeft = texture(u_integral, (vec2(coords) - radius) / vec2(u_canvasSize));
+	vec4 topRight = texture(u_integral, (vec2(coords) + radius) / vec2(u_canvasSize));
+	
+	// the +0.5 undoes the bias in smooth_integrate_x
+	vec4 blurred = (topRight - bottomLeft) / area;
+	// We have to do some trickery to handle out-of-bounds reads...
+	imageStore(u_dst, coords, blurred);
+}

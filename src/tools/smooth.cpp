@@ -25,9 +25,30 @@ class SmoothTool : public virtual ICanvasTool {
 	GLuint mCompositeProgram;
 	GLuint mStrokeProgram;
 	GLuint mPreviewProgram;
-	GLuint mIntegralProgram;
+	// Compute shader input images must have a definite type (i.e. rgba8, rgba32f)
+	// This means I had to choose one of the following:
+	//	1. Make canvas texture RGBA32F
+	//	2. Copy canvas texture into RGBA32F texture and implement logic for switching axis at runtime
+	//	3. Make seperate X and XY shaders
+	// I chose number 3.
+	GLuint mIntegralXProgram;
+	GLuint mIntegralXYProgram;
 
 	void generate_integral_texture(GLuint src) {
+		glUseProgram(mIntegralXProgram);
+		glBindImageTexture(0, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+		glBindImageTexture(1, mIntegralXTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glUniform1i(2, mCanvasSize.y);
+		glDispatchCompute((mCanvasSize.x + 255) / 256, 1, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glUseProgram(mIntegralXYProgram);
+		glBindImageTexture(0, mIntegralXTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		glBindImageTexture(1, mIntegralXYTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glUniform1i(2, mCanvasSize.x);
+		glDispatchCompute(1, (mCanvasSize.y + 255) / 256, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+
 		mDirtyIntegralTexture = false;
 	}
 public:
@@ -42,15 +63,17 @@ public:
 		mLastBrushPos = vec2::zero();
 		mBlurRadius = 16;
 		glGenTextures(1, &mIntegralXTexture);
-		configure_texture(mIntegralXTexture, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+		configure_texture(mIntegralXTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA32F, GL_RGBA, GL_FLOAT);
 		glGenTextures(1, &mIntegralXYTexture);
-		configure_texture(mIntegralXYTexture, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+		configure_texture(mIntegralXYTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_RGBA32F, GL_RGBA, GL_FLOAT);
 		glGenTextures(1, &mStrokeTexture);
 		configure_texture(mStrokeTexture, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_R8, GL_RED);
 
-		mCompositeProgram = 0;
+		mCompositeProgram = g_shaderMgr.compute("smooth_composite");
 		mStrokeProgram = g_shaderMgr.compute("paint_stroke");
 		mPreviewProgram = g_shaderMgr.screenspace("paint_preview");
+		mIntegralXProgram = g_shaderMgr.compute("smooth_integrate_x");
+		mIntegralXYProgram = g_shaderMgr.compute("smooth_integrate_xy");
 	}
 
 	SmoothTool(const SmoothTool&) = delete;
@@ -71,6 +94,7 @@ public:
 	}
 	void clear_stroke(ivec2 canvasSize) override {
 		mInStroke = false;
+		mDirtyIntegralTexture = true;
 		assert(canvasSize.x > 0 && canvasSize.y > 0);
 		// We only re-create the texture if the canvas size changed,
 		// otherwise we just clear it...
@@ -86,7 +110,6 @@ public:
 		// don't bother clearing the integral texture, we'll populate it as soon as we enter stroke
 		const uint8_t zero = 0;
 		glClearTexImage(mStrokeTexture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
-		mDirtyIntegralTexture = true;
 	}
 	bool understands_param(SDL_Keycode keyCode) override {
 		return (keyCode == SDLK_f) || (keyCode == SDLK_h);
@@ -127,11 +150,21 @@ public:
 		// and if we had more time I would refactor the tool interface
 		// but for right now, hacks it is!
 		if (mDirtyIntegralTexture) generate_integral_texture(src);
+		glUseProgram(mCompositeProgram);
+		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mIntegralXTexture);
+		glUniform1i(2, 0);
+		glBindImageTexture(2, dst, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glUniform1i(3, mBlurRadius);
+		glUniform2iv(4, 1, mCanvasSize.data());
+		glDispatchCompute((mCanvasSize.x + 15) / 16, (mCanvasSize.y + 15) / 16, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 	}
 	void run_ui() override {
 		ImGui::DragFloat("Brush Radius", &mBrushRadius, 1.0f, 1.0f, MAX_BRUSH_RADIUS, "%g");
 		ImGui::DragFloat("Brush Hardness", &mBrushHardness, 0.1f, 0.0f, 4.0f, "%.2f");
-		ImGui::DragInt("Blur Radius", &mBlurRadius, 1.0f, 1, MAX_BRUSH_RADIUS, "%ipx");
+		ImGui::DragInt("Smooth Size", &mBlurRadius, 1.0f, 1, MAX_BRUSH_RADIUS, "%ipx");
 		if (mBlurRadius < 1) mBlurRadius = 1;
 	}
 	void preview(ivec2 screenSize, ivec2 screenMouse, float canvasScale) override {
