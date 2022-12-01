@@ -18,7 +18,7 @@
 // such as gaming laptops. Disabled by default because
 //  1. Using the iGPU is actually a bit snapper right now, for some reason
 //  2. Using the dGPU drains battery life and we don't need the extra perf anyways
-#define TP_ENABLE_DGPU 1
+#define TP_ENABLE_DGPU 0
 #if TP_ENABLE_DGPU
 extern "C"
 {

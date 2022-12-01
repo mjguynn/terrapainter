@@ -7,11 +7,12 @@ layout (location = 5) uniform sampler2D mSand; // sand
 layout (location = 6) uniform sampler2D mGrass; // grass
 layout (location = 7) uniform sampler2D mDirt; // dirt
 layout (location = 8) uniform sampler2D mMnt; // mountain
-layout (location = 9) uniform sampler2D mGrassNorm;
-layout (location = 10) uniform sampler2D mSandNorm;
-layout (location = 11) uniform sampler2D mMountNorm;
-layout (location = 12) uniform sampler2D mDirtNorm;
-layout (location = 13) uniform sampler2D mSnowNorm;
+layout (location = 9) uniform sampler2D mSnow;
+layout (location = 10) uniform sampler2D mGrassNorm;
+layout (location = 11) uniform sampler2D mSandNorm;
+layout (location = 12) uniform sampler2D mMountNorm;
+layout (location = 13) uniform sampler2D mDirtNorm;
+layout (location = 14) uniform sampler2D mSnowNorm;
 
 layout (location = 15) uniform bool blinn;
 
@@ -87,7 +88,7 @@ void main()
 
 	// Colors for if we don't have the texture
 	vec3 ppeak = vec3(213.0, 213.0, 213.0) / 255;
-	vec3 peak = vec3(168.0,198.0,249.0) / 255;
+	vec3 peak = textureNoTile( mSnow, texcoord ).xyz;
 	vec3 mtn = textureNoTile( mMnt, texcoord ).xyz;
 	vec3 dirt = textureNoTile( mDirt, texcoord ).xyz;
 	vec3 grass = textureNoTile( mGrass, texcoord ).xyz;

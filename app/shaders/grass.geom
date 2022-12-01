@@ -71,7 +71,7 @@ void main()
 		vLocalSeed = vGrassFieldPos*float(i);
 		int iGrassPatch = randomInt(0, 3);
 		
-		float fGrassPatchHeight = 3.5+randZeroOne()*2.0;
+		float fGrassPatchHeight = 2.5+randZeroOne()*1.0;
 	
 		float fTCStartX = float(iGrassPatch)*0.25f;
 		float fTCEndX = fTCStartX+0.25f;
