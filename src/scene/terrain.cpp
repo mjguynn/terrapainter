@@ -38,12 +38,14 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     glGenBuffers(1, &mSeafloorVBO);
     glBindVertexArray(mSeafloorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, mSeafloorVBO);
+    float huge = 8192.0f;
+    float h = -16.0f;
     static float SEAFLOOR_VERTS[] = {
         // POSITION (XYZ)		// NORMAL (XYZ)     // TANGENT (XYZ)
-        -1.0f,	1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
-        -1.0f,	-1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
-        1.0f,	1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // this formatting is intentional!
-        1.0f,	-1.0f,	0.0f,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f  // wfdasdsag
+        -huge,	huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
+        -huge,	-huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
+        huge,	huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // this formatting is intentional!
+        huge,	-huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f  // wfdasdsag
     };
     glBufferData(GL_ARRAY_BUFFER, sizeof(SEAFLOOR_VERTS), SEAFLOOR_VERTS, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(0));
@@ -229,9 +231,7 @@ void Terrain::draw(const RenderCtx &c) const
         // the biggest hack of all time, super unstable, awful, etc
         // this depends on the shader state being the same since the previous invocation
         glBindVertexArray(mSeafloorVAO);
-        mat4 seafloorXform = modelToWorld * mat4::translate_hmg(vec3(c.viewPos.x, c.viewPos.y, -16.0f))
-            * mat4::diag(8192, 8192, 1, 1);
-        mHeightmap.mat().setMat4Float("u_modelToWorld", seafloorXform);
+        mHeightmap.mat().setMat4Float("u_modelToWorld", modelToWorld);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
