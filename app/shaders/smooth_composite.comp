@@ -14,9 +14,8 @@ void passthrough(ivec2 coords) {
 	vec4 src = imageLoad(u_src, coords);
 	imageStore(u_dst, coords, src);
 }
-void blur(ivec2 coords, float amount) {
+void blur(ivec2 coords, float radius) {	
 	vec2 size = vec2(textureSize(u_integral, 0));
-	float radius = u_blurRadius * amount;
 	
 	// Why do we need this when out-of-bounds reads are okay?
 	// Because continuing the current integral is *not* correct behavior
@@ -42,10 +41,10 @@ void blur(ivec2 coords, float amount) {
 void main() {
 	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
 	float amount = imageLoad(u_stroke, coords).r;
-	// This should be exactly 0 but it produces artifacts.
-	if (amount <= 0.01f) {
+	float radius = u_blurRadius * amount;
+	if (radius <= 0.5f) {
 		passthrough(coords);
 	} else {
-		blur(coords, amount);
+		blur(coords, radius);
 	}
 }
