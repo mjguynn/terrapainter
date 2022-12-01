@@ -102,7 +102,7 @@ void lookup_properties(float height, out vec3 color, out vec3 normal) {
 		colorB = textureNoTile( mDirt, v_texcoord );
 		normal = texture( mGrassNorm, v_texcoord ).xyz;
 	} else if (height >= 0.0) {
-		blend = smoothstep(0f, 3.5f, height);
+		blend = smoothstep(0.f, 3.5f, height);
 		colorA = textureNoTile( mSand, v_texcoord );
 		colorB = textureNoTile( mGrass, v_texcoord );
 		normal = texture( mSandNorm, v_texcoord ).xyz;

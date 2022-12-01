@@ -1,113 +1,141 @@
 #version 430 core
 
-const float cloudscale = 6.1;
-const float speed = 0.03;
-const float clouddark = 0.5;
-const float cloudlight = 0.3;
-const float cloudcover = 0.2;
-const float cloudalpha = 8.0;
-const float skytint = 0.5;
-const vec3 skycolour1 = vec3(0.2, 0.4, 0.6);
-const vec3 skycolour2 = vec3(0.4, 0.7, 1.0);
-
 in vec2 uv;
 uniform float iTime;
 
 out vec4 fragColor;
 
+const float cloudscale = 10.1;
+const float speed = 0.01;
+const float clouddark = 0.5;
+const float cloudlight = 0.3;
+const float cloudcover = 0.3;
+const float cloudalpha = 8.0;
+const float skytint = 0.5;
+const vec3 skycolour = vec3(75.,107.,146.) / 255;
 
 const mat2 m = mat2( 1.6,  1.2, -1.2,  1.6 );
 
-vec2 hash( vec2 p ) {
-	p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+float random2(vec2 p) {
+  return fract(sin(dot(p, vec2(12.121213, 4.1231))) * 43256.12039);
 }
 
-float noise( in vec2 p ) {
-    const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-    const float K2 = 0.211324865; // (3-sqrt(3))/6;
-	  vec2 i = floor(p + (p.x+p.y)*K1);	
-    vec2 a = p - i + (i.x+i.y)*K2;
-    vec2 o = (a.x>a.y) ? vec2(1.0,0.0) : vec2(0.0,1.0); //vec2 of = 0.5 + 0.5*vec2(sign(a.x-a.y), sign(a.y-a.x));
-    vec2 b = a - o + K2;
-	  vec2 c = a - 1.0 + 2.0*K2;
-    vec3 h = max(0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
-	  vec3 n = h*h*h*h*vec3( dot(a,hash(i+0.0)), dot(b,hash(i+o)), dot(c,hash(i+1.0)));
-    return dot(n, vec3(70.0));	
+vec2 random2_2(vec2 p) {
+  return 2.0 * fract(
+  sin(
+      vec2(
+          dot(p, vec2(12.121213, 15.1231)),
+          dot(p, vec2(2.9383, 8.1234))
+          )) * 43256.12039) - 1.0;
 }
 
-float fbm(vec2 n) {
-	float total = 0.0, amplitude = 0.1;
-	for (int i = 0; i < 7; i++) {
-		total += noise(n) * amplitude;
-		n = m * n;
-		amplitude *= 0.4;
-	}
-	return total;
+float noise(vec2 p) {
+  vec2 i_pos = floor(p);
+  vec2 f_pos = fract(p);
+      
+  float col = 0.0;
+  
+  // value noise
+  //float ll = random2(i_pos);
+  //float lr = random2(i_pos + vec2(1.0, 0.0));
+  //float ul = random2(i_pos + vec2(0.0, 1.0));
+  //float ur = random2(i_pos + vec2(1.0, 1.0));
+  
+  // gradient noise
+  float ll = dot(random2_2(i_pos), f_pos);
+  float lr = dot(random2_2(i_pos + vec2(1.0, 0.0)), f_pos - vec2(1.0, 0.0));
+  float ul = dot(random2_2(i_pos + vec2(0.0, 1.0)), f_pos - vec2(0.0, 1.0));
+  float ur = dot(random2_2(i_pos + vec2(1.0, 1.0)), f_pos - vec2(1.0, 1.0));
+      
+  // cubic interpolation (smoothstep)
+  vec2 u = f_pos*f_pos*(3.0-2.0*f_pos);
+  
+  // quintic interpolation
+  //vec2 u = f_pos * f_pos * f_pos * (6.0 * f_pos * f_pos - 15. * f_pos + 10.);
+  
+  col = mix (
+          mix( ll, lr, u.x),
+          mix( ul, ur, u.x),
+          u.y);
+  
+  return col;
 }
 
-// -----------------------------------------------
+float fbm (in vec2 p ) {
+  const int octaves = 3;
+  float lacunarity = 2.0;
+  float gain = 0.5;
+
+  float amp = 0.5;
+  float freq = 1.;
+  
+  float h = 0.;
+  
+  for (int i = 0; i <= octaves; i++) {
+      float b = noise(freq * p);
+      h += amp * b;
+      freq *= lacunarity;
+      amp *= gain;
+  }
+  
+  return h/2.;
+}
+
+float anoise(vec2 uv, float w, float sp, float sc, float q) {
+  float r = 0.0;
+  float time = iTime * speed * sp;
+	uv *= cloudscale * sc;
+  uv -= q - time;
+  for (int i=0; i<7; i++){
+    r += abs(w*noise(uv));
+    uv = m*uv + time;
+    w *= 0.7;
+  }
+  return r;
+}
+
+float snoise(vec2 uv, float w, float sp, float sc, float q) {
+  float r = 0.0;
+  float time = iTime * speed * sp;
+	uv *= cloudscale * sc;
+  uv -= q - time;
+  for (int i=0; i<7; i++){
+    r += (w*noise(uv));
+    uv = m*uv + time;
+    w *= 0.6;
+  }
+  return r;
+}
 
 void main() {
-  float q = fbm(uv * cloudscale * 0.5);
-  float time = iTime * speed;
-  
-  //ridged noise shape
-	float r = 0.0;
-	vec2 new_uv = uv * cloudscale;
-  new_uv -= q - time;
-  float weight = 0.8;
-  for (int i=0; i<8; i++){
-    r += abs(weight*noise( new_uv ));
-    new_uv = m*new_uv+ time;
-    weight *= 0.7;
-  } 
 
-  //noise shape
-	float f = 0.0;
-  new_uv = uv * cloudscale;
-  new_uv -= q - time;
-  weight = 0.7;
-  for (int i=0; i<8; i++){
-    f += weight*noise( new_uv );
-    new_uv = m*new_uv + time;
-    weight *= 0.6;
-  }
+  float time = iTime * speed;
+  float q = fbm(uv * cloudscale * 0.5);
+
+	//ridged noise shape
+  float r = anoise(uv, .8, 1., 1., q);
+  float f = snoise(uv, 0.7, 1., 1., q);
   
   f *= r + f;
-    
+  
   //noise colour
-  float c = 0.0;
-  time = iTime * speed * 2.0;
-  new_uv = uv*cloudscale*2.0;
-  new_uv -= q - time;
-  weight = 0.4;
-  for (int i=0; i<7; i++){
-    c += weight*noise( new_uv );
-    new_uv = m*new_uv + time;
-    weight *= 0.6;
-  }
-
-  //noise ridge colour
-  float c1 = 0.0;
-  time = iTime * speed * 3.0;
-  new_uv = uv*cloudscale*3.0;
-  new_uv -= q - time;
-  weight = 0.4;
-  for (int i=0; i<7; i++){
-    c1 += abs(weight*noise( new_uv ));
-    new_uv = m*new_uv + time;
-    weight *= 0.6;
-  }
+  float c = snoise(uv, .4, 2., 2., q);
+  float c1 = anoise(uv, .4, 3., 3., q);
 
   c += c1;
   
-  vec3 skycolour = mix(skycolour2, skycolour1, uv.y);
   vec3 cloudcolour = vec3(1.1, 1.1, 0.9) * clamp((clouddark + cloudlight*c), 0.0, 1.0);
-  
   f = cloudcover + cloudalpha*f*r;
+
+  // 0 treated as sky, 1 treated as cloud
+  float intensity = clamp(f + c, 0.0, 1.0);
   
-  vec3 result = mix(skycolour, clamp(skytint * skycolour + cloudcolour, 0.0, 1.0), clamp(f + c, 0.0, 1.0));
+  // mix with skycolor and cloud color
+  vec3 result = mix(skycolour, clamp(skytint * skycolour + cloudcolour, 0.0, 1.0), intensity);
+
+  // Set alpha lower around edges
+  float d = length(2.*uv - 1.);
+  float al = smoothstep(0.4, 0.2, d);
   
-	fragColor = vec4( result, 1.0 );
+	fragColor = vec4( result, smoothstep(0.0, 1.0, al*sqrt(intensity)));
 }
