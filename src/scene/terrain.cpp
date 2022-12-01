@@ -5,20 +5,19 @@
 #include "../material.h"
 
 static std::array<Texture, 9> textures = {
-    Texture{ "mSand", "sand.png" },
-    Texture{ "mGrass", "grass.png" },
-    Texture{ "mDirt", "dirt.png" },
-    Texture{ "mMnt", "mountain.png" },
-    Texture{ "mGrassNorm", "grass-normal.png" },
-    Texture{ "mMountNorm", "mountain-normal.png" },
-    Texture{ "mSandNorm", "sand-normal.png" },
-    Texture{ "mSnowNorm", "snow-normal.png" },
-    Texture{ "mDirtNorm", "dirt-normal.png" }
-};
+    Texture{"mSand", "sand.png"},
+    Texture{"mGrass", "grass.png"},
+    Texture{"mDirt", "dirt.png"},
+    Texture{"mMnt", "mountain.png"},
+    Texture{"mGrassNorm", "grass-normal.png"},
+    Texture{"mMountNorm", "mountain-normal.png"},
+    Texture{"mSandNorm", "sand-normal.png"},
+    Texture{"mSnowNorm", "snow-normal.png"},
+    Texture{"mDirtNorm", "dirt-normal.png"}};
 Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale),
-    mGrassProgram(g_shaderMgr.geometry("grass")),
-    mHeightmap(Material("heightmap", std::span(textures)))
+      mGrassProgram(g_shaderMgr.geometry("grass")),
+      mHeightmap(Material("heightmap", std::span(textures)))
 {
     mGrassProgram = g_shaderMgr.geometry("grass");
     glGenVertexArrays(1, &mGrassVAO);
@@ -163,7 +162,8 @@ void Terrain::generate(const Canvas &source)
     // -------------------------Grass (END) --------------------------------------
     mHeightmap.setGeometry(std::move(tGeo));
 }
-void Terrain::draw(const RenderCtx& c) const {
+void Terrain::draw(const RenderCtx &c) const
+{
     const mat4 modelToWorld = world_transform();
     glUseProgram(mHeightmap.mat().id());
     mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
@@ -173,7 +173,7 @@ void Terrain::draw(const RenderCtx& c) const {
     mHeightmap.mat().set3Float("u_viewPos", c.viewPos);
     mHeightmap.mat().set4Float("u_cullPlane", c.cullPlane);
     mHeightmap.draw();
-    
+
     float time = double(SDL_GetTicks64()) / 1000.0;
     glUseProgram(mGrassProgram->id());
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
