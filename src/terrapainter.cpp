@@ -13,7 +13,8 @@
 
 #include "shadermgr.h"
 
-enum class AppState : size_t {
+enum class AppState : size_t
+{
     Canvas = 0,
     World = 1,
 
@@ -23,56 +24,59 @@ enum class AppState : size_t {
 
 constexpr size_t NUM_STATES = size_t(AppState::Shutdown);
 
-static void process_window_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+static void process_window_event(const std::array<IApp *, NUM_STATES> &apps, AppState &appState, const SDL_Event &event)
+{
     // Strictly speaking we should also check the window ID, but we only have one window right now.
-    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+    if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+    {
         appState = AppState::Shutdown;
     }
 }
 
-static void process_keyboard_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event, bool& showMetricsWindow) {
-    const Uint8* keys = SDL_GetKeyboardState(nullptr);
+static void process_keyboard_event(const std::array<IApp *, NUM_STATES> &apps, AppState &appState, const SDL_Event &event, bool &showMetricsWindow)
+{
+    const Uint8 *keys = SDL_GetKeyboardState(nullptr);
     SDL_Keycode pressed = event.key.keysym.sym;
-    if (event.type == SDL_KEYDOWN && pressed == SDLK_F5) {
+    if (event.type == SDL_KEYDOWN && pressed == SDLK_F5)
+    {
         g_shaderMgr.refresh();
     }
-    else if (event.type == SDL_KEYDOWN && pressed == SDLK_F3) {
+    else if (event.type == SDL_KEYDOWN && pressed == SDLK_F3)
+    {
         showMetricsWindow = !showMetricsWindow;
     }
-    else if (event.type == SDL_KEYDOWN && pressed == SDLK_SPACE) {
+    else if (event.type == SDL_KEYDOWN && pressed == SDLK_SPACE)
+    {
         // Cycle through apps
         apps.at(size_t(appState))->deactivate();
         appState = static_cast<AppState>((size_t(appState) + 1) % NUM_STATES);
         apps.at(size_t(appState))->activate();
     }
-    else {
+    else
+    {
         apps[size_t(appState)]->process_event(event);
     }
 }
 
-static void process_mouse_event(const std::array<IApp*, NUM_STATES>& apps, AppState& appState, const SDL_Event& event) {
+static void process_mouse_event(const std::array<IApp *, NUM_STATES> &apps, AppState &appState, const SDL_Event &event)
+{
     apps.at(size_t(appState))->process_event(event);
 }
 
-void terrapainter::run(SDL_Window* window) {
-    // Keep these in sync with heightmap.frag and water.cpp
-    const float WATER_HEIGHT = 0.0f;
-    const float DWATER_HEIGHT = -16.0f;
-
-    ImGuiIO& io = ImGui::GetIO();
+void terrapainter::run(SDL_Window *window)
+{
+    ImGuiIO &io = ImGui::GetIO();
 
     Canvas canvas(window);
     canvas.register_tool(tools::paint());
     canvas.register_tool(tools::splatter());
-    canvas.set_canvas(ivec2{ 512, 512 }, nullptr);
+    canvas.set_canvas(ivec2{512, 512}, nullptr);
     World world(canvas);
-    auto w = std::make_unique<Water>(WATER_HEIGHT, DWATER_HEIGHT, world.reflection_texture(), &canvas);
-    Water* water = w.get();
-    world.add_child(std::move(w));
+    world.add_child(std::make_unique<Water>(world.reflection_texture(), &canvas));
     world.add_child(std::make_unique<Sky>("skybox"));
     std::array<IApp*, NUM_STATES> apps = {
         &canvas, // AppState::Canvas
-        &world // AppState::World
+        &world   // AppState::World
     };
     AppState appState = AppState::Canvas;
     apps.at(size_t(appState))->activate();
@@ -88,7 +92,8 @@ void terrapainter::run(SDL_Window* window) {
 
     // Run the event loop
     SDL_Event event;
-    while (true) {
+    while (true)
+    {
         float currentFrame = static_cast<float>(SDL_GetTicks64()) * 0.001f;
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -96,51 +101,58 @@ void terrapainter::run(SDL_Window* window) {
         // ~~~~~~~ The Holy Message Pump ~~~~~~~~
         // Mostly we just dispatch to the current app, but we add a few global inputs
         // (like F5 for shader refresh) and do some filtering to play nice with Imgui
-        while (SDL_PollEvent(&event) && appState != AppState::Shutdown) {
+        while (SDL_PollEvent(&event) && appState != AppState::Shutdown)
+        {
             // Always send events to SDL
             ImGui_ImplSDL2_ProcessEvent(&event);
-            switch (event.type) {
-                case SDL_QUIT:
+            switch (event.type)
+            {
+            case SDL_QUIT:
+                appState = AppState::Shutdown;
+                continue;
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+                {
                     appState = AppState::Shutdown;
-                    continue;
-                case SDL_WINDOWEVENT:
-                    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
-                        appState = AppState::Shutdown;
-                    }
-                    continue;
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                    if (!io.WantCaptureKeyboard) {
-                        process_keyboard_event(apps, appState, event, showMetricsWindow);
-                    }
-                    continue;
-                case SDL_MOUSEBUTTONDOWN:
-                case SDL_MOUSEBUTTONUP:
-                case SDL_MOUSEMOTION:
-                case SDL_MOUSEWHEEL:
-                    if (!io.WantCaptureMouse) {
-                        process_mouse_event(apps, appState, event);
-                    }
-                    continue;
-                default:
-                    continue;
+                }
+                continue;
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+                if (!io.WantCaptureKeyboard)
+                {
+                    process_keyboard_event(apps, appState, event, showMetricsWindow);
+                }
+                continue;
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+            case SDL_MOUSEMOTION:
+            case SDL_MOUSEWHEEL:
+                if (!io.WantCaptureMouse)
+                {
+                    process_mouse_event(apps, appState, event);
+                }
+                continue;
+            default:
+                continue;
             }
         }
         // Something in the update loop might have told us to shutdown...
-        if (appState == AppState::Shutdown) break;
+        if (appState == AppState::Shutdown)
+            break;
 
         // This makes dragging windows feel snappy
         io.MouseDrawCursor = ImGui::IsAnyItemFocused() && ImGui::IsMouseDragging(0);
-        
+
         // Test for window resizes...
         ivec2 newViewportSize;
         SDL_GetWindowSizeInPixels(window, &newViewportSize.x, &newViewportSize.y);
-        if (newViewportSize != viewportSize) {
+        if (newViewportSize != viewportSize)
+        {
             glViewport(0, 0, newViewportSize.x, newViewportSize.y);
             viewportSize = newViewportSize;
         }
 
-        IApp* app = apps.at(size_t(appState));
+        IApp *app = apps.at(size_t(appState));
         app->process_frame(deltaTime);
         app->render(viewportSize);
 
@@ -149,7 +161,8 @@ void terrapainter::run(SDL_Window* window) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         app->run_ui();
-        if(showMetricsWindow) ImGui::ShowMetricsWindow(&showMetricsWindow);
+        if (showMetricsWindow)
+            ImGui::ShowMetricsWindow(&showMetricsWindow);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

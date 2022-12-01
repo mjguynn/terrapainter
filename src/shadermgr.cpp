@@ -50,35 +50,36 @@ std::optional<GLuint> load_shader_from_file(GLenum shaderType, std::string path)
 
 	return shader;
 }
-ShaderManager::Program::Program() 
+Program::Program() 
 	: mProgram(glCreateProgram()), 
-	vertex(std::nullopt), 
-	geometry(std::nullopt),
-	fragment(std::nullopt), 
-	compute(std::nullopt) 
+	mVertex(std::nullopt), 
+	mGeometry(std::nullopt),
+	mFragment(std::nullopt), 
+	mCompute(std::nullopt),
+	mAttrs(),
+	mUniforms()
 {
 	// Nothing else, for now
 }
-ShaderManager::Program::Program(Program&& moved) noexcept
+Program::Program(Program&& moved) noexcept
 	: mProgram(moved.mProgram),
-	vertex(std::move(moved.vertex)),
-	geometry(std::move(moved.geometry)),
-	fragment(std::move(moved.fragment)),
-	compute(std::move(moved.compute))
+	mVertex(std::move(moved.mVertex)),
+	mGeometry(std::move(moved.mGeometry)),
+	mFragment(std::move(moved.mFragment)),
+	mCompute(std::move(moved.mCompute)),
+	mAttrs(std::move(moved.mAttrs)),
+	mUniforms(std::move(moved.mUniforms))
 {
 	moved.mProgram = 0;
 }
-ShaderManager::Program::~Program() { 
+Program::~Program() { 
 	// TODO: This is UB if its called while program is closing?
 	// The program is closing though so idk if its an issue
 	if (mProgram) {
 		glDeleteProgram(mProgram);
 	}
 }
-GLuint ShaderManager::Program::id() const { 
-	return mProgram; 
-}
-bool ShaderManager::Program::rebuild() {
+bool Program::rebuild() {
 	std::vector<GLuint> shaders;
 	bool stageCompilationFailed = false;
 
@@ -93,10 +94,10 @@ bool ShaderManager::Program::rebuild() {
 		}
 	};
 
-	try_compile(GL_VERTEX_SHADER, vertex);
-	try_compile(GL_GEOMETRY_SHADER, geometry);
-	try_compile(GL_FRAGMENT_SHADER, fragment);
-	try_compile(GL_COMPUTE_SHADER, compute);
+	try_compile(GL_VERTEX_SHADER, mVertex);
+	try_compile(GL_GEOMETRY_SHADER, mGeometry);
+	try_compile(GL_FRAGMENT_SHADER, mFragment);
+	try_compile(GL_COMPUTE_SHADER, mCompute);
 
 	if (stageCompilationFailed) {
 		fprintf(stderr, "[error] shader linkage failed because one or more shaders failed to compile");
@@ -122,9 +123,53 @@ bool ShaderManager::Program::rebuild() {
 		fprintf(stderr, "[error] shader linkage failed\n[details]\n");
 		fprintf(stderr, "%s\n", info);
 		return false;
-	} else {
-		return true;
 	}
+
+	mUniforms.clear();
+
+	// Get all active uniforms and store them in map of uniform variable locations
+	int numUniforms;
+	glGetProgramiv(mProgram, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+	int maxUniformLength;
+	glGetProgramiv(mProgram, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLength);
+	if (maxUniformLength > 0) {
+		char* uniformBuffer = (char*)malloc(sizeof(char) * maxUniformLength);
+		for (int i = 0; i < numUniforms; i++)
+		{
+			int length, size;
+			GLenum dataType;
+			glGetActiveUniform(mProgram, i, maxUniformLength, &length, &size, &dataType, uniformBuffer);
+			GLint varLocation = glGetUniformLocation(mProgram, uniformBuffer);
+			std::string name = std::string(uniformBuffer, length);
+			mUniforms[name] = varLocation;
+		}
+		free(uniformBuffer);
+	}
+
+	// Do the same for attributes
+	int numAttribs;
+	glGetProgramiv(mProgram, GL_ACTIVE_ATTRIBUTES, &numAttribs);
+
+	int maxAttrLength;
+	glGetProgramiv(mProgram, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttrLength);
+	if (maxAttrLength > 0) {
+		char* attrBuffer = (char*)malloc(sizeof(char) * maxAttrLength);
+		for (int i = 0; i < numAttribs; i++)
+		{
+			int length, size;
+			GLenum dataType;
+			glGetActiveAttrib(mProgram, i, maxAttrLength, &length, &size, &dataType, attrBuffer);
+			GLint varLocation = glGetAttribLocation(mProgram, attrBuffer);
+			std::string name = std::string(attrBuffer, length);
+			mAttrs[name] = varLocation;
+		}
+
+		free(attrBuffer);
+	}
+	
+	return true;
+	
 }
 
 ShaderManager::ShaderManager() : mPrograms(), mScreenspaceVAO(0) {
@@ -132,49 +177,50 @@ ShaderManager::ShaderManager() : mPrograms(), mScreenspaceVAO(0) {
 }
 
 template<typename T>
-GLuint ShaderManager::find_or_create(std::string shaderName, T callback) {
+Program* ShaderManager::find_or_create(std::string shaderName, T callback) {
 	auto location = mPrograms.find(shaderName);
 	if (location != mPrograms.end()) {
-		return location->second.id();
+		return location->second;
 	}
-	Program p;
-	callback(&p);
-	GLuint id = p.id();
-	mPrograms.insert({ shaderName, std::move(p) });
-	return id;
+	// We *intentionally* leak this, since we want cached programs to persist until
+	// program termination and we don't particularly care what happens when we exit.
+	Program* p = new Program;
+	callback(p);
+	mPrograms.insert({ shaderName, p });
+	return p;
 }
-GLuint ShaderManager::graphics(std::string shaderName) {
+Program* ShaderManager::graphics(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
-		p->vertex = "shaders/"s + shaderName + ".vert";
-		p->fragment = "shaders/"s + shaderName + ".frag";
+		p->mVertex = "shaders/"s + shaderName + ".vert";
+		p->mFragment = "shaders/"s + shaderName + ".frag";
 		p->rebuild();
 	});
 }
-GLuint ShaderManager::screenspace(std::string shaderName) {
+Program* ShaderManager::screenspace(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
-		p->vertex = "shaders/screenspace.vert";
-		p->fragment = "shaders/"s + shaderName + ".frag";
+		p->mVertex = "shaders/screenspace.vert";
+		p->mFragment = "shaders/"s + shaderName + ".frag";
 		p->rebuild();
 	});
 }
-GLuint ShaderManager::compute(std::string shaderName) {
+Program* ShaderManager::compute(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
-		p->compute = "shaders/"s + shaderName + ".comp";
+		p->mCompute = "shaders/"s + shaderName + ".comp";
 		p->rebuild();
 	});
 }
-GLuint ShaderManager::geometry(std::string shaderName) {
+Program* ShaderManager::geometry(std::string shaderName) {
 	return find_or_create(shaderName, [shaderName](Program* p) {
-		p->vertex = "shaders/"s + shaderName + ".vert";
-		p->geometry = "shaders/"s + shaderName + ".geom";
-		p->fragment = "shaders/"s + shaderName + ".frag";
+		p->mVertex = "shaders/"s + shaderName + ".vert";
+		p->mGeometry = "shaders/"s + shaderName + ".geom";
+		p->mFragment = "shaders/"s + shaderName + ".frag";
 		p->rebuild();
 	});
 }
 void ShaderManager::refresh() {
 	fprintf(stderr, "[info] refreshing all shaders...");
 	for (auto& [_, program] : mPrograms) {
-		program.rebuild();
+		program->rebuild();
 	}
 	fprintf(stderr, " done\n");
 }

@@ -2,12 +2,14 @@
 #include <glad/gl.h>
 
 #include "terrapainter/scene/entity.h"
+#include "../mesh.h"
 
 class Sky : public Entity {
 	GLuint mTexture;
 	GLuint mVAO;
 	GLuint mVBO;
-	GLuint mProgram;
+	Program* mSkyboxProgram;
+	std::unique_ptr<Mesh> mClouds;
 public:
 	Sky(std::string skyboxName);
 	~Sky() noexcept override;

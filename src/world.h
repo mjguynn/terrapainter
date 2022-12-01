@@ -6,6 +6,7 @@
 #include "terrapainter/scene/entity.h"
 #include "scene/controllers.h"
 #include "scene/terrain.h"
+#include "scene/sky.h"
 
 // This is kind of a misnomer, as its conflating the "world" (in a scene 
 // graph sense) with a bunch of app logic. This is the cause of the ICKY 

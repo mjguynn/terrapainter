@@ -1,6 +1,8 @@
 #include "sky.h"
 #include "../helpers.h"
 #include "../shadermgr.h"
+#include <SDL.h>
+
 Sky::Sky(std::string skyboxName) 
 	: Entity(vec3::zero(), vec3::zero(), vec3::splat(1))
 {
@@ -80,7 +82,35 @@ Sky::Sky(std::string skyboxName)
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    mProgram = g_shaderMgr.graphics("sky");
+    mSkyboxProgram = g_shaderMgr.graphics("sky");
+
+	float length = 8192 * 3;
+
+	std::vector<float> positions{
+		+length, +length, 3000.0f,
+		+length, -length, 3000.0f,
+		-length, -length, 3000.0f,
+		-length, +length, 3000.0f,
+	};
+
+	std::vector<float> uvs{
+		1.f, 1.f,
+		1.0f, 0.0f,
+		0.0f, 0.0f,
+		0.0f, 1.0f
+	};
+
+	std::vector<unsigned int> ind{
+		0, 1, 3,
+		1, 2, 3
+	};
+
+	Geometry tGeo = Geometry();
+	tGeo.setIndex(ind);
+	tGeo.setAttr("position", Attribute(&positions, 3));
+	tGeo.setAttr("texcoord", Attribute(&uvs, 2));
+
+	mClouds = std::make_unique<Mesh>( Material("clouds"), std::move(tGeo));
 }
 Sky::~Sky() noexcept {
 	assert(mTexture);
@@ -91,9 +121,12 @@ Sky::~Sky() noexcept {
 	glDeleteVertexArrays(1, &mVBO);
 }
 void Sky::draw(const RenderCtx& c) const {
+
+	mat4 translate = mat4::translate_hmg(c.viewPos);
+
     glBindVertexArray(mVAO);
-    glUseProgram(mProgram);
-    mat4 xform = mat4::translate_hmg(c.viewPos) * mat4::diag(8192, 8192, 8192, 1);
+    glUseProgram(mSkyboxProgram->id());
+    mat4 xform = translate * mat4::diag(8192, 8192, 8192, 1);
     glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
     glUniformMatrix4fv(1, 1, GL_TRUE, xform.data());
     glActiveTexture(GL_TEXTURE0);
@@ -102,4 +135,11 @@ void Sky::draw(const RenderCtx& c) const {
     glUniform3fv(3, 1, c.viewPos.data());
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
+
+	glUseProgram(mClouds->mat().id());
+	mClouds->mat().setMat4Float("u_worldToProjection", c.viewProj);
+	mClouds->mat().setMat4Float("u_modelToWorld", translate);
+	float time = double(SDL_GetTicks64()) / 1000.0;
+	mClouds->mat().setFloat("iTime", time);
+	mClouds->draw();
 }

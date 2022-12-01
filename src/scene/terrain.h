@@ -1,18 +1,28 @@
 #pragma once
 
 #include "terrapainter/scene/entity.h"
-#include "learnopengl/mesh.h"
+#include "../mesh.h"
 #include "../canvas.h"
+#include "../shadermgr.h"
 
-class Terrain : public Entity {
+class Terrain : public Entity
+{
 private:
-	GLuint mProgram;
-	std::unique_ptr<Mesh> mMesh;
+	// Terrain Material
+	Program* mGrassProgram;
+	Mesh mHeightmap;
+	GLuint mGrassVAO;
+	GLuint mGrassVBO;
+	GLuint mNumGrassTriangles;
+	GLuint mGrassTexture;
+	float mAlphaTest = 0.25f;
+	float mAlphaMultiplier = 1.5f;
+	
 public:
 	Terrain(vec3 position, vec3 angles, vec3 scale);
 	~Terrain() noexcept override;
 
-	void generate(const Canvas& source);
+	void generate(const Canvas &source);
 
 	void draw(const RenderCtx& c) const override;
 };

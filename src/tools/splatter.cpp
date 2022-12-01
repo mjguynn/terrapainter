@@ -31,8 +31,8 @@ class SplatterTool : public virtual ICanvasTool {
 	GLuint mQuadVAO;
 	GLuint mQuadVBO;
 
-	GLuint mCompositeProgram;
-	GLuint mRenderProgram; // used for rendering splats into buffer & rendering preview
+	Program* mCompositeProgram;
+	Program* mRenderProgram; // used for rendering splats into buffer & rendering preview
 	GLuint mFramebuffer; // used for rendering to the buffer
 
 	// pixels: rgba8
@@ -70,7 +70,7 @@ class SplatterTool : public virtual ICanvasTool {
 			* mat2::diag(scale.x, scale.y).hmg()
 			* mat2::rotate(rot).hmg();
 		glBindVertexArray(mQuadVAO);
-		glUseProgram(mRenderProgram);
+		glUseProgram(mRenderProgram->id());
 		glUniformMatrix3fv(0, 1, GL_TRUE, xform.data());
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mSplatTexture);
@@ -205,7 +205,7 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	void composite(GLuint dst, GLuint src) override {
-		glUseProgram(mCompositeProgram);
+		glUseProgram(mCompositeProgram->id());
 		// NOTE: layouts are hardcoded in the shader
 		glBindImageTexture(0, mBufferTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glBindImageTexture(1, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);

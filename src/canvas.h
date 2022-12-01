@@ -68,6 +68,7 @@
 
 #include "terrapainter/math.h"
 #include "terrapainter.h"
+#include "shadermgr.h"
 
 // The maximum supported size of the axis of a Canvas texture.
 constexpr size_t MAX_CANVAS_AXIS = 8192;
@@ -145,7 +146,7 @@ private:
 
 	// Handle to the program used for drawing the canvas onscreen
 	// This is pretty basic, pretty much just a blit
-	GLuint mCanvasProgram;
+	Program* mCanvasProgram;
 
 	// VAO and VBO for the quad used for drawing the canvas
 	GLuint mCanvasVAO;

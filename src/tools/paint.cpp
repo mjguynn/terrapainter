@@ -21,11 +21,11 @@ class PaintTool : public virtual ICanvasTool {
 	// One-channel "mask" storing the current stroke's shape
 	GLuint mStrokeTexture;
 	// Compute shader used for drawing the stroke into the texture
-	GLuint mStrokeProgram;
+	Program* mStrokeProgram;
 	// Compute shader using for compositing the stroke onto the canvas
-	GLuint mCompositeProgram;
+	Program* mCompositeProgram;
 	// Screenspace fragment shader used for drawing the stroke preview
-	GLuint mPreviewProgram;
+	Program* mPreviewProgram;
 
 public:
 	PaintTool() {
@@ -100,7 +100,7 @@ public:
 		ivec2 size = total.max - total.min;
 		// TODO compute offset
 		// TODO compute region size
-		glUseProgram(mStrokeProgram);
+		glUseProgram(mStrokeProgram->id());
 		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 		glUniform2iv(1, 1, total.min.data());
 		glUniform2fv(2, 1, mLastBrushPos.data());
@@ -111,7 +111,7 @@ public:
 		mLastBrushPos = canvasMouse;
 	}
 	void composite(GLuint dst, GLuint src) override {
-		glUseProgram(mCompositeProgram);
+		glUseProgram(mCompositeProgram->id());
 		// NOTE: layouts are hardcoded in the shader
 		glBindImageTexture(0, mStrokeTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8);
 		glBindImageTexture(1, src, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
@@ -130,7 +130,7 @@ public:
 		// >	API_ID_RECOMPILE_FRAGMENT_SHADER performance warning has been generated. 
 		// >	Fragment shader recompiled due to state change.
 		// Can't figure out what this means, it doesn't seem to be causing any issues.
-		g_shaderMgr.begin_screenspace(mPreviewProgram);
+		g_shaderMgr.begin_screenspace(mPreviewProgram->id());
 		// NOTE: Layouts are hardcoded in the shader
 		glUniform2i(0, screenMouse.x, screenMouse.y);
 		glUniform4f(1, 0.0f, mBrushRadius, mBrushHardness, canvasScale);

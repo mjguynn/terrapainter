@@ -41,4 +41,5 @@ build/
 app/terrapainter*
 app/SDL2.dll
 app/SDL2d.dll
+app/libSDL*
 app/imgui.ini

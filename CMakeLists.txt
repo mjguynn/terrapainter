@@ -39,6 +39,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nfd)
 
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG        v5.2.5
+    GIT_SHALLOW true
+    GIT_PROGRESS true
+)
+FetchContent_MakeAvailable(assimp)
+
 # ================== TERRAPAINTER SETUP ======================
 # Dummy library which exists to "bundle up" all the shared compile options
 add_library(terrapainter_shared INTERFACE)
@@ -134,8 +143,11 @@ set(terrapainter_SOURCES
 	"${CMAKE_SOURCE_DIR}/src/tools/splatter.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/terrain.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/water.cpp"
+	"${CMAKE_SOURCE_DIR}/src/scene/sky.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/controllers.cpp"
 	"${CMAKE_SOURCE_DIR}/src/scene/sky.cpp"
+	"${CMAKE_SOURCE_DIR}/src/material.cpp"
+	"${CMAKE_SOURCE_DIR}/src/geometry.cpp"
 )
 set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/terrapainter.h"
@@ -146,8 +158,14 @@ set(terrapainter_HEADERS
 	"${CMAKE_SOURCE_DIR}/src/tools/canvas_tools.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/terrain.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/water.h"
+	"${CMAKE_SOURCE_DIR}/src/scene/sky.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/controllers.h"
 	"${CMAKE_SOURCE_DIR}/src/scene/sky.h"
+	"${CMAKE_SOURCE_DIR}/src/mesh.h"
+	"${CMAKE_SOURCE_DIR}/src/attribute.h"
+	"${CMAKE_SOURCE_DIR}/src/material.h"
+	"${CMAKE_SOURCE_DIR}/src/geometry.h"
+	"${CMAKE_SOURCE_DIR}/src/model.h"
 )
 
 add_executable(terrapainter ${terrapainter_SOURCES} ${terrapainter_HEADERS})
@@ -169,6 +187,7 @@ target_link_libraries(terrapainter PRIVATE
 	glad
 	nfd
 	stb
+	assimp
 	${CMAKE_DL_LIBS}
 )
 
