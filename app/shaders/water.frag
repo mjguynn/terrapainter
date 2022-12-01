@@ -61,7 +61,7 @@ float foam_factor_2(vec3 normal, float height) {
 vec3 compute_mirror_reflection(vec3 viewDir, vec3 normal) {
 	vec2 screenCoords = vec2(gl_FragCoord) / vec2(u_screenSize);
 	vec3 refl = texture(u_reflectionTexture, screenCoords + normal.xy / 50).rgb;
-	float fac = clamp(1-dot(viewDir, normal), 0.7, 1);
+	float fac = clamp(1-dot(viewDir, normal), 0.7f, 1.0f);
 	return refl * fac;
 }
 float phong_factor(vec3 lightDir, vec3 viewDir, vec3 normal) {
@@ -88,7 +88,7 @@ void main()
 	vec4 foamed = mix(base, foam, foam_factor_2(normal, height));
 	
 	vec4 prewave = mix(foamed, vec4(1, 1, 1, 1), phong_factor(lightDir, viewDir, normal));
-	prewave.a -= max(4*(height-0.05), 0);
+	prewave.a -= max(4*(height-0.1), 0);
 	
 	vec4 waves = vec4(1, 1, 1, 1);
 	vec4 wavy = mix(prewave, waves, wave_factor(height, u_time));
