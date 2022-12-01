@@ -173,10 +173,10 @@ private:
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
         
         Material mMat = Material(shaderName, textures);
-        Mesh* mesh = new Mesh(mGeo, mMat);
+        Mesh* nMesh = new Mesh(mGeo, mMat);
 
         // return a mesh object created from the extracted mesh data
-        return mesh;
+        return nMesh;
     }
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet.

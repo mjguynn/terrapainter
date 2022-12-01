@@ -7,11 +7,14 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     : Entity(position, angles, scale)
 {
     mGrassProgram = g_shaderMgr.geometry("grass");
+    mTreeProgram = g_shaderMgr.graphics("tree");
+
     mMesh = nullptr;
     mGrassVAO = 0;
     mGrassVBO = 0;
     mNumGrassTriangles = 0;
 
+    // Terrain
     std::vector<Texture> mTexs;
     mTexs.push_back(Texture {"mSand", "sand.png"});
     mTexs.push_back(Texture {"mGrass", "grass.png"});
@@ -22,13 +25,16 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     mTexs.push_back(Texture {"mSandNorm", "sand-normal.png"});
     mTexs.push_back(Texture {"mSnowNorm", "snow-normal.png"});
     mTexs.push_back(Texture {"mDirtNorm", "dirt-normal.png"});
-
     tMat = new Material("heightmap", mTexs);
 
+    // Grass
     glGenTextures(1, &mGrassTexture);
     load_mipmap_texture(mGrassTexture, "grassPack.png");
     mAlphaTest = 0.25f;
     mAlphaMultiplier = 1.5f;
+
+    // Tree
+    treeModel = NULL;
 }
 Terrain::~Terrain() noexcept
 {
@@ -154,6 +160,9 @@ void Terrain::generate(const Canvas &source)
     glEnableVertexAttribArray(0);
 
     // -------------------------Grass (END) --------------------------------------
+
+    treeModel = new Model("models/tree1.obj", "tree");
+
 }
 void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 cullPlane) const
 {
@@ -162,7 +171,14 @@ void Terrain::draw(ivec2 viewportSize, const mat4 &viewProj, vec3 viewPos, vec4 
     if (!mMesh)
         return;
 
+
     const mat4 modelToWorld = world_transform();
+
+    // glUseProgram(mTreeProgram);
+    // glUniformMatrix4fv(0, 1, GL_TRUE, viewProj.data());
+    // glUniformMatrix4fv(1, 1, GL_TRUE, modelToWorld.data());
+    // treeModel->Draw();
+
     // TODO change this
     vec3 lightDir = {0.0f, 0.0f, -5.0f};
     glUseProgram(tMat->progID);

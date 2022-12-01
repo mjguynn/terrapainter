@@ -3,13 +3,16 @@
 #include "terrapainter/scene/entity.h"
 #include "terrapainter/scene/mesh.h"
 #include "../canvas.h"
+#include "terrapainter/scene/model.h"
 
 class Terrain : public Entity
 {
 private:
 	// Terrain Material
 	Material* tMat;
+	Model* treeModel;
 	GLuint mGrassProgram;
+	GLuint mTreeProgram;
 	std::unique_ptr<Mesh> mMesh;
 	GLuint mGrassVAO;
 	GLuint mGrassVBO;
@@ -21,7 +24,8 @@ private:
 	GLuint mGrassTexture;
 	float mAlphaTest = 0.25f;
 	float mAlphaMultiplier = 1.5f;
-	
+
+
 public:
 	Terrain(vec3 position, vec3 angles, vec3 scale);
 	~Terrain() noexcept override;
