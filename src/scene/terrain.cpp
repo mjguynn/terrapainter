@@ -41,17 +41,17 @@ Terrain::Terrain(vec3 position, vec3 angles, vec3 scale)
     float h = -16.0f;
     static float SEAFLOOR_VERTS[] = {
         // POSITION (XYZ)		// NORMAL (XYZ)     // TANGENT (XYZ)
-        -huge,	huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
-        -huge,	-huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // no autoformat
-        huge,	huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, // this formatting is intentional!
-        huge,	-huge,	h,	0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f  // wfdasdsag
+        -huge, huge, h, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,  // no autoformat
+        -huge, -huge, h, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, // no autoformat
+        huge, huge, h, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,   // this formatting is intentional!
+        huge, -huge, h, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f   // wfdasdsag
     };
     glBufferData(GL_ARRAY_BUFFER, sizeof(SEAFLOOR_VERTS), SEAFLOOR_VERTS, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid *)(0));
     glEnableVertexAttribArray(0); // POSITION
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1); // NORMAL
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (const GLvoid *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2); // TANGENT
 }
 Terrain::~Terrain() noexcept
@@ -189,7 +189,98 @@ void Terrain::generate(const Canvas &source)
     glEnableVertexAttribArray(0);
 
     // -------------------------Grass (END) --------------------------------------
+
+    // -------------------------Instancing ------------------------------------
+    unsigned int amount = 10;
+    mat4 *modelMatrices;
+    modelMatrices = new mat4[amount];
+    float offset = 25.0f;
+
+    unsigned int cur = 0;
+
+    for (int i = 0; i < tGeo.getAttr("position")->count; i++)
+    {
+        if (cur >= 10)
+        {
+            break;
+        }
+        vec3 vPos = vec3::splat(0.0);
+        tGeo.getAttr("position")->getXYZ(i, vPos);
+        float h = vPos.z;
+        vec3 n = vec3::splat(0.0);
+        tGeo.getAttr("normal")->getXYZ(i, n);
+
+        float fGrassPatchOffsetMin = 1.0f;
+        float fGrassPatchOffsetMax = 2.0f;
+
+        float probability = 0;
+        if (dot(n, vec3(0, 0, 1)) < 0.95)
+        {
+            probability = 0;
+        }
+        else if (h > 3 && h < 18)
+        {
+            probability = 0.001;
+        }
+        else
+        {
+            probability = 0;
+        }
+
+        if (rand() % 100 < probability * 100)
+        {
+            float scaleFactor = static_cast<float>((rand() % 20) / 100.0 + 0.05);
+            mat4 scale = mat3::scale(scaleFactor * 0.1).hmg();
+
+            mat4 rotation = mat3{
+                1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0}
+                                .hmg();
+
+            mat4 translation = mat4::translate_hmg(vPos);
+            mat4 model = translation * rotation * scale;
+
+            model = model.transpose();
+
+            std::cout << model << std::endl;
+
+            printf("adding matrix %d\n", cur);
+            // 4. now add to list of matrices
+            modelMatrices[cur] = model;
+            cur++;
+        };
+    }
+
     mHeightmap.setGeometry(std::move(tGeo));
+
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+    for (unsigned int i = 0; i < mTree.meshes.size(); i++)
+    {
+        unsigned int VAO = mTree.meshes[i]->VAO;
+        glBindVertexArray(VAO);
+        // set attribute pointers for matrix (4 times vec4)
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void *)0);
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void *)(sizeof(vec4)));
+        glEnableVertexAttribArray(7);
+        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void *)(2 * sizeof(vec4)));
+        glEnableVertexAttribArray(8);
+        glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void *)(3 * sizeof(vec4)));
+
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+        glVertexAttribDivisor(7, 1);
+        glVertexAttribDivisor(8, 1);
+
+        glBindVertexArray(0);
+    }
+    mTree.setInstance(amount);
 }
 void Terrain::draw(const RenderCtx &c) const
 {
@@ -202,21 +293,13 @@ void Terrain::draw(const RenderCtx &c) const
     glUniform3fv(3, 1, c.viewPos.data());
     glUniform3fv(4, 1, c.sunColor.data());
 
-    mat4 scale = mat3::scale(0.03).hmg();
-    mat4 rotation = mat3{
-        1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0}
-                        .hmg();
-    mat4 new_model = scale * rotation;
-    glUniformMatrix4fv(1, 1, GL_TRUE, new_model.data());
     mTree.Draw();
 
     // Terrain
     {
         // TODO HACK: This should really be fixed inside the mesh generation itself!
         // Instead we have to do this stupid leaky abstraction hack...
-        glFrontFace(c.inWaterPass  ? GL_CCW : GL_CW);
+        glFrontFace(c.inWaterPass ? GL_CCW : GL_CW);
         glUseProgram(mHeightmap.mat().id());
         mHeightmap.mat().setMat4Float("u_worldToProjection", c.viewProj);
         mHeightmap.mat().setMat4Float("u_modelToWorld", modelToWorld);
@@ -234,7 +317,8 @@ void Terrain::draw(const RenderCtx &c) const
     }
 
     // Grass
-    if (!c.inWaterPass) {
+    if (!c.inWaterPass)
+    {
         float time = double(SDL_GetTicks64()) / 1000.0;
         glUseProgram(mGrassProgram->id());
         glUniformMatrix4fv(0, 1, GL_TRUE, c.viewProj.data());
