@@ -6,7 +6,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -25,7 +24,7 @@ public:
     std::vector<std::pair<Texture, GLuint>> textures_loaded;
     vector<Mesh *> meshes;
     string directory;
-    Material* mMat;
+    Material *mMat;
 
     // constructor, expects a filepath to a 3D model.
     Model(string const &path, std::string shaderName)
@@ -46,6 +45,15 @@ public:
             meshes[i]->draw();
     }
 
+    void setInstance(int count)
+    {
+        for (unsigned int i = 0; i < meshes.size(); i++)
+        {
+            meshes[i]->setInstance(true);
+            meshes[i]->setInstanceCount(count);
+        }
+    }
+
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     void loadModel(string const &path, std::string shaderName)
@@ -53,7 +61,7 @@ private:
         // read file via ASSIMP
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(
-            path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_FlipWindingOrder );
+            path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_FlipWindingOrder);
         // check for errors
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
@@ -107,7 +115,8 @@ private:
             positions.push_back(mesh->mVertices[i].z);
 
             // normals
-            if (mesh->HasNormals()) {
+            if (mesh->HasNormals())
+            {
                 normals.push_back(mesh->mNormals[i].x);
                 normals.push_back(mesh->mNormals[i].y);
                 normals.push_back(mesh->mNormals[i].z);
@@ -170,12 +179,14 @@ private:
 
         Mesh *nMesh = new Mesh(Material(shaderName, textures));
 
-        for (auto && [t, id] : nMesh->mat().texs) {
+        for (auto &&[t, id] : nMesh->mat().texs)
+        {
             bool skip = false;
-            for(unsigned int j = 0; j < textures_loaded.size(); j++) {
-                if(std::strcmp(textures_loaded[j].first.path.data(), t.path.data()) == 0)
+            for (unsigned int j = 0; j < textures_loaded.size(); j++)
+            {
+                if (std::strcmp(textures_loaded[j].first.path.data(), t.path.data()) == 0)
                     skip = true;
-                    break;
+                break;
             }
             if (!skip)
                 textures_loaded.emplace_back(t, id);
@@ -199,18 +210,18 @@ private:
             std::string filename = this->directory + '/' + string(str.C_Str());
 
             bool skip = false;
-            for(unsigned int j = 0; j < textures_loaded.size(); j++)
+            for (unsigned int j = 0; j < textures_loaded.size(); j++)
             {
-                if(std::strcmp(textures_loaded[j].first.path.data(), filename.c_str()) == 0)
+                if (std::strcmp(textures_loaded[j].first.path.data(), filename.c_str()) == 0)
                 {
                     // found texture with same filepath
-                    textures.push_back( initTex {textures_loaded[j].second, textures_loaded[j].first} );
+                    textures.push_back(initTex{textures_loaded[j].second, textures_loaded[j].first});
                     printf("found texture with same path: %s\n", textures_loaded[j].first.path.c_str());
                     skip = true;
                     break;
                 }
             }
-            if(!skip)
+            if (!skip)
             {
                 // Texture has not been loaded in yet
                 initTex texture;
