@@ -159,7 +159,7 @@ void Terrain::generate(const Canvas &source)
 
         if (rand() % 100 < probability * 100)
         {
-            float vertOffset = 1.3;
+            float vertOffset = 0.8;
             grassVertices.push_back(vec3(vPos.x, vPos.y, vPos.z - vertOffset));
             float value = fGrassPatchOffsetMin + (fGrassPatchOffsetMax - fGrassPatchOffsetMin) * float(rand() % 1000) * 0.001f;
             float x = vPos.x + value;
@@ -220,7 +220,7 @@ void Terrain::generate(const Canvas &source)
         }
         else if (h > 3 && h < 18)
         {
-            probability = 0.001;
+            probability = 0.00001;
         }
         else
         {
@@ -229,8 +229,8 @@ void Terrain::generate(const Canvas &source)
 
         if (rand() % 100 < probability * 100)
         {
-            float scaleFactor = static_cast<float>((rand() % 20) / 100.0 + 0.05);
-            mat4 scale = mat3::scale(scaleFactor * 0.1).hmg();
+            float scaleFactor = static_cast<float>((rand() % 100) / 1000.0 + 0.1);
+            mat4 scale = mat3::scale(scaleFactor * 0.025).hmg();
 
             mat4 rotation = mat3{
                 1.0, 0.0, 0.0,

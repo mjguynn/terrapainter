@@ -81,7 +81,6 @@ public:
       case GL_TRIANGLES:
         if (mInstanced)
         {
-          printf("Drawing Instance with count %d\n", mInstanceAmount);
           glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(geo.indices->size()), GL_UNSIGNED_INT, 0, mInstanceAmount);
         }
         else
