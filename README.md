@@ -28,6 +28,8 @@ The brush controls are mostly what you'd expect. For ease of use, certain parame
 
 To switch between the canvas and the 3D view, press spacebar. You can move around in the 3D view with standard WASD controls. (Holding shift makes you move faster!) Pressing `CTRL-D` opens a camera control menu where you can adjust the camera's precise position, rotation, field of view, and clipping range.
 
+<img src=".github/ui.gif" width="500"/>
+
 ## Asset Credits (Incomplete)
 - Terrain Textures
     - https://www.textures.com/
